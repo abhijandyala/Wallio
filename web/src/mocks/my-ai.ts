@@ -1,4 +1,4 @@
-import type { Profile } from "@/lib/types";
+import type { Connection, Profile } from "@/lib/types";
 
 // SAMPLE DATA. Replace with GET /api/profile (latest confirmed version + pending inferences).
 
@@ -59,3 +59,20 @@ export const profileSample: Profile = {
     },
   ],
 };
+
+// SAMPLE DATA. Replace with GET /api/connections. GitHub import is outside the golden path,
+// so it is shown as sample data; the rest are labelled "coming later".
+export const connectionsSample: Connection[] = [
+  {
+    id: "con_github",
+    name: "GitHub",
+    status: "sample",
+    reads: "Languages and editor files in wallio-demo",
+  },
+  {
+    id: "con_receipts",
+    name: "Email receipts",
+    status: "coming_later",
+    reads: "Receipts from AI tools, to fill in prices",
+  },
+];

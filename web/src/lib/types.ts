@@ -24,6 +24,21 @@ export interface Subscription {
   renewsOn: string | null; // ISO date
   source: DataSource;
   status: "active" | "paused" | "archived";
+  /** Tools in the stack that cover the same job, as judged by the backend. */
+  overlapsWith?: string[];
+  /** When the price was last checked against a public source. null = never. */
+  lastCheckedOn?: string | null;
+  /** The vendor's own page for managing or cancelling the plan. */
+  manageUrl?: string | null;
+}
+
+/** An account Wallio reads from, and exactly what it may read. */
+export interface Connection {
+  id: string;
+  name: string;
+  /** "sample" = demo data standing in for a real connection. */
+  status: "connected" | "sample" | "coming_later";
+  reads: string;
 }
 
 export interface Claim {

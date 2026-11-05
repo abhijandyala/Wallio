@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { X } from "@phosphor-icons/react";
-import type { Subscription } from "@/lib/types";
+import { ArrowUpRight, X } from "@phosphor-icons/react";
+import type { DataSource, Subscription } from "@/lib/types";
+import { formatShortDate } from "@/lib/format";
 import { ToolMark } from "@/components/kit/tool-mark";
 import { Segmented } from "@/components/kit/segmented";
 import { Button } from "@/components/ui/button";
@@ -18,8 +19,8 @@ type Draft = {
   status: Subscription["status"];
 };
 
-const toDraft = (s: Subscription | null): Draft => ({
-  toolName: s?.toolName ?? "",
+const toDraft = (s: Subscription | null, preset?: string): Draft => ({
+  toolName: s?.toolName ?? preset ?? "",
   category: s?.category ?? "",
   plan: s?.plan ?? "",
   price: s?.renewalCents != null ? (s.renewalCents / 100).toFixed(2) : "",
@@ -36,12 +37,15 @@ const toDraft = (s: Subscription | null): Draft => ({
 export function ToolDrawer({
   open,
   tool,
+  presetName,
   onClose,
   onSave,
   onRemove,
 }: {
   open: boolean;
   tool: Subscription | null; // null = adding
+  /** When adding from a suggestion, the tool name to start with. */
+  presetName?: string;
   onClose: () => void;
   onSave: (s: Subscription) => void;
   onRemove: (id: string) => void;
@@ -50,8 +54,9 @@ export function ToolDrawer({
     <AnimatePresence>
       {open && (
         <DrawerBody
-          key={tool?.id ?? "new"}
+          key={tool?.id ?? `new-${presetName ?? ""}`}
           tool={tool}
+          presetName={presetName}
           onClose={onClose}
           onSave={onSave}
           onRemove={onRemove}
@@ -63,16 +68,18 @@ export function ToolDrawer({
 
 function DrawerBody({
   tool,
+  presetName,
   onClose,
   onSave,
   onRemove,
 }: {
   tool: Subscription | null;
+  presetName?: string;
   onClose: () => void;
   onSave: (s: Subscription) => void;
   onRemove: (id: string) => void;
 }) {
-  const [d, setD] = useState<Draft>(() => toDraft(tool));
+  const [d, setD] = useState<Draft>(() => toDraft(tool, presetName));
   const first = useRef<HTMLInputElement>(null);
   const adding = tool === null;
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) =>
@@ -110,8 +117,11 @@ function DrawerBody({
             : renewal,
       cadence: renewal === null ? "unknown" : d.cadence,
       renewsOn: d.renewsOn || null,
-      source: "manual",
+      source: tool?.source ?? "manual",
       status: d.status,
+      overlapsWith: tool?.overlapsWith ?? [],
+      lastCheckedOn: tool?.lastCheckedOn ?? null,
+      manageUrl: tool?.manageUrl ?? null,
     });
   };
 
@@ -167,6 +177,33 @@ function DrawerBody({
             save();
           }}
         >
+          {!adding && (
+            <dl className="-mt-1 flex flex-col rounded-[12px] border border-line text-[13px]">
+              <div className="flex items-center justify-between gap-4 px-4 py-2.5">
+                <dt className="text-text-3">Added by</dt>
+                <dd className="text-text-1">{SOURCE[tool.source]}</dd>
+              </div>
+              <div className="flex items-center justify-between gap-4 border-t border-line px-4 py-2.5">
+                <dt className="text-text-3">Price checked</dt>
+                <dd className={tool.lastCheckedOn ? "text-text-1" : "text-text-3"}>
+                  {tool.lastCheckedOn
+                    ? `${formatShortDate(tool.lastCheckedOn)}, public pricing page`
+                    : "Never"}
+                </dd>
+              </div>
+              {tool.manageUrl && (
+                <a
+                  href={tool.manageUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-between gap-4 border-t border-line px-4 py-2.5 text-text-2 transition-colors hover:text-text-1"
+                >
+                  Manage or cancel on {new URL(tool.manageUrl).host}
+                  <ArrowUpRight size={13} />
+                </a>
+              )}
+            </dl>
+          )}
           <Field label="Tool">
             <input
               ref={first}
@@ -280,6 +317,13 @@ function DrawerBody({
     </>
   );
 }
+
+const SOURCE: Record<DataSource, string> = {
+  manual: "You",
+  imported: "Import",
+  connector: "A connection",
+  sample: "Sample data",
+};
 
 const input =
   "h-11 w-full rounded-[10px] border border-line-strong bg-bg px-3 text-[14px] text-text-1 outline-none placeholder:text-text-3 transition-colors focus:border-lavender/60";

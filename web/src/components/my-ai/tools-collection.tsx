@@ -2,7 +2,8 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { animate, useReducedMotion } from "motion/react";
-import type { Subscription } from "@/lib/types";
+import { CaretDown, CaretUp } from "@phosphor-icons/react";
+import type { Subscription, Workflow } from "@/lib/types";
 import { ToolMark } from "@/components/kit/tool-mark";
 import { Money } from "@/components/kit/money";
 import { daysUntil, formatShortDate } from "@/lib/format";
@@ -10,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { AddToolCard } from "./tool-card";
 
 export type ToolsView = "cards" | "table";
+export type ToolsSort = "default" | "price" | "renewal";
 
 const STATUS: Record<Subscription["status"], string> = {
   active: "Active",
@@ -17,9 +19,9 @@ const STATUS: Record<Subscription["status"], string> = {
   archived: "Archived",
 };
 
-// Phones: tool, price, renews. From md up: all five columns.
+// Phones: tool, price, renews. md: + used for, status. xl: + plan, price checked.
 const ROW_COLS =
-  "grid-cols-[minmax(0,1fr)_auto_auto] md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_84px]";
+  "grid-cols-[minmax(0,1fr)_auto_auto] md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_72px] xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.8fr)_minmax(0,1fr)_72px]";
 
 // Timing. One curve for everything so boxes, frame and page height move as one.
 const EASE = [0.32, 0.72, 0, 1] as const;
@@ -81,12 +83,19 @@ function boxLook(view: ToolsView, soon: boolean, first: boolean) {
 export function ToolsCollection({
   subs,
   view,
+  sort,
+  onSort,
+  workflows,
   today,
   onOpen,
   onAdd,
 }: {
   subs: Subscription[];
   view: ToolsView;
+  sort: ToolsSort;
+  onSort: (s: ToolsSort) => void;
+  /** The user's workflows, for the "used for" line. */
+  workflows: Workflow[];
   today: string;
   onOpen: (s: Subscription) => void;
   onAdd: () => void;
@@ -100,7 +109,11 @@ export function ToolsCollection({
   const slots = useRef(new Map<string, HTMLElement>());
   const ghosts = useRef(new Map<string, HTMLElement>());
   const settled = useRef<Snapshot | null>(null);
+  // A morph runs whenever the layout changes shape: the view, or the order (sorting).
+  const layoutKey = `${view}:${subs.map((s) => s.id).join(",")}`;
+  const lastKey = useRef(layoutKey);
   const lastView = useRef(view);
+  const lastFirst = useRef(subs[0]?.id);
   const running = useRef<{ stop: () => void }[]>([]);
   const token = useRef(0);
 
@@ -127,11 +140,23 @@ export function ToolsCollection({
 
     const morphing = running.current.length > 0;
     const from = lastView.current;
-    if (from === view) {
+    const fromFirst = lastFirst.current;
+    if (lastKey.current === layoutKey) {
       if (!morphing) settled.current = measure();
       return;
     }
+    const prevIds = lastKey.current.split(":")[1].split(",");
+    const nextIds = subs.map((s) => s.id);
+    const sameSet =
+      prevIds.length === nextIds.length && nextIds.every((id) => prevIds.includes(id));
+    lastKey.current = layoutKey;
     lastView.current = view;
+    lastFirst.current = subs[0]?.id;
+    // Adding or removing a tool just re-lays out; only view and order changes morph.
+    if (!sameSet) {
+      if (!morphing) settled.current = measure();
+      return;
+    }
 
     const before = settled.current;
     const to = measure();
@@ -153,7 +178,7 @@ export function ToolsCollection({
     } else if (before) {
       wrap.style.height = `${before.height}px`;
       frame.style.opacity = from === "table" ? "1" : "0";
-      subs.forEach((s, i) => {
+      subs.forEach((s) => {
         const g = ghosts.current.get(s.id);
         const r = before.rects.get(s.id);
         if (!g || !r) return;
@@ -164,7 +189,7 @@ export function ToolsCollection({
           width: `${r.w}px`,
           height: `${r.h}px`,
         });
-        const look = boxLook(from, isSoon(s, today), i === 0);
+        const look = boxLook(from, isSoon(s, today), s.id === fromFirst);
         Object.assign(g.style, { ...look, borderRadius: `${look.borderRadius}px` });
       });
     }
@@ -288,9 +313,11 @@ export function ToolsCollection({
             )}
           >
             <span>Tool</span>
-            <span>Plan</span>
-            <span className="text-right">Per month</span>
-            <span className="text-right">Renews</span>
+            <span>Used for</span>
+            <span className="hidden xl:block">Plan</span>
+            <SortHead label="Per month" active={sort === "price"} onClick={() => onSort(sort === "price" ? "default" : "price")} dir="down" />
+            <SortHead label="Renews" active={sort === "renewal"} onClick={() => onSort(sort === "renewal" ? "default" : "renewal")} dir="up" />
+            <span className="hidden text-right xl:block">Price checked</span>
             <span className="text-right">Status</span>
           </div>
         )}
@@ -303,6 +330,7 @@ export function ToolsCollection({
               else slots.current.delete(s.id);
             }}
             sub={s}
+            usedFor={usage(s, workflows, subs)}
             cards={cards}
             today={today}
             first={i === 0}
@@ -328,6 +356,7 @@ const addSpan = (n: number) =>
 function ToolItem({
   ref,
   sub,
+  usedFor,
   cards,
   today,
   first,
@@ -335,6 +364,7 @@ function ToolItem({
 }: {
   ref: (el: HTMLButtonElement | null) => void;
   sub: Subscription;
+  usedFor: Usage;
   cards: boolean;
   today: string;
   first: boolean;
@@ -364,9 +394,9 @@ function ToolItem({
     >
       <span data-morph-fade className="absolute inset-0">
         {cards ? (
-          <CardContent sub={sub} soon={soon} days={days} paused={paused} />
+          <CardContent sub={sub} usedFor={usedFor} soon={soon} days={days} paused={paused} />
         ) : (
-          <RowContent sub={sub} soon={soon} />
+          <RowContent sub={sub} usedFor={usedFor} soon={soon} />
         )}
       </span>
     </button>
@@ -375,11 +405,13 @@ function ToolItem({
 
 function CardContent({
   sub,
+  usedFor,
   soon,
   days,
   paused,
 }: {
   sub: Subscription;
+  usedFor: Usage;
   soon: boolean;
   days: number | null;
   paused: boolean;
@@ -390,7 +422,7 @@ function CardContent({
         <span className="flex min-w-0 items-center gap-3">
           <ToolMark name={sub.toolName} size="lg" />
           <span className="min-w-0">
-            <span className="block text-[16px] font-medium text-text-1">
+            <span className="block truncate text-[16px] font-medium text-text-1">
               {sub.toolName}
             </span>
             <span className="block text-[13px] text-text-3">
@@ -413,6 +445,7 @@ function CardContent({
               : "No renewal date"}
         </span>
       </span>
+      <UsageLine usage={usedFor} className="block text-[13px]" />
       <span className="flex items-end justify-between gap-3">
         <span className="display text-[28px] leading-[32px] font-medium text-text-1">
           {sub.monthlyCents === null ? (
@@ -443,7 +476,15 @@ function CardContent({
   );
 }
 
-function RowContent({ sub, soon }: { sub: Subscription; soon: boolean }) {
+function RowContent({
+  sub,
+  usedFor,
+  soon,
+}: {
+  sub: Subscription;
+  usedFor: Usage;
+  soon: boolean;
+}) {
   return (
     <span
       className={cn(
@@ -460,7 +501,8 @@ function RowContent({ sub, soon }: { sub: Subscription; soon: boolean }) {
           </span>
         </span>
       </span>
-      <span className="hidden truncate text-text-2 md:block">
+      <UsageLine usage={usedFor} className="hidden md:block" />
+      <span className="hidden truncate text-text-2 xl:block">
         {sub.plan}
         {sub.cadence === "annual" && (
           <span className="text-text-3">, yearly</span>
@@ -484,9 +526,77 @@ function RowContent({ sub, soon }: { sub: Subscription; soon: boolean }) {
           <span className="text-text-3">Unknown</span>
         )}
       </span>
+      <span
+        className={cn(
+          "tnum hidden text-right xl:block",
+          sub.lastCheckedOn ? "text-text-2" : "text-text-3",
+        )}
+      >
+        {sub.lastCheckedOn ? formatShortDate(sub.lastCheckedOn) : "Never"}
+      </span>
       <span className="hidden text-right text-text-2 md:block">
         {STATUS[sub.status]}
       </span>
     </span>
+  );
+}
+
+/* ── Usage: which workflows a tool serves, and what it overlaps with ── */
+
+type Usage = { names: string[]; overlaps: string[] };
+
+// Which workflows use a tool is the user's own input; overlap is judged by the backend.
+const usage = (s: Subscription, workflows: Workflow[], stack: Subscription[]): Usage => ({
+  names: [...workflows]
+    .sort((a, b) => a.priority - b.priority)
+    .filter((w) => w.tools?.includes(s.toolName))
+    .map((w) => w.name),
+  // Only overlaps with tools still in the stack.
+  overlaps: (s.overlapsWith ?? []).filter((n) => stack.some((x) => x.toolName === n)),
+});
+
+const shortName = (n: string) => n.replace(/^GitHub /, "");
+
+function UsageLine({ usage, className }: { usage: Usage; className?: string }) {
+  if (usage.names.length === 0)
+    return <span className={cn("truncate text-text-3", className)}>Not in a workflow</span>;
+  return (
+    <span className={cn("truncate text-text-2", className)}>
+      {usage.names.join(", ")}
+      {usage.overlaps.length > 0 && (
+        <span className="text-lavender">
+          {" · overlaps "}
+          {usage.overlaps.map(shortName).join(", ")}
+        </span>
+      )}
+    </span>
+  );
+}
+
+function SortHead({
+  label,
+  active,
+  onClick,
+  dir,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  dir: "up" | "down";
+}) {
+  const Icon = dir === "up" ? CaretUp : CaretDown;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "flex items-center justify-end gap-1 rounded-md text-right transition-colors hover:text-text-1",
+        active ? "text-text-1" : "text-text-3",
+      )}
+    >
+      {label}
+      <Icon size={10} weight="bold" className={active ? "opacity-100" : "opacity-0"} />
+    </button>
   );
 }
