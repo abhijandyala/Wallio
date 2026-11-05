@@ -50,7 +50,8 @@ export function assertVultrInferenceUrl(url: string): void {
   }
 }
 
-const DEFAULT_CAPS: Record<Purpose, number> = { plan: 1200, extract: 1500, verify: 400, explain: 1500 };
+/** Output caps include reasoning tokens on thinking models, so they are larger than the visible answer needs. */
+const DEFAULT_CAPS: Record<Purpose, number> = { plan: 3000, extract: 3000, verify: 1500, explain: 3000 };
 
 /** Model IDs and prices pinned after the capability gate. Edit pinned-models.json, not code. */
 export interface PinnedModels {

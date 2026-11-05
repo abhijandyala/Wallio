@@ -1,0 +1,67 @@
+{
+  "testedAt": "2026-11-05T15:40:18.040Z",
+  "baseUrl": "https://api.vultrinference.com/v1",
+  "chatModelsAvailable": [
+    "deepseek-v4.1-flash-1017",
+    "glm-5.2",
+    "glm-5.3",
+    "glm-5.3-flash",
+    "mimo-v2.6-flash",
+    "mimo-v2.6-pro",
+    "minimax-m3.1-flash",
+    "muse-glimmer-30b",
+    "nemotron-3-nano-omni-30b-a3b-reasoning",
+    "qwen3.8-27b",
+    "qwen3.8-flash-next",
+    "raon-1-mini-preview"
+  ],
+  "textCandidates": [
+    "qwen3.8-flash-next"
+  ],
+  "visionCandidates": [
+    "qwen3.8-flash-next",
+    "glm-5.3-flash",
+    "deepseek-v4.1-flash-1017"
+  ],
+  "textModel": "qwen3.8-flash-next",
+  "visionModel": "qwen3.8-flash-next",
+  "jsonMode": true,
+  "pricesUsdPerMTok": {
+    "qwen3.8-flash-next": {
+      "inputPerMTokUsd": 0.1,
+      "outputPerMTokUsd": 0.2
+    }
+  },
+  "gatePassed": true,
+  "checks": [
+    {
+      "name": "text",
+      "model": "qwen3.8-flash-next",
+      "pass": true,
+      "latencyMs": 594,
+      "detail": "tokens 64/42; reply \"WALLIO-OK\""
+    },
+    {
+      "name": "structured (prompt only)",
+      "model": "qwen3.8-flash-next",
+      "pass": true,
+      "latencyMs": 2246,
+      "detail": "7 steps; stayed on allowed URLs"
+    },
+    {
+      "name": "structured (json mode)",
+      "model": "qwen3.8-flash-next",
+      "pass": true,
+      "latencyMs": 2418,
+      "detail": "8 steps; stayed on allowed URLs"
+    },
+    {
+      "name": "vision",
+      "model": "qwen3.8-flash-next",
+      "pass": true,
+      "latencyMs": 994,
+      "detail": "expected 32R3, got \"32R3\""
+    }
+  ],
+  "note": "Prices come from the /v1/models catalog at test time. Rate limits are not exposed by the API; confirm them in the Vultr console."
+}

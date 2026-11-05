@@ -205,13 +205,21 @@ export class InferenceGateway {
       try {
         const res = await this.send("POST", "/chat/completions", body);
         const json = (await res.json()) as {
-          choices?: Array<{ message?: { content?: string | null } }>;
+          choices?: Array<{ finish_reason?: string; message?: { content?: string | null; reasoning_content?: string | null; reasoning?: string | null } }>;
           usage?: { prompt_tokens?: number; completion_tokens?: number };
           model?: string;
         };
-        const text = json.choices?.[0]?.message?.content;
-        if (typeof text !== "string" || text.length === 0) {
-          throw new InferenceError("inference_invalid_output", "Inference response had no message content.");
+        const choice = json.choices?.[0];
+        const text = choice?.message?.content;
+        if (typeof text !== "string" || text.trim().length === 0) {
+          const reasoned = Boolean(choice?.message?.reasoning_content || choice?.message?.reasoning);
+          const why =
+            choice?.finish_reason === "length"
+              ? reasoned
+                ? "the model used its whole token budget on reasoning; raise max_tokens for this purpose"
+                : "the token budget ran out before any answer"
+              : `finish_reason=${choice?.finish_reason ?? "none"}`;
+          throw new InferenceError("inference_invalid_output", `Inference response had no answer text (${why}).`);
         }
         onAttempts(attempts);
         return {
