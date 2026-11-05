@@ -165,6 +165,8 @@ deploy/runner/deploy-runner.sh <runner-public-ip>
 deploy/runner/push-runner-secrets.sh <runner-public-ip> <control-public-ip>
 ```
 
+Current values: control VM `10.5.96.3` (private) and `149.28.76.16` (public) on `wallio-vpc` `10.5.96.0/20` in Los Angeles. Domain: `149-28-76-16.sslip.io`. Owned hosts: `eval.`, `forms.` and `hostile.149-28-76-16.sslip.io`. Sentinel: `http://10.5.96.3:9099`.
+
 On the control VM (Anish):
 - Add `deploy/runner/Caddyfile.hostile` to the Caddyfile, after writing `fixtures/hostile/config.js` with the sentinel URL.
 - Install `deploy/runner/wallio-sentinel.service` bound to the private IP, and allow 9099 from the runner's private IP only.
