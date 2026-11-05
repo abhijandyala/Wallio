@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /** Contract version. Bump minor for additive changes, major for breaking ones. */
-export const CONTRACT_VERSION = "0.2.0";
+export const CONTRACT_VERSION = "0.2.1";
 
 export const Id = z.string().min(1).max(128);
 export const Timestamp = z.iso.datetime({ offset: true });

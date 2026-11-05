@@ -184,6 +184,8 @@ export const ComparisonAccepted = z.object({
 export const Run = z.object({
   id: Id,
   kind: RunKind,
+  /** Ties the run's request, runner jobs, model calls, evidence, approvals and logs together. Quote it in support requests. */
+  correlationId: Id,
   status: RunStatus,
   outcome: RunOutcome,
   stage: RunStage,

@@ -35,6 +35,17 @@ export interface AppConfig {
   dailySpendCapMinor: number;
   /** Delay between mock run steps. */
   mockStepMs: number;
+  /** Abuse limits for the public guest demo. */
+  limits: {
+    /** API requests per client IP per minute. */
+    requestsPerMinutePerIp: number;
+    /** New guest workspaces per client IP per hour. */
+    guestsPerHourPerIp: number;
+    /** Runs (any kind) a workspace may start per UTC day. */
+    runsPerDayPerWorkspace: number;
+    /** Runs started per client IP per hour, across workspaces. */
+    runsPerHourPerIp: number;
+  };
   worker: WorkerConfig;
   /**
    * Adhvik's runner daemon on the private network. Live mode needs url and token.
@@ -73,6 +84,12 @@ export function loadAppConfig(env: Record<string, string | undefined> = process.
     runEstimateMinor: n(env.RUN_ESTIMATE_MINOR, 5),
     dailySpendCapMinor: n(env.DAILY_SPEND_CAP_MINOR, 500),
     mockStepMs: n(env.MOCK_STEP_MS, 700),
+    limits: {
+      requestsPerMinutePerIp: n(env.RATE_LIMIT_PER_MINUTE, 300),
+      guestsPerHourPerIp: n(env.GUESTS_PER_HOUR_PER_IP, 20),
+      runsPerDayPerWorkspace: n(env.RUNS_PER_DAY_PER_WORKSPACE, 12),
+      runsPerHourPerIp: n(env.RUNS_PER_HOUR_PER_IP, 30),
+    },
     worker: {
       leaseSecs: n(env.WORKER_LEASE_SECS, 15),
       execDeadlineSecs: n(env.RUN_DEADLINE_SECS, 180),

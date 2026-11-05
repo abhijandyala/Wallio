@@ -45,6 +45,11 @@ if [ -n "$PRIVATE_IP" ]; then
   ufw status | grep -q "9099/tcp.*10.5.96.0/20" || ufw allow proto tcp from 10.5.96.0/20 to "$PRIVATE_IP" port 9099 comment "sentinel: VPC only" >/dev/null
   grep -q "^SENTINEL_URL=" /etc/wallio/api.env || echo "SENTINEL_URL=http://$PRIVATE_IP:9099" >> /etc/wallio/api.env
 fi
+# Abuse limits and the daily cost ceiling, explicit in production. Existing values win.
+for kv in DAILY_SPEND_CAP_MINOR=500 RUN_SPEND_CAP_MINOR=50 MAX_QUEUED_RUNS=5 RATE_LIMIT_PER_MINUTE=300 \
+          GUESTS_PER_HOUR_PER_IP=20 RUNS_PER_DAY_PER_WORKSPACE=12 RUNS_PER_HOUR_PER_IP=30 APPROVAL_TTL_SECS=120; do
+  grep -q "^\${kv%%=*}=" /etc/wallio/api.env || echo "\$kv" >> /etc/wallio/api.env
+done
 if ! cmp -s "$REL/deploy/wallio-api.service" /etc/systemd/system/wallio-api.service; then
   install -m 644 "$REL/deploy/wallio-api.service" /etc/systemd/system/wallio-api.service
   systemctl daemon-reload

@@ -73,7 +73,7 @@ export async function writeRecommendation(ctx: RunContext, gw: InferenceGateway,
   const as = assessments(input);
   const decision = decide(as, tools, incumbentRenewal !== null);
   const facts = buildFacts(input, as, decision);
-  const expl = await infer(() => explain(gw, ctx.runId, input, decision, facts));
+  const expl = await infer(() => explain(gw, ctx.correlationId, input, decision, facts));
   if (expl.by === "template") {
     await ctx.emit({ type: "warning", message: "The AI explanation didn't pass the citation checks, so a plain template was used", data: { detail: expl.problems.join("; ").slice(0, 200) || "template" } });
   }

@@ -57,6 +57,8 @@ export interface RunContext {
   readonly mode: RunMode;
   readonly signal: AbortSignal;
   readonly deadlineAt: Date;
+  /** The ID that ties this run's request, runner jobs, model calls, evidence, approvals and logs together. */
+  readonly correlationId: string;
   /** Tenant-scoped transaction that refuses to run once the run is no longer executing. */
   q<T>(fn: (q: Query) => Promise<T>): Promise<T>;
   emit(ev: { type: string; stage?: RunStage; message: string; data: Record<string, unknown> }): Promise<void>;
@@ -114,7 +116,7 @@ const log = (level: "info" | "warn" | "error", msg: string, extra: Record<string
   level === "error" ? console.error(line) : console.log(line);
 };
 
-const apiError = (runId: string, code: string, message: string, retryable: boolean) => ({ code, message, correlationId: runId, retryable });
+const apiError = (correlationId: string, code: string, message: string, retryable: boolean) => ({ code, message, correlationId, retryable });
 
 export class Worker implements Orchestrator {
   readonly owner = `worker_${randomUUID().slice(0, 8)}`;
@@ -216,13 +218,13 @@ export class Worker implements Orchestrator {
 
     try {
       const prepared = await db.withTenant(tenantId, async (q) => {
-        const r = (await q("SELECT status, deadline_at FROM runs WHERE id = $1 AND tenant_id = $2 AND lease_owner = $3 FOR UPDATE", [runId, tenantId, this.owner])).rows[0];
+        const r = (await q("SELECT status, deadline_at, correlation_id FROM runs WHERE id = $1 AND tenant_id = $2 AND lease_owner = $3 FOR UPDATE", [runId, tenantId, this.owner])).rows[0];
         if (!r || r.status !== "QUEUED") return null;
         await transition(q, tenantId, runId, "PREPARING");
         if (mode === "live") {
           await q("UPDATE runs SET reserved_minor = LEAST(cap_minor, $3) WHERE id = $1 AND tenant_id = $2", [runId, tenantId, config.runEstimateMinor]);
         }
-        return { deadlineAt: new Date(r.deadline_at) };
+        return { deadlineAt: new Date(r.deadline_at), correlationId: (r.correlation_id as string | null) ?? runId };
       });
       if (!prepared) return;
 
@@ -230,7 +232,7 @@ export class Worker implements Orchestrator {
       heartbeat = setInterval(() => void this.renewLease(job, runId), Math.max(200, (config.worker.leaseSecs * 1000) / 3));
 
       await db.withTenant(tenantId, (q) => transition(q, tenantId, runId, "RUNNING"));
-      const ctx = this.context(job, runId, prepared.deadlineAt);
+      const ctx = this.context(job, runId, prepared.deadlineAt, prepared.correlationId);
       // Race the executor against abort, so an executor that ignores its signal can't hold a run past its deadline.
       const aborted = new Promise<never>((_, reject) => {
         const fire = () => reject(new RunAborted(ac.signal.reason as AbortReason));
@@ -279,7 +281,7 @@ export class Worker implements Orchestrator {
     }
   }
 
-  private context(job: ActiveJob, runId: string, deadlineAt: Date): RunContext {
+  private context(job: ActiveJob, runId: string, deadlineAt: Date, correlationId: string): RunContext {
     const { db } = this.deps;
     const { tenantId, mode, ac } = job;
     const checkpoint = () => {
@@ -299,6 +301,7 @@ export class Worker implements Orchestrator {
       runId,
       tenantId,
       mode,
+      correlationId,
       signal: ac.signal,
       deadlineAt,
       q,
@@ -342,23 +345,26 @@ export class Worker implements Orchestrator {
   /** Moves an executing run to FAILED or TIMED_OUT. Returns true if this call ended it. */
   private async endWithFailure(tenantId: string, runId: string, cause: unknown): Promise<boolean> {
     return this.deps.db.withTenant(tenantId, async (q) => {
-      const r = (await q<{ status: RunStatus; evidence_count: number }>("SELECT status, evidence_count FROM runs WHERE id = $1 AND tenant_id = $2 FOR UPDATE", [runId, tenantId])).rows[0];
+      const r = (await q<{ status: RunStatus; evidence_count: number; correlation_id: string | null }>("SELECT status, evidence_count, correlation_id FROM runs WHERE id = $1 AND tenant_id = $2 FOR UPDATE", [runId, tenantId])).rows[0];
       if (!r || !EXECUTING.has(r.status)) return false;
       const partial = r.evidence_count > 0;
-      if (cause === "deadline") {
+      const corr = r.correlation_id ?? runId;
+      // The run's own deadline, or the runner's hard deadline for a job: both are a time-out, evidence kept.
+      if (cause === "deadline" || (cause instanceof RunFailure && cause.code === "runner_timeout")) {
         await transition(q, tenantId, runId, "TIMED_OUT", {
           outcome: "timed_out",
-          error: apiError(runId, "runner_timeout", "The comparison hit its time limit. Evidence captured so far is kept.", true),
+          error: apiError(corr, "runner_timeout", "The run hit its time limit. Evidence captured so far is kept.", true),
         });
+        log("warn", "run timed out", { runId, correlationId: corr, evidenceKept: r.evidence_count });
         return true;
       }
       let error;
-      if (cause instanceof BudgetExceeded) error = apiError(runId, "budget_exceeded", "This comparison reached its spending cap. Evidence captured so far is kept.", false);
-      else if (cause instanceof InferenceError) error = apiError(runId, cause.code === "inference_invalid_output" ? "inference_invalid_output" : "inference_unavailable", "The AI service failed during this comparison. Evidence captured so far is kept; try again.", true);
-      else if (cause instanceof RunFailure) error = apiError(runId, cause.code, cause.message, cause.code !== "policy_denied");
+      if (cause instanceof BudgetExceeded) error = apiError(corr, "budget_exceeded", "This comparison reached its spending cap. Evidence captured so far is kept.", false);
+      else if (cause instanceof InferenceError) error = apiError(corr, cause.code === "inference_invalid_output" ? "inference_invalid_output" : "inference_unavailable", "The AI service failed during this comparison. Evidence captured so far is kept; try again.", true);
+      else if (cause instanceof RunFailure) error = apiError(corr, cause.code, cause.message, cause.code !== "policy_denied");
       else {
-        log("error", "run failed", { runId, error: (cause as Error)?.message });
-        error = apiError(runId, "internal", "Something went wrong during this comparison. Evidence captured so far is kept.", true);
+        log("error", "run failed", { runId, correlationId: corr, error: (cause as Error)?.message });
+        error = apiError(corr, "internal", "Something went wrong during this comparison. Evidence captured so far is kept.", true);
       }
       await transition(q, tenantId, runId, "FAILED", { outcome: partial ? "partial" : "failed", error });
       return true;
@@ -446,21 +452,22 @@ export class Worker implements Orchestrator {
       return;
     }
     const ended = await db.withTenant(tenantId, async (q) => {
-      const r = (await q<{ status: RunStatus; evidence_count: number }>("SELECT status, evidence_count FROM runs WHERE id = $1 AND tenant_id = $2 FOR UPDATE", [runId, tenantId])).rows[0];
+      const r = (await q<{ status: RunStatus; evidence_count: number; correlation_id: string | null }>("SELECT status, evidence_count, correlation_id FROM runs WHERE id = $1 AND tenant_id = $2 FOR UPDATE", [runId, tenantId])).rows[0];
       if (!r) return false;
       const partial = r.evidence_count > 0 ? "partial" : "failed";
+      const corr = r.correlation_id ?? runId;
       if (reason === "queue_timeout" && r.status === "QUEUED") {
-        await transition(q, tenantId, runId, "FAILED", { outcome: "failed", error: apiError(runId, "rate_limited", "Wallio was too busy to start this comparison. Try again in a minute.", true) });
+        await transition(q, tenantId, runId, "FAILED", { outcome: "failed", error: apiError(corr, "rate_limited", "Wallio was too busy to start this comparison. Try again in a minute.", true) });
         return true;
       }
       if (reason === "deadline" && EXECUTING.has(r.status)) {
-        await transition(q, tenantId, runId, "TIMED_OUT", { outcome: "timed_out", error: apiError(runId, "runner_timeout", "The comparison hit its time limit. Evidence captured so far is kept.", true) });
+        await transition(q, tenantId, runId, "TIMED_OUT", { outcome: "timed_out", error: apiError(corr, "runner_timeout", "The comparison hit its time limit. Evidence captured so far is kept.", true) });
         return true;
       }
       if (reason === "lease_expired" && EXECUTING.has(r.status)) {
         await transition(q, tenantId, runId, "FAILED", {
           outcome: partial,
-          error: apiError(runId, "internal", "The worker running this comparison stopped. Evidence captured so far is kept; the comparison was not re-run.", true),
+          error: apiError(corr, "internal", "The worker running this comparison stopped. Evidence captured so far is kept; the comparison was not re-run.", true),
         });
         return true;
       }

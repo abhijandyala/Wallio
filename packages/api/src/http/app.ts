@@ -15,6 +15,7 @@ import type { AppConfig } from "../config.ts";
 import type { Db, Query } from "../db/pool.ts";
 import { summarizeSpending, type SubscriptionForSpend } from "../domain/spending.ts";
 import { HttpError, notFound } from "./errors.ts";
+import { clientIp, RateLimiter } from "./rate-limit.ts";
 import { createGuestSession, findSession, SESSION_COOKIE } from "./session.ts";
 import { transition, TERMINAL, FINISHED } from "../runs/state.ts";
 import { evidenceToContract } from "../runs/executors.ts";
@@ -37,6 +38,14 @@ export interface AppDeps {
 
 export function createApp({ config, db, runs }: AppDeps) {
   const app = new Hono<Env>();
+  const L = config.limits;
+  const perMinute = new RateLimiter(L.requestsPerMinutePerIp, 60_000);
+  const guestsPerHour = new RateLimiter(L.guestsPerHourPerIp, 3_600_000);
+  const runsPerHour = new RateLimiter(L.runsPerHourPerIp, 3_600_000);
+  const limited = (c: Context<Env>, retryAfter: number, message: string) => {
+    c.header("retry-after", String(retryAfter));
+    return new HttpError("rate_limited", message, { retryAfterSeconds: retryAfter });
+  };
 
   // ── correlation id + access log (metadata only, never bodies) ──
   app.use("*", async (c, next) => {
@@ -75,6 +84,15 @@ export function createApp({ config, db, runs }: AppDeps) {
     return c.html(html, 200, { "content-security-policy": csp, "cache-control": "no-store", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer", "x-robots-tag": "noindex" });
   });
 
+  // ── per-IP request rate limit (everything public except health) ──
+  app.use("*", async (c, next) => {
+    if (c.req.path !== "/api/health") {
+      const wait = perMinute.hit(clientIp(c.req.header("x-forwarded-for")));
+      if (wait !== null) throw limited(c, wait, "Too many requests from your network. Wait a moment and try again.");
+    }
+    await next();
+  });
+
   // ── CSRF: mutations must be JSON, and same-origin when an Origin header is sent ──
   app.use("/api/*", async (c, next) => {
     if (["POST", "PUT", "PATCH", "DELETE"].includes(c.req.method)) {
@@ -94,6 +112,8 @@ export function createApp({ config, db, runs }: AppDeps) {
   app.use("/api/*", async (c, next) => {
     let tenantId = await findSession(db, getCookie(c, SESSION_COOKIE));
     if (!tenantId) {
+      const wait = guestsPerHour.hit(clientIp(c.req.header("x-forwarded-for")));
+      if (wait !== null) throw limited(c, wait, "Too many new guest sessions from your network. Keep using the one you have, or try again later.");
       const s = await createGuestSession(db, config.sessionTtlHours);
       tenantId = s.workspaceId;
       setCookie(c, SESSION_COOKIE, s.token, {
@@ -257,6 +277,7 @@ export function createApp({ config, db, runs }: AppDeps) {
   const runToContract = (r: any) => ({
     id: r.id,
     kind: r.kind ?? "comparison",
+    correlationId: r.correlation_id ?? r.id,
     status: r.status,
     outcome: r.outcome,
     stage: r.stage,
@@ -299,6 +320,11 @@ export function createApp({ config, db, runs }: AppDeps) {
         return { runId: prior.run_id as string, created: false };
       }
       if (capacityError) throw capacityError;
+      // Guest quotas: per workspace per UTC day (durable), and per network per hour.
+      const today = Number((await q("SELECT count(*) FROM runs WHERE tenant_id = $1 AND created_at >= date_trunc('day', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'", [tenantId])).rows[0].count);
+      if (today >= L.runsPerDayPerWorkspace) throw new HttpError("quota_exceeded", `This workspace has used its ${L.runsPerDayPerWorkspace} runs for today. Come back tomorrow (UTC).`, { limit: L.runsPerDayPerWorkspace });
+      const wait = runsPerHour.hit(clientIp(c.req.header("x-forwarded-for")));
+      if (wait !== null) throw limited(c, wait, "Too many runs started from your network. Try again later.");
       await validate(q, tenantId);
 
       // One active run per workspace keeps the single runner free for others.
@@ -309,9 +335,9 @@ export function createApp({ config, db, runs }: AppDeps) {
       const cmp = (await q("INSERT INTO comparisons (tenant_id, idempotency_key, request_hash, request, kind) VALUES ($1,$2,$3,$4,$5) RETURNING id", [tenantId, idempotencyKey, requestHash, req, kind])).rows[0]!;
       // deadline_at starts as the latest start time; the worker resets it to the execution deadline when it claims the run.
       const run = (await q(
-        `INSERT INTO runs (tenant_id, comparison_id, mode, status, deadline_at, cap_minor)
-         VALUES ($1,$2,$3,'CREATED', now() + make_interval(secs => $5), $4) RETURNING id`,
-        [tenantId, cmp.id, config.runMode, capMinor, config.worker.queueMaxWaitSecs + config.worker.execDeadlineSecs],
+        `INSERT INTO runs (tenant_id, comparison_id, mode, status, deadline_at, cap_minor, correlation_id)
+         VALUES ($1,$2,$3,'CREATED', now() + make_interval(secs => $5), $4, $6) RETURNING id`,
+        [tenantId, cmp.id, config.runMode, capMinor, config.worker.queueMaxWaitSecs + config.worker.execDeadlineSecs, c.get("correlationId")],
       )).rows[0]!;
       await transition(q, tenantId, run.id, "QUEUED");
       await q("INSERT INTO audit_events (tenant_id, actor, action, target, correlation_id) VALUES ($1,'user',$2,$3,$4)", [tenantId, `${kind}.create`, run.id, c.get("correlationId")]);

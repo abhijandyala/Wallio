@@ -97,5 +97,5 @@
     "renewalDate",
     "taxIncluded"
   ],
-  "$id": "wallio/api/SubscriptionInput@0.2.0"
+  "$id": "wallio/api/SubscriptionInput@0.2.1"
 }

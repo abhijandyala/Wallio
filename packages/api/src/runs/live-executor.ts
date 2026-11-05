@@ -85,7 +85,10 @@ export class LiveExecutor implements RunExecutor {
   private async research(ctx: RunContext): Promise<ExecResult> {
     const { runner } = this.deps;
     const pending: UsageRecord[] = [];
-    const gw = this.deps.gateway((u) => pending.push(u));
+    // Degraded path: once the AI service is down in this run, later calls are skipped at once
+    // (each would otherwise retry and time out), and the run falls back to captures and rules.
+    const health = { down: false };
+    const gw = withBreaker(this.deps.gateway((u) => pending.push(u)), health);
     /** Runs a model call, then charges its usage (the per-run cap applies here). */
     const infer = async <T>(fn: () => Promise<T>): Promise<T> => {
       try {
@@ -126,7 +129,7 @@ export class LiveExecutor implements RunExecutor {
     // ── plan ──
     let plan: PlanOutcome;
     try {
-      plan = await infer(() => planResearch(gw, { correlationId: ctx.runId, goal, tools, profile, policy }));
+      plan = await infer(() => planResearch(gw, { correlationId: ctx.correlationId, goal, tools, profile, policy }));
     } catch (e) {
       if (!(e instanceof InferenceError)) throw e;
       plan = { pages: defaultPages(tools), questions: baselineQuestions(tools, profile), plannedBy: "default", refused: [] };
@@ -193,7 +196,7 @@ export class LiveExecutor implements RunExecutor {
       const questions = plan.questions.filter((q) => q.toolId === tool.id).map((q) => q.question);
       if (!text || !questions.length) continue;
       try {
-        const r = await infer(() => extractFindings(gw, { correlationId: ctx.runId, toolName: tool.name, url: obs.url, pageText: text, questions }));
+        const r = await infer(() => extractFindings(gw, { correlationId: ctx.correlationId, toolName: tool.name, url: obs.url, pageText: text, questions }));
         for (const f of r.grounded) if (!tk.known.some((k) => k.question === f.question)) tk.known.push({ ...f, evidenceId });
         const excerpt = r.grounded.map((f) => `"${f.quote}"`).join(" … ").slice(0, 2000);
         await ctx.q((q) => q("UPDATE evidence SET excerpt = $3 WHERE id = $1 AND tenant_id = $2", [evidenceId, ctx.tenantId, excerpt]));
@@ -233,8 +236,12 @@ export class LiveExecutor implements RunExecutor {
     await ctx.transition("VERIFYING", { stage: "verifying" });
     await ctx.stage("reporting", "Scoring the tools and writing the recommendation");
     const recommendationId = await writeRecommendation(ctx, gw, infer);
-    await ctx.emit({ type: "result_ready", message: "Recommendation ready", data: { recommendationId, outcome: everyToolHasEvidence ? "succeeded" : "partial" } });
-    return { outcome: everyToolHasEvidence ? "succeeded" : "partial" };
+    const outcome = everyToolHasEvidence && !health.down ? "succeeded" : "partial";
+    if (health.down) {
+      await ctx.emit({ type: "warning", message: "The AI service was unavailable, so this result uses the captures and fixed rules only", data: { detail: "inference_unavailable" } });
+    }
+    await ctx.emit({ type: "result_ready", message: health.down ? "Recommendation ready (partial: AI service unavailable)" : "Recommendation ready", data: { recommendationId, outcome } });
+    return { outcome };
   }
 }
 
@@ -254,7 +261,7 @@ export async function runHarnessStage(deps: HarnessDeps, ctx: RunContext, gw: In
   if (!task || !task.entrypoint || !task.tests.length) return null;
   let fix: { code: string; model: string };
   try {
-    fix = await infer(() => proposeFix(gw, ctx.runId, task));
+    fix = await infer(() => proposeFix(gw, ctx.correlationId, task));
   } catch (e) {
     await ctx.emit({ type: "warning", message: "The model didn't produce a usable fix, so the owned test was skipped", data: { detail: (e as Error).message.slice(0, 200) } });
     return null;
@@ -331,4 +338,27 @@ export class LiveCleaner implements Cleaner {
     }
     return { result: "failed", containerRemoved, volumeRemoved, detail: `Browser cleanup not verified: ${problems.join("; ")}`.slice(0, 300) };
   }
+}
+
+/**
+ * Per-run circuit breaker around the inference gateway. After one "unavailable" error,
+ * every later chat/chatJSON call in the same run fails immediately with the same code,
+ * so fallbacks (default plan, template explanation) kick in without waiting on retries.
+ */
+export function withBreaker(gw: InferenceGateway, health: { down: boolean }): InferenceGateway {
+  return new Proxy(gw, {
+    get(target, prop, receiver) {
+      const v = Reflect.get(target, prop, receiver);
+      if ((prop !== "chat" && prop !== "chatJSON") || typeof v !== "function") return v;
+      return async (...args: unknown[]) => {
+        if (health.down) throw new InferenceError("inference_unavailable", "Skipped: the AI service was unavailable earlier in this run.");
+        try {
+          return await v.apply(target, args);
+        } catch (e) {
+          if (e instanceof InferenceError && e.code === "inference_unavailable") health.down = true;
+          throw e;
+        }
+      };
+    },
+  });
 }

@@ -64,5 +64,5 @@
     "allowedHosts",
     "limits"
   ],
-  "$id": "wallio/runner/RunnerJobCreate@0.2.0"
+  "$id": "wallio/runner/RunnerJobCreate@0.2.1"
 }

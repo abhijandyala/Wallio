@@ -211,6 +211,20 @@ test("live run: plans on Vultr, browses both pricing pages, stores hashed eviden
   assert.equal((await new Visitor(app).json("POST", "/api/decisions", { recommendationId: done.recommendationId, choice: "accept" })).status, 404, "can't decide on someone else's recommendation");
 });
 
+test("one correlation ID follows the run: request, runner jobs, model calls, evidence, errors", async () => {
+  const v = new Visitor(app);
+  const start = await v.startRun();
+  const corr = start.headers.get("x-correlation-id")!;
+  assert.match(corr, /^corr_/);
+  const done = await v.waitFinished(start.body.runId);
+  assert.equal(done.correlationId, corr);
+  for (const job of runner.jobs.values()) if (job.spec.runId === start.body.runId) assert.equal(job.spec.correlationId, corr, "runner job");
+  const usage = await asAdmin("SELECT DISTINCT correlation_id FROM inference_usage WHERE run_id = $1", [start.body.runId]);
+  assert.deepEqual(usage.map((u) => u.correlation_id), [corr], "model calls");
+  const ev = await asAdmin("SELECT DISTINCT correlation_id FROM evidence WHERE run_id = $1", [start.body.runId]);
+  assert.deepEqual(ev.map((e) => e.correlation_id), [corr], "evidence");
+});
+
 test("an explanation that invents numbers falls back to the template, still fully cited", async () => {
   await worker.stop();
   inference = fakeInference({
@@ -301,6 +315,36 @@ test("a redirect off the allowed sites is refused even if the runner followed it
   assert.equal(done.outcome, "partial");
   const ev = await asAdmin("SELECT url FROM evidence WHERE run_id = $1", [runId]);
   assert.ok(!ev.some((e) => e.url.includes("evil.example")), "content from outside was not stored");
+});
+
+test("degraded: AI service down → a partial result from captures and rules, without waiting on every call", async () => {
+  let attempts = 0;
+  inference = { fn: (async () => { attempts++; return new Response("upstream down", { status: 503 }); }) as any, calls: [] } as any;
+  const v = new Visitor(app);
+  const { runId } = (await v.startRun()).body;
+  const done = await v.waitFinished(runId);
+  assert.equal(done.status, "CLEANED");
+  assert.equal(done.outcome, "partial");
+  assert.equal(done.coverage.evidenceCount, 2, "captures are still made and kept");
+  assert.equal(attempts, 1, "after the first failure the rest of the run skips the AI service");
+  const events = await v.events(runId);
+  assert.ok(events.some((e) => e.type === "warning" && /official pricing pages/.test(e.message)), "default plan");
+  assert.ok(events.some((e) => e.type === "warning" && /AI service was unavailable/.test(e.message)));
+  const rec = (await v.json("GET", `/api/recommendations/${done.recommendationId}`)).body;
+  assert.ok(rec.statements.length >= 2, "template explanation, still cited");
+  assert.ok(rec.limitations.some((l: string) => /template/.test(l)));
+});
+
+test("degraded: the runner hits its deadline mid-research → TIMED_OUT, earlier evidence kept, cleanup verified", async () => {
+  runner.pages.set(ZED, { title: "Zed", text: ZED_TEXT, deadlineExceeded: true });
+  const v = new Visitor(app);
+  const { runId } = (await v.startRun()).body;
+  const done = await v.waitFinished(runId);
+  assert.equal(done.status, "CLEANED");
+  assert.equal(done.outcome, "timed_out");
+  assert.equal(done.error.code, "runner_timeout");
+  assert.equal(done.coverage.evidenceCount, 1, "the Copilot capture is kept");
+  assert.match((await v.events(runId)).find((e) => e.type === "cleanup").message, /removed and verified/);
 });
 
 test("runner down: FAILED with runner_unavailable, nothing to clean", async () => {

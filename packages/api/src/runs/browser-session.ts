@@ -39,7 +39,7 @@ export class BrowserSession {
     this.state.currentHost = null;
     try {
       this.job = await this.runner.createJob({
-        jobId, runId: ctx.runId, correlationId: ctx.runId, purpose: purpose.slice(0, 200), allowedHosts: hosts,
+        jobId, runId: ctx.runId, correlationId: ctx.correlationId, purpose: purpose.slice(0, 200), allowedHosts: hosts,
         limits: {
           deadlineMs,
           maxActions: Math.max(1, this.policy.maxActions - this.state.actionsUsed),
@@ -93,6 +93,8 @@ export class BrowserSession {
         throw new RunFailure("runner_unavailable", "The browser runner stopped responding.");
       }
       state.actionsUsed++;
+      // The runner hit the job's hard deadline and has killed the browser: the run times out (evidence kept).
+      if (res.error?.code === "deadline_exceeded") throw new RunFailure("runner_timeout", "The browser hit its time limit. Evidence captured so far is kept.");
       if (action.type === "screenshot" && res.status === "ok") state.screenshotsUsed++;
       if (res.status === "ok" && res.observation) {
         if (action.type === "navigate") {

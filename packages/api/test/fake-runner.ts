@@ -20,6 +20,8 @@ export interface FakePage {
   finalUrl?: string;
   /** Fail with a retryable navigation error this many times first. */
   failTimes?: number;
+  /** The job hits its hard deadline when this page is opened (the runner kills the browser). */
+  deadlineExceeded?: boolean;
   deniedRequests?: Array<{ url: string; reason: string }>;
   /** Visible elements returned by inspect (forms and the hostile page). */
   elements?: rc.Observation["elements"];
@@ -144,6 +146,10 @@ export class FakeRunner {
       }
       const page = (this.resolve ? await this.resolve(a.url) : undefined) ?? this.pages.get(a.url);
       if (!page) return { ...base, status: "failed", observation: null, error: { code: "navigation_failed", message: "404", retryable: false }, actionsRemaining: remaining };
+      if (page.deadlineExceeded) {
+        job.state = "cleaned"; // the real runner kills and cleans the container itself
+        return { ...base, status: "timeout", observation: null, error: { code: "deadline_exceeded", message: "job deadline", retryable: false }, actionsRemaining: 0 };
+      }
       const failed = this.failCounts.get(a.url) ?? 0;
       if (page.failTimes && failed < page.failTimes) {
         this.failCounts.set(a.url, failed + 1);

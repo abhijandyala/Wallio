@@ -18,5 +18,5 @@
     "decision",
     "intentHash"
   ],
-  "$id": "wallio/api/ApprovalDecisionRequest@0.2.0"
+  "$id": "wallio/api/ApprovalDecisionRequest@0.2.1"
 }
