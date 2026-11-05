@@ -3,7 +3,11 @@ import type { RunStep } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /** Live progress of an agent run. One line per step; blocked/failed steps show a short note. */
-export function StepList({ steps }: { steps: RunStep[] }) {
+export function StepList({
+  steps,
+}: {
+  steps: Pick<RunStep, "id" | "label" | "status" | "atSeconds" | "note" | "approval">[];
+}) {
   return (
     <ol className="flex flex-col" aria-live="polite">
       {steps.map((s) => (

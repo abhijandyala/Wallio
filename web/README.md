@@ -1,6 +1,6 @@
 # Wallio web
 
-The product interface: Home, My AI, Discover, Compare, Decisions and Settings. Next.js (App Router), Tailwind v4, shadcn on Base UI, Motion.
+The product interface: a landing page at `/`, then the app: Home (`/home`), My AI, Discover, Compare, Decisions and Settings. Next.js (App Router), Tailwind v4, shadcn on Base UI, Motion.
 
 Design rules, palette, type and the component kit live in [`docs/DESIGN.md`](../docs/DESIGN.md).
 

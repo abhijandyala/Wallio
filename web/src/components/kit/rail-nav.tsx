@@ -87,7 +87,7 @@ export function RailNav() {
   const [hovered, setHovered] = useState<number | null>(null);
 
   const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+    pathname.startsWith(href);
   const waiting = NAV_ITEMS.reduce(
     (n, i) => n + ("count" in i ? i.count : 0),
     0,

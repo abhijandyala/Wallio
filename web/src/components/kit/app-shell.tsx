@@ -1,5 +1,4 @@
 import { RailNav } from "./rail-nav";
-import { MotionPrefs } from "./motion-prefs";
 
 /**
  * The app frame: the Wallio rail on the left edge and full-width content beside it.
@@ -7,7 +6,6 @@ import { MotionPrefs } from "./motion-prefs";
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <MotionPrefs>
     <div className="min-h-screen">
       <RailNav />
       {/* Left padding = rail width (44 / 56) + page inset (16 / 24). */}
@@ -18,6 +16,5 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
     </div>
-    </MotionPrefs>
   );
 }

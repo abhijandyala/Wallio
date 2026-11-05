@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
 import { ArrowRight, Check, DownloadSimple, GithubLogo, Warning } from "@phosphor-icons/react";
@@ -580,12 +580,27 @@ function EditLink({ href, children }: { href: string; children: React.ReactNode 
 
 /* ── Account ──────────────────────────────────────────────────────────── */
 
+/** The time now in the chosen zone. Read only in the browser, so prerendering never sees a clock. */
+function LocalTime({ zone }: { zone: string }) {
+  const now = useSyncExternalStore(
+    (onChange) => {
+      const t = setInterval(onChange, 30_000);
+      return () => clearInterval(t);
+    },
+    () => {
+      try {
+        return new Date().toLocaleTimeString("en-US", { timeZone: zone, hour: "numeric", minute: "2-digit" });
+      } catch {
+        return "";
+      }
+    },
+    () => "",
+  );
+  return <span className="tnum text-[13px] text-text-3">{now}</span>;
+}
+
 function AccountSection({ s, set }: P) {
   const zones = ZONES.includes(s.timeZone) ? ZONES : [s.timeZone, ...ZONES];
-  let now = "";
-  try {
-    now = new Date().toLocaleTimeString("en-US", { timeZone: s.timeZone, hour: "numeric", minute: "2-digit" });
-  } catch {}
   return (
     <Section id="account" title="Account">
       <Row label="Name" htmlFor="name">
@@ -598,9 +613,7 @@ function AccountSection({ s, set }: P) {
         />
       </Row>
       <Row label="Time zone">
-        <span className="tnum text-[13px] text-text-3" suppressHydrationWarning>
-          {now}
-        </span>
+        <LocalTime zone={s.timeZone} />
         <Select
           label="Time zone"
           value={s.timeZone}
