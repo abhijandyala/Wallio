@@ -3,7 +3,7 @@
   "profileVersionId": "pv_demo_1",
   "workflowId": "wf_debugging",
   "taskId": "task_js_offbyone_v1",
-  "incumbentToolId": "tool_incumbent",
-  "candidateToolIds": ["tool_candidate"],
+  "incumbentToolId": "tool_copilot",
+  "candidateToolIds": ["tool_zed"],
   "spendCapMinor": 50
 }

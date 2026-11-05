@@ -1,5 +1,5 @@
 [
-  { "actionId": "act_0", "stepIndex": 0, "action": { "type": "navigate", "url": "https://pricing.incumbent.example/plans" } },
+  { "actionId": "act_0", "stepIndex": 0, "action": { "type": "navigate", "url": "https://github.com/features/copilot/plans" } },
   { "actionId": "act_1", "stepIndex": 1, "action": { "type": "inspect", "maxElements": 40 } },
   { "actionId": "act_2", "stepIndex": 2, "action": { "type": "screenshot", "fullPage": false } },
   { "actionId": "act_3", "stepIndex": 3, "action": { "type": "fill", "elementRef": "e12", "value": "demo-dev@wallio.example" } },

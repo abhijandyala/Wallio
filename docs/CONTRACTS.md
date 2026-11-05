@@ -1,6 +1,6 @@
 # Wallio contracts v0.1.0 (P0)
 
-Status: **DRAFT, waiting for sign-off.** Owner: Anish. Change process: propose in the team channel → Anish updates `packages/contracts` → bump `CONTRACT_VERSION` → everyone pulls.
+Status: **v0.1.0 final (Anish, 5 Nov 2026). Build against it.** Owner: Anish. Change process: flag a problem in the team channel → Anish updates `packages/contracts` → bump `CONTRACT_VERSION` → everyone pulls. The questions below are still open; answers may lead to v0.2.0.
 
 | What | Where |
 |---|---|
@@ -94,11 +94,10 @@ API: POST /jobs/:id/finish                    runner: teardown + verify → Clea
 5. Hostile fixture host name and the private "sentinel" endpoint for the containment demo.
 
 **All three**
-- Task family, incumbent and candidate products (see `GOLDEN_PATH.md`).
-- Freeze time for v0.1.0: end of today, Thu 5 Nov.
+- Golden path v0.1 picks GitHub Copilot (incumbent) vs Zed (candidate). Runner allowlist: `github.com`, `zed.dev`, plus our own eval, form and hostile hosts (see `GOLDEN_PATH.md` §5).
 
-| Reviewer | Signed off | Notes |
+| Reviewer | Status | Notes |
 |---|---|---|
-| UI owner | ☐ | |
-| Adhvik | ☐ | |
-| Anish | ☐ | |
+| Anish | ✅ Final v0.1.0, 5 Nov | Contract owner |
+| Abhi (UI) | Building against v0.1.0 | Flag issues in team channel |
+| Adhvik (runner) | Building against v0.1.0 | Flag issues in team channel |
