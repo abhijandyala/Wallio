@@ -6,9 +6,11 @@ A personal AI manager: it finds, compares and tests AI tools for your work, then
 
 | Path | What |
 |---|---|
+| `web` | Product interface (Next.js). Runs on sample data until the API is wired. See `web/README.md` |
 | `packages/contracts` | Shared schemas between the UI, the backend API and the browser runner (zod + generated JSON Schema + fixtures) |
 | `docs/GOLDEN_PATH.md` | The one end-to-end journey the demo must complete |
 | `docs/CONTRACTS.md` | Endpoint list, runner step protocol and sign-off checklist |
+| `docs/DESIGN.md` | UI design system: rules, palette, type, spacing and the component kit |
 
 ## Working with the contracts
 
