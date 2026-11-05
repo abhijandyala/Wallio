@@ -9,5 +9,16 @@
     }
   },
   "testedAt": "2026-11-05T15:40:18.040Z",
+  "rateLimits": {
+    "published": null,
+    "publishedNote": "Vultr docs, FAQ and response headers state no rate limits (checked 2026-11-05).",
+    "observed": {
+      "model": "qwen3.8-flash-next",
+      "date": "2026-11-05",
+      "concurrent12": "12/12 HTTP 200, median 657 ms",
+      "concurrent24": "24/24 HTTP 200, median 647 ms"
+    },
+    "policy": "Gateway retries 429/5xx at most twice with backoff. Runner jobs are serialized (1 active job), so a comparison stays far below observed capacity."
+  },
   "notes": "Filled after the capability gate passes (npm run smoke:inference -w @wallio/api). Prices are USD per 1M tokens from Vultr's current price sheet."
 }
