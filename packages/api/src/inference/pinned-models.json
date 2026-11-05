@@ -1,0 +1,8 @@
+{
+  "textModel": null,
+  "visionModel": null,
+  "jsonMode": false,
+  "prices": {},
+  "testedAt": null,
+  "notes": "Filled after the capability gate passes (npm run smoke:inference -w @wallio/api). Prices are USD per 1M tokens from Vultr's current price sheet."
+}

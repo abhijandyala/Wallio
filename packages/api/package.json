@@ -1,0 +1,19 @@
+{
+  "name": "@wallio/api",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"test/**/*.test.ts\"",
+    "smoke:inference": "node --env-file-if-exists=../../.env scripts/inference-smoke.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@wallio/contracts": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3"
+  }
+}
