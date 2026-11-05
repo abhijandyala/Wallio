@@ -193,6 +193,30 @@ export interface RequirementCheck {
   detail: string;
 }
 
+/** How a claim about a tool was established (contracts AccessMode). */
+export type AccessMode = "researched" | "tested_integration" | "tested_owned_demo";
+
+/** One statement in a recommendation. Facts cite sources or something the user said. */
+export interface Statement {
+  text: string;
+  role: "supporting" | "counter" | "uncertainty" | "next_step";
+  sourceIds: string[];
+  /** Profile facts the statement relies on, e.g. "Monthly budget". */
+  userInputs?: string[];
+}
+
+/** What switching would change. Computed by the backend; every figure shows its assumptions. */
+export interface SavingsScenario {
+  /** Change in monthly cost. Negative = cheaper. null if a price is unknown. */
+  monthlyDeltaCents: number | null;
+  /** Cash saved now. 0 for annual prepaid plans: no refund claims. */
+  immediateCents: number;
+  /** Avoided at the next renewal of the tool it replaces. null if it costs more. */
+  renewalAvoidanceCents: number | null;
+  renewalOn: string | null;
+  assumptions: string[];
+}
+
 export interface Match {
   id: string;
   workflowId: string;
@@ -205,6 +229,11 @@ export interface Match {
   evidence: EvidenceKind; // researched | tested
   /** Which tool in the user's stack this would be compared against. */
   comparesTo: string | null;
+  accessMode: AccessMode;
+  statements: Statement[];
+  /** Claims that only a test can settle. */
+  needsTesting: string[];
+  savings: SavingsScenario | null;
   /** Weighted score, computed by the backend. low < high when a component is unknown. */
   score: { low: number; high: number };
   components: FitComponent[];
@@ -227,6 +256,10 @@ export interface DiscoverData {
     currentScore: number;
     closest: { toolName: string; score: number; reason: string }[];
   }[];
+  /** Tools checked that didn't make the shortlist, with why. */
+  others: { workflowId: string; toolName: string; score: { low: number; high: number }; reason: string }[];
+  /** The profile version the ranking used. */
+  profileVersion: number;
   /** How each workflow's shortlist was researched. */
   research: {
     workflowId: string;
@@ -276,6 +309,10 @@ export interface Evidence {
   source: string; // display host, e.g. "windsurf.com/pricing"
   capturedAt: string; // ISO datetime
   limitation?: string;
+  /** Content hash of the capture, e.g. "sha256:9f2c…". */
+  hash?: string;
+  /** How it was captured, e.g. "Screenshot and text excerpt". */
+  method?: string;
 }
 
 /** One attempt of the task. Failed and timed-out attempts stay in the report. */
