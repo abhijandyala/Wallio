@@ -62,6 +62,8 @@ interface JobRecord {
   results: Record<string, { reqHash: string; result: ActionResult }>;
   deniedRequests: Denial[];
   stopReason: string | null;
+  /** How the job stopped, kept after cleanup so late actions get the right answer. */
+  stoppedAs: "cancelled" | "timed_out" | "failed" | null;
   peak: { memMb: number; pids: number } | null;
   cleanup: CleanupReport | null;
 }
@@ -139,6 +141,7 @@ export class JobService {
       this.jobs.set(job.jobId, job);
       if (!ENDED.has(job.state)) {
         job.state = "failed";
+        job.stoppedAs = "failed";
         job.stopReason = "The runner daemon restarted while this job was running.";
         this.save(job);
         this.rt.set(job.jobId, this.newRuntime());
@@ -192,7 +195,7 @@ export class JobService {
       allowedHosts: [...new Set(input.allowedHosts)], limits, state: "starting",
       startedAt: new Date(started).toISOString(), deadlineAt: new Date(started + limits.deadlineMs).toISOString(),
       imageDigest: this.driver.imageDigest(), ref: null, actionsUsed: 0, screenshotsUsed: 0, lastStepIndex: -1,
-      results: {}, deniedRequests: [], stopReason: null, peak: null, cleanup: null,
+      results: {}, deniedRequests: [], stopReason: null, stoppedAs: null, peak: null, cleanup: null,
     };
     const rt = this.newRuntime();
     this.jobs.set(job.jobId, job);
@@ -209,6 +212,7 @@ export class JobService {
       job.ref = (err as { ref?: SandboxRef }).ref ?? job.ref;
       if (job.state === "starting") {
         job.state = "failed";
+        job.stoppedAs = "failed";
         job.stopReason = `The browser could not start: ${(err as Error).message}`;
       }
       this.save(job);
@@ -260,7 +264,7 @@ export class JobService {
     const inflight = rt.inflight.get(req.actionId);
     if (inflight) return inflight;
     if (job.state === "starting") throw new RunnerHttpError(409, "job_not_ready", "The browser is still starting. Try again in a moment.");
-    if (job.state === "finished" || ENDED.has(job.state)) throw new RunnerHttpError(409, "job_not_ready", `Job ${jobId} has finished and accepts no more actions.`);
+    if ((job.state === "finished" || ENDED.has(job.state)) && !job.stoppedAs) throw new RunnerHttpError(409, "job_not_ready", `Job ${jobId} has finished and accepts no more actions.`);
 
     const p = rt.chain.then(() => this.execute(job, rt, req, reqHash));
     rt.chain = p.catch(() => {});
@@ -297,12 +301,13 @@ export class JobService {
     };
 
     // Terminal and budget checks, before anything reaches the browser.
-    if (job.state === "cancelled") return done("failed", E("cancelled", "The job was cancelled."));
-    if (job.state === "timed_out" || Date.now() >= Date.parse(job.deadlineAt)) {
+    const stopped = job.stoppedAs;
+    if (stopped === "cancelled") return done("failed", E("cancelled", "The job was cancelled."));
+    if (stopped === "timed_out" || (!stopped && Date.now() >= Date.parse(job.deadlineAt))) {
       this.onDeadline(job);
       return done("timeout", E("deadline_exceeded", "The job reached its hard deadline and the browser was stopped."));
     }
-    if (job.state === "failed") return done("failed", E("browser_crashed", job.stopReason ?? "The browser is no longer running."));
+    if (stopped === "failed") return done("failed", E("browser_crashed", job.stopReason ?? "The browser is no longer running."));
     if (job.state === "finished" || ENDED.has(job.state)) throw new RunnerHttpError(409, "job_not_ready", "The job has finished.");
     if (req.stepIndex < job.lastStepIndex) return done("failed", E("invalid_action", `stepIndex ${req.stepIndex} is lower than the last step (${job.lastStepIndex}).`));
     if (job.actionsUsed >= job.limits.maxActions) return done("failed", E("action_limit_reached", `This job's ${job.limits.maxActions}-action budget is used up.`));
@@ -447,6 +452,7 @@ export class JobService {
   private stop(job: JobRecord, state: "cancelled" | "timed_out" | "failed", reason: string) {
     if (ENDED.has(job.state) || STOPPED.has(job.state)) return;
     job.state = state;
+    job.stoppedAs = state;
     job.stopReason = reason;
     this.save(job);
     log(state === "failed" ? "error" : "warn", `job ${state}`, { jobId: job.jobId, reason });

@@ -87,7 +87,8 @@ export function loadRunnerConfig(env: Record<string, string | undefined> = proce
     limits: {
       memoryMb: Number(env.RUNNER_JOB_MEMORY_MB) || 1536,
       cpus: Number(env.RUNNER_JOB_CPUS) || 1,
-      pids: Number(env.RUNNER_JOB_PIDS) || 256,
+      // Measured peak on the golden-path pages: ~91 processes, ~290 MiB (smoke, 5 Nov 2026).
+      pids: Number(env.RUNNER_JOB_PIDS) || 192,
       tmpMb: 256,
       byteCapMb: Number(env.RUNNER_JOB_BYTE_CAP_MB) || 50,
       startTimeoutMs: 20_000,

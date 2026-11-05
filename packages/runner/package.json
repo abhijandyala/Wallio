@@ -16,7 +16,6 @@
     "start": "node --env-file-if-exists=../../.env.runner src/main.ts",
     "smoke": "node --env-file-if-exists=../../.env.runner scripts/smoke.ts",
     "preflight": "node --env-file-if-exists=../../.env.runner scripts/preflight.ts",
-    "measure-hosts": "node scripts/measure-hosts.ts",
     "sentinel": "node sentinel/sentinel.ts"
   },
   "dependencies": {
