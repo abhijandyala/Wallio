@@ -7,8 +7,8 @@ const config = loadAppConfig();
 const db = createDb(config.databaseUrl);
 const app = createApp({ config, db });
 
-const server = serve({ fetch: app.fetch, port: config.port }, (info) => {
-  console.log(JSON.stringify({ level: "info", msg: "wallio api listening", port: info.port, runMode: config.runMode }));
+const server = serve({ fetch: app.fetch, port: config.port, hostname: config.host }, (info) => {
+  console.log(JSON.stringify({ level: "info", msg: "wallio api listening", host: config.host, port: info.port, runMode: config.runMode }));
 });
 
 for (const sig of ["SIGINT", "SIGTERM"] as const) {

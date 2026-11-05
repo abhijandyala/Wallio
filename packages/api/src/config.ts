@@ -2,6 +2,8 @@ export interface AppConfig {
   /** App role (wallio_app, not a superuser) so row-level security applies. */
   databaseUrl: string;
   port: number;
+  /** Interface to listen on. Localhost by default: only Caddy talks to the API. */
+  host: string;
   /** "mock" plays a scripted run until the real orchestrator (P4) exists. */
   runMode: "mock" | "live";
   cookieSecure: boolean;
@@ -22,6 +24,7 @@ export function loadAppConfig(env: Record<string, string | undefined> = process.
   return {
     databaseUrl,
     port: Number(env.PORT) || 8787,
+    host: env.HOST?.trim() || "127.0.0.1",
     runMode,
     cookieSecure: env.COOKIE_SECURE === "true",
     appOrigin: env.APP_ORIGIN?.trim() || null,

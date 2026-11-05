@@ -19,7 +19,7 @@ const APP = process.env.TEST_DATABASE_URL;
 if (!ADMIN || !APP) throw new Error("Set TEST_DATABASE_ADMIN_URL and TEST_DATABASE_URL in .env");
 
 const config = (over: Partial<AppConfig> = {}): AppConfig => ({
-  databaseUrl: APP, port: 0, runMode: "mock", cookieSecure: false, appOrigin: "http://localhost:5173",
+  databaseUrl: APP, port: 0, host: "127.0.0.1", runMode: "mock", cookieSecure: false, appOrigin: "http://localhost:5173",
   sessionTtlHours: 1, runSpendCapMinor: 50, mockStepMs: 5, ...over,
 });
 
