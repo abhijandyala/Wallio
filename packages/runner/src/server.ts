@@ -63,7 +63,12 @@ export function createRunnerApp(service: JobService, sharedToken: string) {
 
   app.get("/healthz", async (c) => c.json(await service.health()));
 
-  app.post("/jobs", async (c) => c.json(await service.create(await body(c, C.RunnerJobCreate)), 201));
+  app.post("/jobs", async (c) => {
+    const spec = await body(c, C.RunnerJobCreate);
+    // Job IDs end up in URLs, Docker labels and file names: keep them to a safe alphabet.
+    if (!JOB_ID.test(spec.jobId)) throw new RunnerHttpError(400, "bad_request", "jobId may only contain letters, digits, '_', '.', ':' and '-'.");
+    return c.json(await service.create(spec), 201);
+  });
   app.get("/jobs/:id", (c) => c.json(service.status(jobId(c))));
   app.post("/jobs/:id/actions", async (c) => {
     const id = jobId(c);

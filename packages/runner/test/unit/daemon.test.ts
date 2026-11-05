@@ -77,6 +77,8 @@ test("malformed bodies are 400 bad_request; oversized bodies are 413", async () 
   assert.equal(huge.status, 413);
   const http = await call("POST", "/jobs", job({ allowedHosts: ["http://github.com"] }));
   assert.equal(http.status, 400);
+  const weirdId = await call("POST", "/jobs", job({ jobId: "job/../x y" }));
+  assert.equal(weirdId.status, 400);
 });
 
 test("research happy path: create → navigate → inspect → screenshot → finish → cleaned", async () => {
