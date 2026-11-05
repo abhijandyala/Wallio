@@ -46,7 +46,9 @@ systemctl restart postgresql
 echo "== app user and directories"
 id wallio >/dev/null 2>&1 || useradd --system --home /opt/wallio --shell /usr/sbin/nologin wallio
 install -d -o root -g root -m 755 /opt/wallio /opt/wallio/releases
-install -d -o root -g root -m 700 /etc/wallio
+# 711: the API user can open the runner certificate (644) by name but cannot list the
+# directory; api.env stays 600 root-only.
+install -d -o root -g root -m 711 /etc/wallio
 
 ENVF=/etc/wallio/api.env
 if [ ! -f "$ENVF" ]; then
