@@ -1,0 +1,29 @@
+{
+  "actionId": "a4",
+  "stepIndex": 4,
+  "status": "denied",
+  "observation": {
+    "url": "chrome-error://chromewebdata/",
+    "title": "",
+    "httpStatus": 200,
+    "redirectChain": [],
+    "pageFingerprint": "sha256:bc705745bbb3fd5dc6f6d894fe9790559a65c6278d377d3df5f3d9bf9df1cd23",
+    "textExcerpt": null,
+    "textSha256": null,
+    "elements": null,
+    "screenshot": null,
+    "blocked": {
+      "reason": "egress_denied",
+      "detail": "The egress proxy refused 169.254.169.254."
+    },
+    "deniedRequests": [],
+    "capturedAt": "2026-11-05T18:55:37.371Z"
+  },
+  "error": {
+    "code": "egress_denied",
+    "message": "The click tried to open 169.254.169.254, which the egress proxy refused.",
+    "retryable": false
+  },
+  "durationMs": 1586,
+  "actionsRemaining": 15
+}

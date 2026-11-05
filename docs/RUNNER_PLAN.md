@@ -1,6 +1,8 @@
 # Wallio browser runner: build plan
 
-Owner: Adhvik (browser execution and containment). Status: **plan, not started.** Written 5 Nov 2026.
+Owner: Adhvik (browser execution and containment). Written 5 Nov 2026.
+
+**Status (5 Nov 2026, end of day):** R0–R5 built and tested locally (37 unit, 13 Docker integration, live smoke 12/12; see `docs/RUNNER_TEST_REPORT.md`). R6 deploy scripts written, not yet run on a VM (waiting for Vultr access). R7 needs Anish's live orchestrator. R8 docs: `packages/runner/README.md`. Changes from this plan while building: the process limit is 192 (measured peak ~91); daemon HTTP timeout for `/actions` should be ≥ 50 s; clicks wait for `aria-busy` (up to 15 s) instead of needing a `wait` action.
 Builds against contracts v0.1.0 (`packages/contracts/src/runner.ts`, `docs/CONTRACTS.md` §B). Sources: scope brief, PRD §13–15, §19, §24, `docs/GOLDEN_PATH.md`.
 
 The runner is a daemon on its own Vultr VM. Anish's control plane calls it one action at a time. It runs each job in a short-lived, locked-down Chromium container whose only way out is an egress proxy we control. It returns observations and screenshots, enforces its own limits, and proves cleanup. It never calls inference and holds no provider or cloud keys.
@@ -294,17 +296,16 @@ R0–R5 and R8 docs run locally without anyone else. R6 needs the Vultr account.
 
 ## 12. Message to Anish (copy-paste)
 
-> Runner plan is in `docs/RUNNER_PLAN.md` on my branch. Building against contracts v0.1.0. Answers to your sign-off questions, plus 7 things I need from you (§6 of the plan):
+> Runner is built and tested locally against contracts v0.1.0, no contract changes needed. Docs: `packages/runner/README.md` on my branch (integration notes section). Answers to your sign-off questions plus what I need:
 >
-> - Sync, one action per request is fine. Per-action timeouts are 30 s for navigate and ≤ 15 s otherwise, so set your HTTP timeout ≥ 40 s.
-> - Yes, `inspect` returns `targetHost` for links and form controls.
-> - Approval tokens: I'd like the runner to **verify** them. HMAC with a shared `RUNNER_APPROVAL_KEY`, format `v1.<exp>.<nonce>.<sig>` over `jobId|actionId|elementRef|pageFingerprint|exp|nonce`, single use. The fingerprint includes current form values, so changed fields kill the approval. OK?
-> - TypeScript, importing `@wallio/contracts` directly.
-> - Hostile fixture at `hostile.<domain>` (static files I provide; can you add a Caddy site?). Sentinel = a tiny counter script I'll write for you to run on the control VM's private IP.
-> - Please send one job per purpose (research / eval / form / hostile) so each allowlist is minimal.
-> - github.com and zed.dev need their asset/CDN hosts in `allowedHosts` or screenshots come out unstyled. I'll send you the exact list after I measure it.
-> - Proposal for v0.2: add a `wait` action (`ms ≤ 15000`) for the eval page result. Alternatively the eval page shows its result within ~5 s of the click.
-> - Fetch screenshots right after each action; I keep them 30 min after cleanup.
-> - Transport: HTTPS on the VPC private IP :8443, self-signed cert that you pin.
-> - Please send me the control VM's private IP and domain once it's up.
-> - Day 1: I'll have a `RUNNER_DRIVER=fake` daemon you can point your runner client at before the real browser is ready.
+> - **Sync, one action per request** is fine. Set your HTTP timeout for `/actions` to ≥ 50 s (navigate can take 30 s plus watchdog).
+> - **`inspect` returns `targetHost`** for links and form submits. Tested on the hostile page: the "Claim credit" button shows the private IP.
+> - **Approval tokens:** the runner verifies them. Import `signApprovalToken` from `@wallio/runner/approval` and sign `{ jobId, actionId, elementRef, pageFingerprint }` with `RUNNER_APPROVAL_KEY`. Single use, max 10 min, and the fingerprint includes field values, so changed fields void it. OK with you?
+> - **TypeScript**, importing `@wallio/contracts` directly.
+> - **One job per purpose.** Measured allowlists: Copilot `github.com` + `github.githubassets.com`; Zed `zed.dev`. Eval, form and hostile each get only their own host.
+> - **Eval page:** please put `aria-busy="true"` on the result region while it runs, plus `data-testid="eval-result"`. The runner waits for it (max 15 s), so no `wait` action is needed unless inference can take longer.
+> - **Screenshots:** fetch `/artifacts/:id` right after each action. Kept 30 min after cleanup.
+> - **Hostile + sentinel:** can you add `deploy/runner/Caddyfile.hostile` to your Caddyfile and run `deploy/runner/wallio-sentinel.service` on the control VM's private IP (allow 9099 from the runner's private IP)?
+> - **Transport:** HTTPS on the runner's private IP :8443, self-signed cert that you pin. `deploy/runner/push-runner-secrets.sh` writes `RUNNER_URL`, `RUNNER_SHARED_TOKEN`, `RUNNER_APPROVAL_KEY` and `RUNNER_CA_FILE` into your `api.env`.
+> - **Please send** the control VM's private IP, region and domain once it's up.
+> - **Develop against it now:** `RUNNER_DRIVER=fake npm run dev -w @wallio/runner` gives you the real daemon behaviour with sample pages. Real outputs for the UI are in `packages/runner/samples/`.
