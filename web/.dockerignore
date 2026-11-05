@@ -1,0 +1,6 @@
+node_modules
+.next
+.env*
+*.mov
+npm-debug.log*
+deploy/*.md

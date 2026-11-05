@@ -17,7 +17,8 @@ const when = (iso: string) =>
 
 /**
  * One capture, in full: what was seen, where, when, how, and what it can't tell you.
- * TODO(api): GET /api/evidence/{id} and its screenshot from GET /api/evidence/{id}/screenshot.
+ * Live Compare passes API evidence (see compare/live/live-panels.tsx toUiEvidence), with the
+ * screenshot from GET /api/evidence/{id}/screenshot.
  */
 export function EvidenceDrawer({
   evidence,
@@ -72,6 +73,25 @@ export function EvidenceDrawer({
             </header>
 
             <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-6">
+              {evidence.screenshotUrl ? (
+                <figure className="flex flex-col gap-2">
+                  <div className="overflow-hidden rounded-[12px] border border-line bg-bg">
+                    <div className="flex h-8 items-center gap-2 border-b border-line px-3">
+                      <LockSimple size={11} className="shrink-0 text-text-3" />
+                      <span className="truncate font-mono text-[11px] text-text-3">{evidence.source}</span>
+                    </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- served by the API after an ownership check */}
+                    <img src={evidence.screenshotUrl} alt={`Screenshot of ${evidence.source}`} className="block w-full bg-white" />
+                  </div>
+                  <figcaption className="text-[12px] text-text-3">
+                    {evidence.screenshotNote ?? "Screenshot taken in the sandbox."}
+                  </figcaption>
+                </figure>
+              ) : evidence.excerpt !== undefined ? (
+                <p className="rounded-[12px] border border-line px-4 py-3 text-[13px] text-text-3">
+                  No screenshot was stored for this capture.
+                </p>
+              ) : (
               <figure className="flex flex-col gap-2">
                 <div className="overflow-hidden rounded-[12px] border border-line bg-bg">
                   <div className="flex h-8 items-center gap-2 border-b border-line px-3">
@@ -96,6 +116,14 @@ export function EvidenceDrawer({
                   Screenshot taken in the sandbox. Sample image until the runner is connected.
                 </figcaption>
               </figure>
+              )}
+
+              {evidence.excerpt && (
+                <div className="rounded-[12px] border border-line px-4 py-3">
+                  <p className="text-[13px] text-text-3">What it says</p>
+                  <p className="mt-1 text-text-1">{evidence.excerpt}</p>
+                </div>
+              )}
 
               <dl className="flex flex-col rounded-[12px] border border-line text-[14px]">
                 <Row label="Kind">

@@ -338,6 +338,12 @@ export interface Evidence {
   hash?: string;
   /** How it was captured, e.g. "Screenshot and text excerpt". */
   method?: string;
+  /** The short quoted text the claim rests on (from the API). */
+  excerpt?: string;
+  /** The real screenshot, when the capture has one. */
+  screenshotUrl?: string;
+  /** Caption under the screenshot. */
+  screenshotNote?: string;
 }
 
 /** One attempt of the task. Failed and timed-out attempts stay in the report. */

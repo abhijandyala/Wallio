@@ -21,6 +21,8 @@ import { CompareSetup, defaultChoice, type SetupChoice } from "./compare-setup";
 import { RunLive, attemptStates } from "./run-live";
 import { RunResults } from "./run-results";
 import { useSettings } from "@/lib/settings";
+import { LiveCompare } from "./live/live-compare";
+import { LiveApiStrip } from "./live/live-api-strip";
 
 type Phase = "setup" | "running" | "cancelled" | "done" | "containment";
 /** Front-end only: lets a demo or review show the run's other outcomes (?simulate=…). */
@@ -69,6 +71,9 @@ function advance(steps: RunStep[], times: number[], elapsed: number, running: bo
 export function CompareFlow() {
   // Re-mount when the query changes (e.g. opening a report from Recent), so state starts fresh.
   const params = useSearchParams();
+  // ?live=1 and ?containment=1 run against the real Wallio API (or its recording).
+  if (params.get("live") === "1" || params.get("containment") === "1")
+    return <LiveCompare key={params.toString()} focus={params.get("containment") === "1" ? "containment" : "comparison"} />;
   return <Flow key={params.toString()} params={params} />;
 }
 
@@ -266,6 +271,7 @@ function Flow({ params }: { params: URLSearchParams }) {
           }}
           exit={{ opacity: 0, transition: { duration: reduce ? 0 : 0.14 } }}
         >
+          {scene === "setup" && <LiveApiStrip />}
           {scene === "setup" && (
             <CompareSetup
               data={data}

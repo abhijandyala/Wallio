@@ -2,18 +2,23 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Check, GithubLogo, Prohibit } from "@phosphor-icons/react/dist/ssr";
 import { ButtonLink } from "@/components/kit/button-link";
-import { Wordmark } from "@/components/kit/wordmark";
 import { Stat, StatStrip } from "@/components/kit/stat";
 import { Tag } from "@/components/kit/tag";
 import { HeroRun } from "@/components/landing/hero-run";
 import { HowItWorks } from "@/components/landing/how-it-works";
+import { REPO, SectionHead, SiteShell } from "@/components/landing/site-chrome";
+import {
+  ProblemSection,
+  QuestionsSection,
+  StatusSection,
+  VultrSection,
+  JudgesSection,
+} from "@/components/landing/sections";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Wallio · Your personal AI wallet",
 };
-
-const REPO = "https://github.com/abhijandyala/Wallio";
 
 /**
  * The landing page. Sits outside the app rail. Everything shown is the same sample data the
@@ -21,43 +26,23 @@ const REPO = "https://github.com/abhijandyala/Wallio";
  */
 export default function LandingPage() {
   return (
-    <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col px-4 sm:px-6">
-      <TopBar />
+    <SiteShell>
       <main id="main" className="flex flex-col gap-24 pt-10 pb-16 sm:gap-32 sm:pt-16">
         <Hero />
+        <ProblemSection />
         <HowSection />
         <SafetySection />
+        <VultrSection />
         <ReceiptsSection />
+        <StatusSection />
+        <QuestionsSection />
+        <JudgesSection />
         <Closing />
       </main>
-      <Footer />
-    </div>
+    </SiteShell>
   );
 }
 
-function TopBar() {
-  return (
-    <header className="flex h-16 items-center justify-between gap-6">
-      <Link href="/" aria-label="Wallio home">
-        <Wordmark className="[&_span]:text-[17px] [&_svg]:h-[15px]" />
-      </Link>
-      <nav className="flex items-center gap-6 text-[14px]">
-        <a href="#how" className="hidden text-text-2 transition-colors hover:text-text-1 sm:block">
-          How it works
-        </a>
-        <a href="#safety" className="hidden text-text-2 transition-colors hover:text-text-1 sm:block">
-          Safety
-        </a>
-        <a href="#receipts" className="hidden text-text-2 transition-colors hover:text-text-1 md:block">
-          Receipts
-        </a>
-        <ButtonLink href="/home" variant="secondary" size="sm">
-          Open the app
-        </ButtonLink>
-      </nav>
-    </header>
-  );
-}
 
 function Hero() {
   return (
@@ -74,11 +59,13 @@ function Hero() {
           <ButtonLink href="/home" variant="primary" size="lg">
             Try the demo
           </ButtonLink>
-          <ButtonLink href="#how" variant="ghost" size="lg">
-            See how it works
+          <ButtonLink href="/compare?live=1" variant="ghost" size="lg">
+            Run it live
           </ButtonLink>
         </div>
-        <p className="text-[13px] text-text-3">Runs on sample data. No account needed.</p>
+        <p className="text-[13px] text-text-3">
+          No account needed. The demo uses labelled sample data; Run it live uses our API on Vultr.
+        </p>
       </div>
       <div className="col-span-12 xl:col-span-7">
         <HeroRun />
@@ -94,16 +81,6 @@ function Hero() {
   );
 }
 
-function SectionHead({ id, title, line }: { id: string; title: string; line: string }) {
-  return (
-    <header id={id} className="flex scroll-mt-8 flex-col gap-2">
-      <h2 className="display text-[28px] leading-[34px] font-medium text-text-1 sm:text-[32px] sm:leading-[38px]">
-        {title}
-      </h2>
-      <p className="max-w-[40rem] text-[15px] text-text-2">{line}</p>
-    </header>
-  );
-}
 
 function HowSection() {
   return (
@@ -147,8 +124,8 @@ function SafetySection() {
     <section className="flex flex-col gap-section">
       <SectionHead
         id="safety"
-        title="The agent can only touch what you allow"
-        line="Wallio browses real vendor sites for you. Here is what keeps a bad page from reaching anything else."
+        title="Blast Radius Zero: the agent only touches what you allow"
+        line="Our track at the Vultr Agent Rush hackathon. Wallio browses real vendor sites for you; this is what keeps a bad page from reaching anything else."
       />
       <div className="grid grid-cols-12 gap-gutter">
         <div className="col-span-12 flex flex-col rounded-[20px] bg-lavender text-ink lg:col-span-5">
@@ -175,7 +152,7 @@ function SafetySection() {
               <Tag kind="sample">Sample run</Tag>
             </h3>
             <Link
-              href="/compare"
+              href="/compare?containment=1"
               className="hidden shrink-0 text-[13px] sm:block text-text-3 transition-colors hover:text-text-1"
             >
               Run it yourself
@@ -294,11 +271,14 @@ function Closing() {
   return (
     <section className="flex flex-col items-start justify-between gap-6 rounded-[20px] border border-line bg-surface-1 px-6 py-8 sm:flex-row sm:items-center sm:px-8">
       <h2 className="display text-[28px] leading-[34px] font-medium text-text-1">
-        See it work on sample data.
+        See it work, then run it live.
       </h2>
       <div className="flex flex-wrap items-center gap-3">
         <ButtonLink href="/home" variant="primary" size="lg">
           Try the demo
+        </ButtonLink>
+        <ButtonLink href="/compare?live=1" variant="secondary" size="lg">
+          Run it live
         </ButtonLink>
         <a
           href={REPO}
@@ -313,16 +293,3 @@ function Closing() {
   );
 }
 
-function Footer() {
-  return (
-    <footer className="flex flex-col gap-3 border-t border-line py-6 text-[13px] text-text-3 sm:flex-row sm:items-center sm:justify-between">
-      <span className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
-        <Wordmark className="text-text-2" />
-        Built for the Vultr hackathon by Abhijan, Anish and Adhvik
-      </span>
-      <a href={REPO} target="_blank" rel="noreferrer" className="transition-colors hover:text-text-1">
-        GitHub
-      </a>
-    </footer>
-  );
-}

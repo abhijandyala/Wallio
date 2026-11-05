@@ -14,6 +14,7 @@ import { Meter } from "@/components/kit/meter";
 import { Button } from "@/components/ui/button";
 import { daysUntil, formatMoney, formatShortDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { resetGuestSession, useApiStatus } from "@/lib/api/client";
 import {
   ChipList,
   FixedRow,
@@ -836,11 +837,61 @@ function PrivacySection({ s, set, say }: P & { say: (t: string) => void }) {
 
 /* ── Demo ─────────────────────────────────────────────────────────────── */
 
+function ApiRow() {
+  const status = useApiStatus();
+  return (
+    <Row inline label="Wallio API">
+      <span className="flex items-center gap-2 text-[13px] text-text-2">
+        <span
+          className={cn("size-1.5 rounded-[1px]", status.state === "online" ? "bg-lime" : "bg-text-3")}
+          aria-hidden="true"
+        />
+        {status.state === "checking"
+          ? "Checking"
+          : status.state === "online"
+            ? status.runMode === "mock"
+              ? "Online · demo playback"
+              : "Online · live runs"
+            : "Can't be reached"}
+      </span>
+    </Row>
+  );
+}
+
+/** Starts this browser over: a fresh guest workspace on the API, and default settings here. */
+function ResetDemoRow({ say }: { say: (t: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <Row inline label="Start the demo over with a fresh guest workspace">
+      <Button
+        variant="secondary"
+        size="sm"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            await resetGuestSession();
+            resetSettings();
+            say("Demo reset. Your next run gets a fresh workspace");
+          } catch {
+            say("Couldn't reset the demo. Try again");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        Reset demo
+      </Button>
+    </Row>
+  );
+}
+
 function DemoSection({ s, set, say }: P & { say: (t: string) => void }) {
   const changed = JSON.stringify({ ...s, timeZone: "" }) !== JSON.stringify({ ...DEFAULT_SETTINGS, timeZone: "" });
   return (
     <Section id="demo" title="Demo">
-      <FixedRow label="Data shown" value="Sample data until the backend is connected" />
+      <ApiRow />
+      <FixedRow label="Data shown" value="Compare, live uses the API. Other screens use sample data" />
       <Row label="Next comparison ends as">
         <Select
           label="Simulated outcome"
@@ -856,6 +907,7 @@ function DemoSection({ s, set, say }: P & { say: (t: string) => void }) {
           ]}
         />
       </Row>
+      <ResetDemoRow say={say} />
       <Row label="Reset every setting to the default">
         <Button
           variant="secondary"
