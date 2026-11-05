@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "code": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "invalid_action",
+            "egress_denied",
+            "navigation_failed",
+            "element_not_found",
+            "element_stale",
+            "approval_token_invalid",
+            "action_timeout",
+            "deadline_exceeded",
+            "action_limit_reached",
+            "screenshot_limit_reached",
+            "browser_crashed",
+            "job_not_found",
+            "job_not_ready",
+            "cancelled",
+            "internal"
+          ]
+        },
+        {
+          "type": "string",
+          "enum": [
+            "unauthorized",
+            "bad_request",
+            "busy"
+          ]
+        }
+      ]
+    },
+    "message": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "code",
+    "message"
+  ],
+  "$id": "wallio/runner/RunnerHttpError@0.1.0"
+}

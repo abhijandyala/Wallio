@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "runId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "status": {
+      "type": "string",
+      "const": "QUEUED"
+    },
+    "eventsUrl": {
+      "type": "string",
+      "format": "starts_with",
+      "pattern": "^\\/api\\/runs\\/.*"
+    },
+    "statusUrl": {
+      "type": "string",
+      "format": "starts_with",
+      "pattern": "^\\/api\\/runs\\/.*"
+    }
+  },
+  "required": [
+    "runId",
+    "status",
+    "eventsUrl",
+    "statusUrl"
+  ],
+  "$id": "wallio/api/ComparisonAccepted@0.1.0"
+}

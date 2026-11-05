@@ -1,0 +1,9 @@
+{
+  "idempotencyKey": "7d9f6c1e-2b4a-4f6e-9a51-0c3e8b7d2f10",
+  "profileVersionId": "pv_demo_1",
+  "workflowId": "wf_debugging",
+  "taskId": "task_js_offbyone_v1",
+  "incumbentToolId": "tool_incumbent",
+  "candidateToolIds": ["tool_candidate"],
+  "spendCapMinor": 50
+}

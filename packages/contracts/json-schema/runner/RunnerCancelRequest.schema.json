@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "reason": {
+      "type": "string",
+      "enum": [
+        "user_cancelled",
+        "deadline",
+        "policy_violation",
+        "budget",
+        "shutdown"
+      ]
+    }
+  },
+  "required": [
+    "reason"
+  ],
+  "$id": "wallio/runner/RunnerCancelRequest@0.1.0"
+}

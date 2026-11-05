@@ -1,0 +1,9 @@
+{
+  "id": "apr_01", "runId": "run_01HZX3", "actionType": "submit_form",
+  "targetOrigin": "https://forms.wallio.example", "targetUrl": "https://forms.wallio.example/trial-request",
+  "fields": [ { "name": "email", "label": "Contact email", "value": "demo-dev@wallio.example" }, { "name": "plan", "label": "Plan", "value": "Trial" } ],
+  "consequence": "Sends one synthetic trial request to the Wallio demo form. No money is spent.",
+  "screenshotEvidenceId": "ev_form_before",
+  "intentHash": "sha256:c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+  "createdAt": "2026-11-06T15:01:10Z", "expiresAt": "2026-11-06T15:06:10Z", "status": "pending"
+}

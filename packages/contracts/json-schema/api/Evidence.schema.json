@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "runId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "vendor_claim",
+        "observed_behavior",
+        "executed_test",
+        "user_input"
+      ]
+    },
+    "candidateToolId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "accessMode": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "researched",
+            "tested_integration",
+            "tested_owned_demo"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "url": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uri"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "canonicalUrl": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uri"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "capturedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+    },
+    "contentHash": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "hasScreenshot": {
+      "type": "boolean"
+    },
+    "extractionMethod": {
+      "type": "string",
+      "enum": [
+        "dom",
+        "vision",
+        "api",
+        "manual"
+      ]
+    },
+    "excerpt": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "limitation": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "id",
+    "runId",
+    "kind",
+    "candidateToolId",
+    "accessMode",
+    "url",
+    "canonicalUrl",
+    "capturedAt",
+    "contentHash",
+    "hasScreenshot",
+    "extractionMethod",
+    "excerpt",
+    "limitation"
+  ],
+  "$id": "wallio/api/Evidence@0.1.0"
+}

@@ -1,0 +1,6 @@
+{
+  "jobId": "job_01", "status": "cleaned", "containerId": "c0ffee12ab34", "containerRemoved": true, "volumeRemoved": true,
+  "verifiedAt": "2026-11-06T15:02:09Z", "actionsExecuted": 7, "screenshotsTaken": 3,
+  "deniedRequests": [ { "url": "http://10.0.0.5/admin", "reason": "private_range", "at": "2026-11-06T15:01:40Z" } ],
+  "detail": null
+}

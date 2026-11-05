@@ -1,0 +1,12 @@
+{
+  "name": "wallio",
+  "private": true,
+  "license": "MIT",
+  "workspaces": ["packages/*"],
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "contracts:test": "npm test -w @wallio/contracts",
+    "contracts:schema": "npm run schema -w @wallio/contracts",
+    "typecheck": "npm run typecheck -w @wallio/contracts"
+  }
+}

@@ -1,0 +1,12 @@
+[
+  { "runId": "run_01HZX3", "seq": 1, "ts": "2026-11-06T15:00:00Z", "stage": "planning", "message": "Comparison queued", "type": "status_changed", "data": { "from": "CREATED", "to": "QUEUED" } },
+  { "runId": "run_01HZX3", "seq": 2, "ts": "2026-11-06T15:00:02Z", "stage": "planning", "message": "Planning research for 2 tools", "type": "inference_call", "data": { "purpose": "plan", "model": "PINNED_MODEL_ID", "latencyMs": 1840, "ok": true } },
+  { "runId": "run_01HZX3", "seq": 3, "ts": "2026-11-06T15:00:04Z", "stage": "researching", "message": "Researching official pricing pages", "type": "stage_changed", "data": { "from": "planning", "to": "researching" } },
+  { "runId": "run_01HZX3", "seq": 4, "ts": "2026-11-06T15:00:09Z", "stage": "researching", "message": "Opening the incumbent's pricing page", "type": "step", "data": { "stepIndex": 0, "maxSteps": 20, "actionType": "navigate", "url": "https://pricing.incumbent.example/plans", "candidateToolId": "tool_incumbent" } },
+  { "runId": "run_01HZX3", "seq": 5, "ts": "2026-11-06T15:00:14Z", "stage": "researching", "message": "Captured pricing page", "type": "evidence_captured", "data": { "evidenceId": "ev_inc_pricing", "kind": "vendor_claim", "url": "https://pricing.incumbent.example/plans", "candidateToolId": "tool_incumbent" } },
+  { "runId": "run_01HZX3", "seq": 6, "ts": "2026-11-06T15:00:21Z", "stage": "researching", "message": "Blocked a request to a private address", "type": "policy_denied", "data": { "attemptedAction": "click", "target": "http://10.0.0.5/admin", "reason": "Destination is not on the allowed host list" } },
+  { "runId": "run_01HZX3", "seq": 7, "ts": "2026-11-06T15:01:10Z", "stage": "testing", "message": "Waiting for your approval to send the trial request", "type": "approval_required", "data": { "approvalId": "apr_01" } },
+  { "runId": "run_01HZX3", "seq": 8, "ts": "2026-11-06T15:01:30Z", "stage": "testing", "message": "Approved. Sending the trial request once", "type": "approval_resolved", "data": { "approvalId": "apr_01", "result": "approved" } },
+  { "runId": "run_01HZX3", "seq": 9, "ts": "2026-11-06T15:02:05Z", "stage": "reporting", "message": "Recommendation ready", "type": "result_ready", "data": { "recommendationId": "rec_01", "outcome": "succeeded" } },
+  { "runId": "run_01HZX3", "seq": 10, "ts": "2026-11-06T15:02:09Z", "stage": "done", "message": "Browser container removed and verified", "type": "cleanup", "data": { "result": "cleaned", "containerRemoved": true, "volumeRemoved": true } }
+]

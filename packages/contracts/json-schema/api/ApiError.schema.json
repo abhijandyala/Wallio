@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "enum": [
+        "validation_failed",
+        "unauthorized",
+        "forbidden",
+        "not_found",
+        "conflict",
+        "idempotency_conflict",
+        "budget_exceeded",
+        "quota_exceeded",
+        "rate_limited",
+        "inference_unavailable",
+        "inference_invalid_output",
+        "runner_unavailable",
+        "runner_timeout",
+        "policy_denied",
+        "approval_required",
+        "approval_expired",
+        "approval_invalid",
+        "internal"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1
+    },
+    "correlationId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "retryable": {
+      "type": "boolean"
+    },
+    "details": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {}
+    }
+  },
+  "required": [
+    "code",
+    "message",
+    "correlationId",
+    "retryable"
+  ],
+  "$id": "wallio/api/ApiError@0.1.0"
+}

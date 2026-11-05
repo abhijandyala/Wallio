@@ -1,0 +1,170 @@
+{
+  "id": "rec_01",
+  "runId": "run_01HZX3",
+  "profileVersionId": "pv_demo_1",
+  "calculationVersion": "score-v1+spend-v1",
+  "createdAt": "2026-11-06T15:02:05Z",
+  "goal": "Decide whether to keep the current coding assistant for debugging",
+  "action": "try",
+  "targetToolId": "tool_candidate",
+  "headline": "Keep your current assistant, and try the alternative on one debugging task before renewal",
+  "statements": [
+    {
+      "text": "The alternative's published plan includes the IDE integration you require.",
+      "role": "supporting",
+      "evidenceIds": [
+        "ev_cand_docs"
+      ],
+      "userInputRefs": [
+        "requiredIntegrations"
+      ]
+    },
+    {
+      "text": "In the owned demo test both setups fixed the sample bug; this is evidence for this one task only.",
+      "role": "supporting",
+      "evidenceIds": [
+        "ev_test_owned"
+      ],
+      "userInputRefs": []
+    },
+    {
+      "text": "No privacy policy was captured for the alternative, so its privacy fit is unknown.",
+      "role": "uncertainty",
+      "evidenceIds": [],
+      "userInputRefs": [
+        "dataSensitivity"
+      ]
+    },
+    {
+      "text": "Run the alternative on your own next bug before the 20 Nov renewal.",
+      "role": "next_step",
+      "evidenceIds": [],
+      "userInputRefs": []
+    }
+  ],
+  "candidates": [
+    {
+      "toolId": "tool_candidate",
+      "role": "candidate",
+      "accessMode": "researched",
+      "hardConstraints": {
+        "passed": true,
+        "failures": []
+      },
+      "score": {
+        "min": 0.52,
+        "max": 0.67,
+        "components": {
+          "quality": {
+            "value": 0.6,
+            "weight": 0.4,
+            "evidenceIds": [
+              "ev_test_owned"
+            ]
+          },
+          "fit": {
+            "value": 0.8,
+            "weight": 0.2,
+            "evidenceIds": [
+              "ev_cand_docs"
+            ]
+          },
+          "cost": {
+            "value": 0.5,
+            "weight": 0.15,
+            "evidenceIds": [
+              "ev_cand_pricing"
+            ]
+          },
+          "privacy": {
+            "value": null,
+            "weight": 0.15,
+            "evidenceIds": []
+          },
+          "switching": {
+            "value": 0.4,
+            "weight": 0.1,
+            "evidenceIds": []
+          }
+        }
+      },
+      "known": [
+        "Lists an IDE extension",
+        "Publishes a monthly individual plan"
+      ],
+      "missing": [
+        "Data retention policy"
+      ],
+      "needsTesting": [
+        "Quality on the user's own codebase"
+      ],
+      "testResult": null
+    }
+  ],
+  "spending": {
+    "currency": "USD",
+    "scenarios": [
+      {
+        "label": "Switch at next renewal",
+        "monthlyEquivalentDeltaMinor": null,
+        "immediateCashSavingMinor": 0,
+        "renewalAvoidanceMinor": null,
+        "assumptions": [
+          "Candidate price not yet confirmed from a capture"
+        ]
+      }
+    ]
+  },
+  "confidence": "low",
+  "limitations": [
+    "One task, one repetition",
+    "Commercial products were researched, not tested"
+  ],
+  "evidence": [
+    {
+      "id": "ev_cand_docs",
+      "runId": "run_01HZX3",
+      "kind": "vendor_claim",
+      "candidateToolId": "tool_candidate",
+      "accessMode": "researched",
+      "url": "https://docs.candidate.example/ide",
+      "canonicalUrl": "https://docs.candidate.example/ide",
+      "capturedAt": "2026-11-06T15:00:40Z",
+      "contentHash": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+      "hasScreenshot": true,
+      "extractionMethod": "dom",
+      "excerpt": "Install the extension for your editor.",
+      "limitation": "A published claim, not observed behavior"
+    },
+    {
+      "id": "ev_test_owned",
+      "runId": "run_01HZX3",
+      "kind": "executed_test",
+      "candidateToolId": null,
+      "accessMode": "tested_owned_demo",
+      "url": "https://eval.wallio.example/run/abc",
+      "canonicalUrl": null,
+      "capturedAt": "2026-11-06T15:01:05Z",
+      "contentHash": "sha256:b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
+      "hasScreenshot": true,
+      "extractionMethod": "dom",
+      "excerpt": "test: off-by-one fixed - PASS",
+      "limitation": "Measures the owned harness on Vultr models, not the commercial product"
+    },
+    {
+      "id": "ev_cand_pricing",
+      "runId": "run_01HZX3",
+      "kind": "vendor_claim",
+      "candidateToolId": "tool_candidate",
+      "accessMode": "researched",
+      "url": "https://pricing.candidate.example/",
+      "canonicalUrl": "https://pricing.candidate.example/",
+      "capturedAt": "2026-11-06T15:00:52Z",
+      "contentHash": "sha256:e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+      "hasScreenshot": true,
+      "extractionMethod": "dom",
+      "excerpt": "Individual plan, billed monthly",
+      "limitation": "Listed price may exclude tax and may have changed since capture"
+    }
+  ]
+}

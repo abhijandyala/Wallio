@@ -1,0 +1,328 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "actionId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "stepIndex": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "denied",
+        "failed",
+        "timeout"
+      ]
+    },
+    "observation": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 300
+            },
+            "httpStatus": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "redirectChain": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "pageFingerprint": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "textExcerpt": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 4000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "textSha256": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^sha256:[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "elements": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "ref": {
+                        "type": "string",
+                        "pattern": "^e\\d{1,4}$"
+                      },
+                      "role": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "tag": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string",
+                        "maxLength": 300
+                      },
+                      "href": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "inputType": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "targetHost": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "ref",
+                      "role",
+                      "name",
+                      "tag",
+                      "text",
+                      "href",
+                      "inputType",
+                      "targetHost"
+                    ]
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "screenshot": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "artifactId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^sha256:[a-f0-9]{64}$"
+                    },
+                    "width": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "height": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "bytes": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "mimeType": {
+                      "type": "string",
+                      "const": "image/png"
+                    }
+                  },
+                  "required": [
+                    "artifactId",
+                    "sha256",
+                    "width",
+                    "height",
+                    "bytes",
+                    "mimeType"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "blocked": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "captcha",
+                        "mfa",
+                        "login_required",
+                        "access_denied",
+                        "http_error",
+                        "egress_denied",
+                        "download_blocked"
+                      ]
+                    },
+                    "detail": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "reason",
+                    "detail"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "deniedRequests": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "url",
+                  "reason"
+                ]
+              }
+            },
+            "capturedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          "required": [
+            "url",
+            "title",
+            "httpStatus",
+            "redirectChain",
+            "pageFingerprint",
+            "textExcerpt",
+            "textSha256",
+            "elements",
+            "screenshot",
+            "blocked",
+            "deniedRequests",
+            "capturedAt"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "enum": [
+                "invalid_action",
+                "egress_denied",
+                "navigation_failed",
+                "element_not_found",
+                "element_stale",
+                "approval_token_invalid",
+                "action_timeout",
+                "deadline_exceeded",
+                "action_limit_reached",
+                "screenshot_limit_reached",
+                "browser_crashed",
+                "job_not_found",
+                "job_not_ready",
+                "cancelled",
+                "internal"
+              ]
+            },
+            "message": {
+              "type": "string"
+            },
+            "retryable": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "code",
+            "message",
+            "retryable"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "durationMs": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "actionsRemaining": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    }
+  },
+  "required": [
+    "actionId",
+    "stepIndex",
+    "status",
+    "observation",
+    "error",
+    "durationMs",
+    "actionsRemaining"
+  ],
+  "$id": "wallio/runner/RunnerActionResult@0.1.0"
+}

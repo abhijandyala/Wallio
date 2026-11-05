@@ -1,0 +1,16 @@
+{
+  "id": "run_01HZX3",
+  "status": "RUNNING",
+  "outcome": "pending",
+  "stage": "researching",
+  "cleanup": "not_started",
+  "createdAt": "2026-11-06T15:00:00Z",
+  "updatedAt": "2026-11-06T15:00:21Z",
+  "deadlineAt": "2026-11-06T15:03:00Z",
+  "lastEventSeq": 6,
+  "coverage": { "evidenceCount": 1, "candidatesResearched": 0, "candidatesTested": 0 },
+  "spend": { "currency": "USD", "reservedMinor": 20, "actualMinor": 3, "capMinor": 50 },
+  "pendingApprovalId": null,
+  "recommendationId": null,
+  "error": null
+}

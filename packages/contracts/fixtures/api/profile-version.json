@@ -1,0 +1,16 @@
+{
+  "id": "pv_demo_1",
+  "version": 1,
+  "createdAt": "2026-11-06T14:58:00Z",
+  "primaryRole": "Independent web developer",
+  "workflows": [ { "id": "wf_debugging", "name": "Debugging a small web app", "description": "Find and fix front-end bugs", "priority": 1 } ],
+  "budget": { "currency": "USD", "maxMonthlyMinor": 4000 },
+  "deploymentPreference": "cloud",
+  "dataSensitivity": "medium",
+  "willingnessToSwitch": "medium",
+  "requiredIntegrations": ["vscode"],
+  "attributes": [
+    { "key": "primary_language", "value": "TypeScript", "origin": "inferred", "source": "public demo repository", "confidence": "medium", "confirmed": true, "updatedAt": "2026-11-06T14:57:00Z" },
+    { "key": "top_workflow", "value": "debugging", "origin": "user_stated", "source": null, "confidence": null, "confirmed": true, "updatedAt": "2026-11-06T14:57:30Z" }
+  ]
+}

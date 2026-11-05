@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "actionId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "stepIndex": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "action": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "navigate"
+            },
+            "url": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "required": [
+            "type",
+            "url"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "inspect"
+            },
+            "maxElements": {
+              "default": 40,
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 60
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "click"
+            },
+            "elementRef": {
+              "type": "string",
+              "pattern": "^e\\d{1,4}$"
+            },
+            "approvalToken": {
+              "type": "string",
+              "minLength": 16
+            }
+          },
+          "required": [
+            "type",
+            "elementRef"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "fill"
+            },
+            "elementRef": {
+              "type": "string",
+              "pattern": "^e\\d{1,4}$"
+            },
+            "value": {
+              "type": "string",
+              "maxLength": 500
+            }
+          },
+          "required": [
+            "type",
+            "elementRef",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "scroll"
+            },
+            "direction": {
+              "type": "string",
+              "enum": [
+                "up",
+                "down"
+              ]
+            },
+            "pixels": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 5000
+            }
+          },
+          "required": [
+            "type",
+            "direction",
+            "pixels"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "screenshot"
+            },
+            "fullPage": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "finish"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        }
+      ]
+    }
+  },
+  "required": [
+    "actionId",
+    "stepIndex",
+    "action"
+  ],
+  "$id": "wallio/runner/RunnerActionRequest@0.1.0"
+}

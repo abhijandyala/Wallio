@@ -1,0 +1,339 @@
+<title>Wallio Backend Sprint</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a vertical sprint rail. Day headers carry progress; phase cards hold checkable tasks and a "done when" gate; checkpoints sit between them as integration milestones. */
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --ink:#141a26; --muted:#5b6578; --line:#dde2ea;
+  --accent:#2a4bd7; --accent-soft:#e6ebfc; --ok:#1d7a4f; --ok-soft:#e1f2e9; --warn:#a15c00; --warn-soft:#fbefdc;
+  --f-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body:"Public Sans", system-ui, -apple-system, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f131b; --surface:#171c27; --ink:#e7ebf3; --muted:#9aa4b8; --line:#2a3142;
+  --accent:#8ea4ff; --accent-soft:#1f2848; --ok:#5fcf95; --ok-soft:#14301f; --warn:#f0b35a; --warn-soft:#33260f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f131b; --surface:#171c27; --ink:#e7ebf3; --muted:#9aa4b8; --line:#2a3142;
+  --accent:#8ea4ff; --accent-soft:#1f2848; --ok:#5fcf95; --ok-soft:#14301f; --warn:#f0b35a; --warn-soft:#33260f; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 64px}
+.wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:-.01em}
+h1{font-size:clamp(28px,5vw,40px);line-height:1.1}
+h2{font-size:22px}
+h3{font-size:18px;line-height:1.25}
+code,.mono{font-family:var(--f-mono);font-size:.86em}
+code{background:var(--accent-soft);color:var(--ink);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+header{display:flex;flex-direction:column;gap:12px}
+header p{margin:0;color:var(--muted);max-width:65ch}
+.overall{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.bar{flex:1;min-width:180px;height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.bar>i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.count{font-variant-numeric:tabular-nums;font-weight:600;font-size:14px}
+.sync{font-size:12px;color:var(--muted)}
+.priority{border:1px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.priority b{font-family:var(--f-display);font-size:16px}
+.priority span{color:var(--ink);font-size:14px}
+.day{display:flex;flex-direction:column;gap:14px}
+.dayhead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:8px}
+.dayhead .meta{display:flex;align-items:center;gap:10px}
+.today{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:var(--surface);padding:2px 8px;border-radius:99px}
+.daycount{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 18px 16px;display:flex;flex-direction:column;gap:12px}
+.card.complete{border-color:var(--ok)}
+.cardtop{display:flex;gap:12px;align-items:flex-start}
+.pid{font-family:var(--f-mono);font-size:13px;font-weight:500;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:2px 7px;flex:none;margin-top:1px}
+.card.complete .pid{color:var(--ok);border-color:var(--ok)}
+.cardtitle{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.cardmeta{display:flex;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.chip{border:1px solid var(--line);border-radius:99px;padding:1px 8px}
+.chip.with{border-color:var(--warn);color:var(--warn)}
+.why{margin:0;color:var(--muted);font-size:14px;max-width:65ch}
+ul.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+ul.tasks li label{display:flex;gap:10px;align-items:flex-start;padding:6px 6px;border-radius:6px;cursor:pointer}
+ul.tasks li label:hover{background:var(--bg)}
+ul.tasks input{margin-top:4px;width:16px;height:16px;accent-color:var(--ok);flex:none}
+ul.tasks input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+ul.tasks .t{min-width:0}
+ul.tasks input:checked + .t{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
+.gate{background:var(--ok-soft);border-radius:8px;padding:10px 12px;font-size:14px}
+.gate b{color:var(--ok)}
+.checkpoint{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px dashed var(--warn);border-radius:10px;background:var(--warn-soft)}
+.checkpoint .k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--warn);flex:none;padding-top:2px}
+.checkpoint p{margin:0;font-size:14px;min-width:0}
+.side{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:640px){.side{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.panel ol,.panel ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.note{font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.bar>i{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Vultr Agent Rush · Anish Alleti · Backend + AI intelligence</div>
+    <h1>Wallio backend sprint</h1>
+    <p>Ten phases across Thu 5 – Sat 7 Nov, with Sun 8 kept for on-site fixes. Each card ends in a gate you can demo. Tick tasks as you go; progress is saved with the page.</p>
+    <div class="overall">
+      <div class="bar" aria-hidden="true"><i id="overallBar"></i></div>
+      <span class="count" id="overallCount">0 / 0</span>
+      <span class="sync" id="sync">Loading saved progress…</span>
+    </div>
+  </header>
+
+  <div class="priority">
+    <b>First build priority from your scope brief</b>
+    <span>One complete comparison: accept the UI's request, coordinate real runner work, return a stored, evidence‑backed recommendation. Everything else comes after that path works.</span>
+  </div>
+
+  <div id="days"></div>
+
+  <div class="side">
+    <section class="panel">
+      <h3>Cut in this order if behind</h3>
+      <ol>
+        <li>GitHub profile import (Flow B)</li>
+        <li>Updates / news monitor (F05)</li>
+        <li>Account export and delete endpoints</li>
+        <li>Three repetitions per candidate → one, labelled as such</li>
+        <li>Object Storage → local private evidence store (say so in README)</li>
+        <li>Vision verification → DOM checks only, disclosed (never presented as vision)</li>
+      </ol>
+      <p class="note">Never cut: Vultr inference for every agent call, the approval gate, the containment run, or evidence tracing.</p>
+    </section>
+    <section class="panel">
+      <h3>Settle today, before building</h3>
+      <ul>
+        <li>Exact submission cutoff in the live LabLab form</li>
+        <li>Track: Blast Radius Zero (PRD recommendation)</li>
+        <li>Task family + incumbent + one candidate tool</li>
+        <li>Who provisions which Vultr VM (you: control, Adhvik: runner)</li>
+        <li>Shared repo, branch rules, and where the schemas live</li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<script>
+const DAYS = [
+  { id:"d1", date:"2026-11-05", label:"Thu 5 Nov", theme:"Foundation: contracts, inference, data",
+    items:[
+      { phase:"P0", title:"Lock contracts and the golden path", hours:"~2h", with:["UI owner","Adhvik"],
+        why:"Everything else builds against these shapes. Do this first so all three of you can work against mocks.",
+        tasks:[
+          "Write the golden path: one task family (e.g. diagnose a small web bug), the incumbent tool, one candidate from the catalog, the owned evaluation page, and the allowed domains list",
+          "With the UI owner: <code>ComparisonRequest</code>, run event stream (stage, message, timestamp), <code>Result</code> (recommendation, evidence[], limitations), error shape (code, message, correlationId), approval intent",
+          "With Adhvik: runner job spec (jobId, goal, allowedDomains, deadlineMs, maxActions), action vocabulary (navigate, inspect, click, fill, scroll, screenshot, finish), observation, evidence artifact, cancel, cleanup report",
+          "Commit JSON schemas plus sample input/output fixtures to the shared repo",
+          "Agree the runner auth: private channel + shared token, no cloud credentials on the runner"
+        ],
+        gate:"All three owners sign off on the schemas, and fixtures exist that both UI and runner can mock against." },
+      { phase:"P1", title:"Pass the Vultr inference capability gate", hours:"~2h",
+        why:"PRD Step 3 blocks every promise about the agent loop and vision checks. Find out early.",
+        tasks:[
+          "Create the Serverless Inference subscription and get the inference key (not the infrastructure API key)",
+          "Call <code>GET /v1/chat/models</code> against <code>api.vultrinference.com</code> and pick candidate models",
+          "Smoke test 1: plain text response",
+          "Smoke test 2: structured JSON action that passes schema validation (zod or similar)",
+          "Smoke test 3: screenshot input that finds a deliberately visible marker",
+          "Build the gateway module: model allowlist, token caps, timeout, 2 retries with backoff, 1 JSON repair attempt, usage + latency + cost logging",
+          "Hard‑fail any call to a non‑Vultr inference endpoint; no silent fallback provider",
+          "Pin working model IDs, settings, rate limits and per‑model prices in config"
+        ],
+        gate:"All three smoke tests pass in your account. If vision fails, the team knows today." },
+      { phase:"P2", title:"Data model, seed data and core API", hours:"~4h", with:["UI owner"],
+        why:"Gives the UI owner a real API to wire against tonight.",
+        tasks:[
+          "Repo skeleton: TypeScript Node API, Postgres, migrations, lockfile",
+          "Tables: workspaces/users (guest sessions), profile_versions, catalog_tools + claims, subscriptions, workflows/tasks, comparisons, runs, run_events, evidence, recommendations, decisions, approvals, audit_events, inference_usage",
+          "Money in integer minor units; subscriptions store plan, cadence, seats, renewal date, source, commitment",
+          "Run status and execution outcome stored as separate columns",
+          "<code>tenant_id</code> on every row and every query; cross‑tenant read returns 404",
+          "Seed: a synthetic user with 3 subscriptions and a ~15‑tool catalog in one category, each claim with URL and capture date",
+          "Endpoints: <code>POST /api/profile/versions</code>, <code>GET/POST /api/inventory</code>, <code>POST /api/comparisons</code> (202 + runId), <code>GET /api/runs/:id</code>, <code>GET /api/runs/:id/events</code> (SSE), <code>POST /api/runs/:id/cancel</code>",
+          "Structured errors with correlation IDs on every response"
+        ],
+        gate:"The UI owner hits your endpoints locally with seeded data and sees a mock run stream events." }
+    ],
+    checkpoint:"End of day: UI renders inventory and a mock run from your API. Adhvik's runner mock accepts your job spec. Decide whether contract changes are needed before tomorrow." },
+
+  { id:"d2", date:"2026-11-06", label:"Fri 6 Nov", theme:"The loop: deploy, orchestrate, research, recommend",
+    items:[
+      { phase:"P3", title:"Ship the skeleton to Vultr", hours:"~1.5h", with:["Adhvik"],
+        why:"The PRD warns that nothing should postpone the first deployed run. Deploy before features pile up.",
+        tasks:[
+          "Control VM (~2 vCPU / 4 GB): API, Postgres, Caddy for TLS, health endpoint",
+          "Secrets only in deployment env, never in the repo, browser payloads or logs",
+          "Firewall: public 443 only; database, daemon and Docker API unreachable from outside",
+          "Private network path from control VM to Adhvik's runner VM, authenticated"
+        ],
+        gate:"The app answers over HTTPS on Vultr, and the runner is not publicly callable." },
+      { phase:"P4", title:"Orchestrator and job state machine", hours:"~3h",
+        why:"Reliable progress, cancellation and honest outcomes depend on this.",
+        tasks:[
+          "States: CREATED → QUEUED → PREPARING → RUNNING → VERIFYING → SUCCEEDED, plus AWAITING_APPROVAL, FAILED, TIMED_OUT, CANCELLED, then CLEANING → CLEANED / CLEANUP_FAILED",
+          "Transactional transitions; DB queue claimed with <code>FOR UPDATE SKIP LOCKED</code>",
+          "Lease owner + expiry, idempotency key, attempt count, deadline per job; lease expiry triggers recovery, never a blind re‑run",
+          "Reserve estimated cost before dispatch; per‑run cap; daily spend ceiling as a kill switch",
+          "Write a run_event on every transition and stream it over SSE",
+          "Tests: cancel mid‑run, timeout, expired lease, cleanup failure"
+        ],
+        gate:"State‑machine tests pass, and cancel from the UI ends a run in CANCELLED → CLEANED." },
+      { phase:"P5", title:"Research planner and runner client", hours:"~4h", with:["Adhvik"],
+        why:"Turns an approved goal into bounded browser work and stores the receipts.",
+        tasks:[
+          "Planner: goal + profile + catalog → model proposes a bounded plan (pages, claims to check, tests to run), validated by schema",
+          "Policy layer in code: allowed domains, action vocabulary, ≤20 steps, 180 s deadline, approval‑required actions flagged",
+          "Runner client: send job spec, receive observations and evidence, map runner errors to run states",
+          "Store evidence: canonical URL, capture time, content hash, screenshot key, extraction method, limitation",
+          "Track known / missing / needs‑testing per candidate",
+          "Page text is untrusted data, never placed in system instructions",
+          "Retry read‑only navigation at most twice; never retry a final action with an uncertain outcome; blocked page → partial report"
+        ],
+        gate:"One real runner job against an official pricing page returns stored, linked evidence." },
+      { phase:"P6", title:"Scoring, spending and recommendations", hours:"~3h",
+        why:"Where the product earns trust: deterministic numbers, sourced claims, honest uncertainty.",
+        tasks:[
+          "Spending math in code: monthly equivalent (annual ÷ 12), actual renewal amount, seats; unknown prices stay unknown; no currency conversion",
+          "Unit tests for annual vs monthly, unknown amounts and seat counts",
+          "Hard constraints first, then weighted score: quality 40 / fit 20 / cost 15 / privacy 15 / switching 10",
+          "Unknown components shown as a range, not a guessed value; tested and researched candidates kept apart",
+          "Model drafts the explanation using evidence IDs only; validator rejects any claim without an evidence ID or user input",
+          "Actions: keep, try, compare further, replace after validation, review renewal, no action (keeping the incumbent is valid)",
+          "<code>POST /api/decisions</code> stores choice, reason, evidence snapshot and profile version"
+        ],
+        gate:"A finished comparison returns a stored recommendation where every statement traces to evidence or user input." }
+    ],
+    checkpoint:"End of day: first full end‑to‑end run on Vultr: UI → API → runner → recommendation. Rough is fine; it must be real." },
+
+  { id:"d3", date:"2026-11-07", label:"Sat 7 Nov", theme:"Trust and ship: approvals, containment, rehearsal, submission",
+    items:[
+      { phase:"P7", title:"Approval gate and containment run", hours:"~3h", with:["UI owner","Adhvik"],
+        why:"The containment moment and a real approval are required parts of the Blast Radius Zero demo.",
+        tasks:[
+          "Intent record: user, job, target origin, action type, exact fields, consequence, page fingerprint, expiry, nonce; store its canonical hash",
+          "<code>POST /api/approvals/:id/decision</code> checks owner, expiry, hash and unused state, then consumes atomically with dispatch",
+          "A changed page, target or field invalidates the approval and creates a new intent; the model can never mark anything approved",
+          "Wire the synthetic trial‑request form (owned page) as the one approval‑gated action",
+          "Hostile fixture: policy denies the private endpoint, logs the denial, and the run still reaches CLEANED from Adhvik's report",
+          "Tests: wrong user, expired intent, changed field, double consume"
+        ],
+        gate:"The synthetic form submits only after approval, and the hostile run shows the denial plus verified cleanup." },
+      { phase:"P8", title:"Harden and rehearse", hours:"~4h",
+        why:"Ten deployed rehearsals is the PRD's bar before submission.",
+        tasks:[
+          "Guest quotas, rate limits and the daily cost ceiling switched on in production",
+          "Correlation IDs across jobs, inference calls, approvals and evidence uploads",
+          "Degraded paths: inference down → partial result; runner timeout → TIMED_OUT with kept evidence",
+          "Script to reset only synthetic demo data",
+          "Check no secrets in repo, logs, event streams or UI payloads",
+          "Run 10 deployed rehearsals including a cold start and one degraded scenario; log each result"
+        ],
+        gate:"Ten rehearsals logged with outcomes; the degraded scenario fails honestly." },
+      { phase:"P9", title:"Submission package (backend share)", hours:"~2h", with:["UI owner","Adhvik"],
+        why:"Judges need to follow the Vultr architecture and see the same scope everywhere.",
+        tasks:[
+          "Confirm the cutoff in the live submission form and submit well before it",
+          "README backend sections: setup, environment variable names, architecture, Vultr service roles, threat model, limitations",
+          "Architecture diagram and Vultr inference usage evidence for the slides",
+          "Help record the demo video under 5 minutes; keep a dated, labelled fallback recording",
+          "Repo public, MIT licence, safe example config, test instructions"
+        ],
+        gate:"Submitted, with proof saved, and repo, video, slides and live build all describe the same scope." }
+    ],
+    checkpoint:"Sun 8 Nov is on‑site in Salt Lake City: fixes and demo only. No new features." }
+];
+
+const $ = s => document.querySelector(s);
+const allIds = [];
+let state = {};
+let store = null;   // "db" | "local"
+let db = null;
+
+function render(){
+  const root = $("#days");
+  root.innerHTML = "";
+  const todayISO = new Date().toISOString().slice(0,10);
+  DAYS.forEach(day => {
+    const sec = document.createElement("section");
+    sec.className = "day";
+    const ids = day.items.flatMap(it => it.tasks.map((_,i)=>`${it.phase}-${i}`));
+    const done = ids.filter(id=>state[id]).length;
+    sec.innerHTML = `
+      <div class="dayhead">
+        <div><div class="eyebrow">${day.label}</div><h2>${day.theme}</h2></div>
+        <div class="meta">${day.date===todayISO?'<span class="today">Today</span>':''}<span class="daycount">${done} / ${ids.length} tasks</span></div>
+      </div>`;
+    day.items.forEach(it => {
+      const tIds = it.tasks.map((_,i)=>`${it.phase}-${i}`);
+      const complete = tIds.every(id=>state[id]);
+      const card = document.createElement("article");
+      card.className = "card" + (complete ? " complete" : "");
+      card.innerHTML = `
+        <div class="cardtop">
+          <span class="pid">${it.phase}</span>
+          <div class="cardtitle">
+            <h3>${it.title}</h3>
+            <div class="cardmeta"><span class="chip">${it.hours}</span>${(it.with||[]).map(w=>`<span class="chip with">with ${w}</span>`).join("")}<span class="chip">${tIds.filter(id=>state[id]).length}/${tIds.length}</span></div>
+          </div>
+        </div>
+        <p class="why">${it.why}</p>
+        <ul class="tasks">${it.tasks.map((t,i)=>{const id=`${it.phase}-${i}`;return `<li><label for="cb-${id}"><input type="checkbox" id="cb-${id}" data-id="${id}" ${state[id]?"checked":""}><span class="t">${t}</span></label></li>`}).join("")}</ul>
+        <div class="gate"><b>Done when:</b> ${it.gate}</div>`;
+      sec.appendChild(card);
+    });
+    const cp = document.createElement("div");
+    cp.className = "checkpoint";
+    cp.innerHTML = `<span class="k">Checkpoint</span><p>${day.checkpoint}</p>`;
+    sec.appendChild(cp);
+    root.appendChild(sec);
+  });
+  const total = allIds.length, doneAll = allIds.filter(id=>state[id]).length;
+  $("#overallCount").textContent = `${doneAll} / ${total} tasks`;
+  $("#overallBar").style.width = (total? (doneAll/total*100):0) + "%";
+}
+
+DAYS.forEach(d=>d.items.forEach(it=>it.tasks.forEach((_,i)=>allIds.push(`${it.phase}-${i}`))));
+
+function loadLocal(){ try{ state = JSON.parse(localStorage.getItem("wallio-sprint")||"{}")||{} }catch(e){ state = {} } }
+function saveLocal(){ try{ localStorage.setItem("wallio-sprint", JSON.stringify(state)) }catch(e){} }
+
+document.addEventListener("change", async e => {
+  const cb = e.target.closest('input[type="checkbox"][data-id]');
+  if(!cb) return;
+  const id = cb.dataset.id, val = cb.checked;
+  state[id] = val;
+  render();
+  document.getElementById("cb-"+id)?.focus();
+  if(store === "db"){
+    try{ await db.collection("checks").doc(id).set({done:val, at:Date.now()}) }
+    catch(err){ $("#sync").textContent = "Couldn't save that tick. Check your connection and try again."; }
+  } else { saveLocal(); }
+});
+
+render();
+
+(async () => {
+  try{ db = window.claude?.use ? await window.claude.use("db") : null }catch(e){ db = null }
+  if(!db){
+    store = "local"; loadLocal(); render();
+    $("#sync").textContent = "Progress saved in this browser only.";
+    return;
+  }
+  store = "db";
+  const timer = setTimeout(()=>{ $("#sync").textContent = "Saved progress can't be reached yet."; }, 10000);
+  db.collection("checks").onSnapshot(snap => {
+    const next = {};
+    snap.docs.forEach(d => { if(d.data()?.done) next[d.id] = true; });
+    state = next; render();
+    if(!snap.metadata.fromCache){ clearTimeout(timer); $("#sync").textContent = "Progress synced with the page."; }
+  }, err => {
+    clearTimeout(timer);
+    $("#sync").textContent = "Progress sync stopped. Reopen the page to reconnect.";
+  });
+})();
+</script>

@@ -1,0 +1,10 @@
+{
+  "actionId": "act_2", "stepIndex": 2, "status": "ok", "error": null, "durationMs": 640, "actionsRemaining": 17,
+  "observation": {
+    "url": "https://pricing.incumbent.example/plans", "title": "Plans", "httpStatus": 200, "redirectChain": [],
+    "pageFingerprint": "sha256:d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4", "textExcerpt": "Individual - per month - IDE extension included", "textSha256": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+    "elements": [ { "ref": "e3", "role": "link", "name": "Compare plans", "tag": "a", "text": "Compare plans", "href": "/compare", "inputType": null, "targetHost": "pricing.incumbent.example" } ],
+    "screenshot": { "artifactId": "art_01", "sha256": "sha256:b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2", "width": 1280, "height": 800, "bytes": 182344, "mimeType": "image/png" },
+    "blocked": null, "deniedRequests": [], "capturedAt": "2026-11-06T15:00:14Z"
+  }
+}
