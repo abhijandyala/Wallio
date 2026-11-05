@@ -1,0 +1,10 @@
+{
+  "name": "wallio-browser-agent",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "description": "Runs inside the job container only. Not a workspace package.",
+  "dependencies": {
+    "playwright-core": "1.64.1"
+  }
+}

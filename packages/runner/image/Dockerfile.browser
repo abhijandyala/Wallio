@@ -1,0 +1,13 @@
+# Wallio job browser. Pinned Playwright image (Chromium + headless shell) by index digest;
+# playwright-core is pinned to the same version so browser and driver match (PRD §14).
+FROM mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f
+ENV NODE_ENV=production \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+    NODE_OPTIONS=--disable-warning=ExperimentalWarning
+WORKDIR /agent
+COPY agent/package.json agent/package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund && npm cache clean --force
+COPY agent/main.ts agent/protocol.ts ./
+# Runs as the image's non-root user; Chromium keeps its own sandbox on.
+USER pwuser
+CMD ["node", "/agent/main.ts"]
