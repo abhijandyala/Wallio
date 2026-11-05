@@ -10,28 +10,28 @@ import { api } from "@wallio/contracts";
 import { setupDatabase } from "../scripts/db-setup.ts";
 import { createDb, type Db } from "../src/db/pool.ts";
 import { createApp } from "../src/http/app.ts";
-import type { AppConfig } from "../src/config.ts";
 import { canTransition, transition } from "../src/runs/state.ts";
+import { Worker } from "../src/runs/worker.ts";
+import { MockCleaner, MockExecutor, NoRunnerCleaner } from "../src/runs/executors.ts";
+import { ADMIN, APP, testConfig } from "./helpers.ts";
 
-process.env.NODE_ENV = "test";
-const ADMIN = process.env.TEST_DATABASE_ADMIN_URL;
-const APP = process.env.TEST_DATABASE_URL;
-if (!ADMIN || !APP) throw new Error("Set TEST_DATABASE_ADMIN_URL and TEST_DATABASE_URL in .env");
-
-const config = (over: Partial<AppConfig> = {}): AppConfig => ({
-  databaseUrl: APP, port: 0, host: "127.0.0.1", runMode: "mock", cookieSecure: false, appOrigin: "http://localhost:5173",
-  sessionTtlHours: 1, runSpendCapMinor: 50, mockStepMs: 5, ...over,
-});
-
+const config = testConfig;
 let db: Db;
 let app: ReturnType<typeof createApp>;
+let worker: Worker;
+const mock = new MockExecutor(5);
 
 before(async () => {
   await setupDatabase(ADMIN, APP, { reset: true, log: () => {} });
   db = createDb(APP);
-  app = createApp({ config: config(), db });
+  worker = new Worker({ db, config: config(), executors: { mock }, cleaners: { mock: new MockCleaner(), live: new NoRunnerCleaner() } });
+  worker.start();
+  app = createApp({ config: config(), db, runs: worker });
 });
-after(async () => { await db?.close(); });
+after(async () => {
+  await worker?.stop();
+  await db?.close();
+});
 
 /** A browser-like visitor with its own cookie jar. */
 class Visitor {
@@ -243,13 +243,14 @@ test("idempotency: same key and body returns the same run; different body confli
 });
 
 test("only one active comparison per workspace", async () => {
-  const slow = createApp({ config: config({ mockStepMs: 200 }), db });
-  const v = new Visitor(slow);
+  mock.stepMs = 200;
+  const v = new Visitor();
   const first = await v.json("POST", "/api/comparisons", await comparison(v));
   const second = await v.json("POST", "/api/comparisons", await comparison(v));
   assert.equal(second.status, 409);
   assert.equal(second.body.code, "conflict");
   await v.json("POST", `/api/runs/${first.body.runId}/cancel`, {});
+  mock.stepMs = 5;
 });
 
 test("comparison input is validated against the workspace and catalog", async () => {
@@ -265,8 +266,8 @@ test("comparison input is validated against the workspace and catalog", async ()
 });
 
 test("cancel ends the run as CANCELLED → CLEANED and playback stops", async () => {
-  const slow = createApp({ config: config({ mockStepMs: 150 }), db });
-  const v = new Visitor(slow);
+  mock.stepMs = 150;
+  const v = new Visitor();
   const { runId } = (await v.json("POST", "/api/comparisons", await comparison(v))).body;
   await new Promise((r) => setTimeout(r, 200));
   const c = await v.json("POST", `/api/runs/${runId}/cancel`, {});
@@ -277,6 +278,7 @@ test("cancel ends the run as CANCELLED → CLEANED and playback stops", async ()
   const events = await readEvents(v, runId);
   assert.ok(!events.some((e) => e.type === "status_changed" && e.data.to === "SUCCEEDED"));
   assert.equal((await v.json("POST", `/api/runs/${runId}/cancel`, {})).status, 409, "can't cancel twice");
+  mock.stepMs = 5;
 });
 
 // ───────────────────────── state machine ─────────────────────────

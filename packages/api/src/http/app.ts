@@ -16,8 +16,9 @@ import type { Db, Query } from "../db/pool.ts";
 import { summarizeSpending, type SubscriptionForSpend } from "../domain/spending.ts";
 import { HttpError, notFound } from "./errors.ts";
 import { createGuestSession, findSession, SESSION_COOKIE } from "./session.ts";
-import { appendEvent, transition, TERMINAL, FINISHED } from "../runs/state.ts";
-import { evidenceToContract, playMockRun } from "../runs/mock-player.ts";
+import { transition, TERMINAL, FINISHED } from "../runs/state.ts";
+import { evidenceToContract } from "../runs/executors.ts";
+import type { Orchestrator } from "../runs/worker.ts";
 
 type Env = { Variables: { tenantId: string; correlationId: string } };
 
@@ -27,17 +28,12 @@ const iso = (d: Date | string | null) => (d === null ? null : new Date(d).toISOS
 export interface AppDeps {
   config: AppConfig;
   db: Db;
-  /** Called after a run is queued. Defaults to mock playback in mock mode. */
-  onRunQueued?: (tenantId: string, runId: string) => void;
+  /** The run orchestrator (worker): queueing, cancellation cleanup, capacity and spend checks. */
+  runs: Orchestrator;
 }
 
-export function createApp({ config, db, onRunQueued }: AppDeps) {
+export function createApp({ config, db, runs }: AppDeps) {
   const app = new Hono<Env>();
-  const startRun =
-    onRunQueued ??
-    ((tenantId: string, runId: string) => {
-      if (config.runMode === "mock") void playMockRun(db, tenantId, runId, config.mockStepMs);
-    });
 
   // ── correlation id + access log (metadata only, never bodies) ──
   app.use("*", async (c, next) => {
@@ -265,6 +261,16 @@ export function createApp({ config, db, onRunQueued }: AppDeps) {
     const req = await body(c, api.ComparisonRequest);
     const requestHash = createHash("sha256").update(JSON.stringify(req, Object.keys(req).sort())).digest("hex");
 
+    // Capacity and spend checks before anything is written (PRD §19, §22).
+    const paused = runs.pausedReason(config.runMode);
+    const capacityError = paused
+      ? new HttpError("runner_unavailable", "Live comparisons are paused while the browser runner is checked. Try again later.")
+      : (await runs.spendTodayMinor()) >= config.dailySpendCapMinor
+        ? new HttpError("budget_exceeded", "Wallio has reached today's spending limit for comparisons. Try again tomorrow.")
+        : (await runs.queueDepth(config.runMode)) >= config.worker.maxQueued
+          ? new HttpError("quota_exceeded", "Wallio is busy running other comparisons. Try again in a minute.")
+          : null;
+
     const result = await tenant(c, async (q, tenantId) => {
       // Idempotency: same key + same body → same run; same key + different body → conflict.
       const prior = (await q("SELECT c.request_hash, r.id AS run_id FROM comparisons c JOIN runs r ON r.comparison_id = c.id WHERE c.tenant_id = $1 AND c.idempotency_key = $2", [tenantId, req.idempotencyKey])).rows[0];
@@ -272,6 +278,7 @@ export function createApp({ config, db, onRunQueued }: AppDeps) {
         if (prior.request_hash !== requestHash) throw new HttpError("idempotency_conflict", "This idempotency key was already used for a different comparison. Generate a new key.");
         return { runId: prior.run_id as string, created: false };
       }
+      if (capacityError) throw capacityError;
 
       const profile = (await q("SELECT body FROM profile_versions WHERE id = $1 AND tenant_id = $2", [UUID.test(req.profileVersionId) ? req.profileVersionId : null, tenantId])).rows[0];
       if (!profile) throw new HttpError("validation_failed", "That profile version doesn't exist.", { field: "profileVersionId" });
@@ -293,17 +300,18 @@ export function createApp({ config, db, onRunQueued }: AppDeps) {
 
       const capMinor = Math.min(req.spendCapMinor ?? config.runSpendCapMinor, config.runSpendCapMinor);
       const cmp = (await q("INSERT INTO comparisons (tenant_id, idempotency_key, request_hash, request) VALUES ($1,$2,$3,$4) RETURNING id", [tenantId, req.idempotencyKey, requestHash, req])).rows[0]!;
+      // deadline_at starts as the latest start time; the worker resets it to the execution deadline when it claims the run.
       const run = (await q(
-        `INSERT INTO runs (tenant_id, comparison_id, mode, status, deadline_at, cap_minor, reserved_minor)
-         VALUES ($1,$2,$3,'CREATED', now() + interval '180 seconds', $4, $5) RETURNING id`,
-        [tenantId, cmp.id, config.runMode, capMinor, config.runMode === "mock" ? 0 : capMinor],
+        `INSERT INTO runs (tenant_id, comparison_id, mode, status, deadline_at, cap_minor)
+         VALUES ($1,$2,$3,'CREATED', now() + make_interval(secs => $5), $4) RETURNING id`,
+        [tenantId, cmp.id, config.runMode, capMinor, config.worker.queueMaxWaitSecs + config.worker.execDeadlineSecs],
       )).rows[0]!;
       await transition(q, tenantId, run.id, "QUEUED");
       await q("INSERT INTO audit_events (tenant_id, actor, action, target, correlation_id) VALUES ($1,'user','comparison.create',$2,$3)", [tenantId, run.id, c.get("correlationId")]);
       return { runId: run.id as string, created: true };
     });
 
-    if (result.created) startRun(c.get("tenantId"), result.runId);
+    if (result.created) runs.kick();
     return send(c, api.ComparisonAccepted, accepted(result.runId), 202);
   });
 
@@ -318,17 +326,18 @@ export function createApp({ config, db, onRunQueued }: AppDeps) {
 
   app.post("/api/runs/:id/cancel", async (c) => {
     const id = c.req.param("id");
-    const row = await tenant(c, async (q, tenantId) => {
-      const run = await loadRun(q, tenantId, id);
+    const tenantId = c.get("tenantId");
+    await tenant(c, async (q) => {
+      const run = (await q("SELECT status FROM runs WHERE id = $1 AND tenant_id = $2 FOR UPDATE", [UUID.test(id) ? id : null, tenantId])).rows[0];
+      if (!run) throw notFound("Run");
       if (TERMINAL.has(run.status)) throw new HttpError("conflict", "This comparison has already finished.");
       await transition(q, tenantId, id, "CANCELLED", { outcome: "cancelled", message: "You cancelled the comparison" });
-      await transition(q, tenantId, id, "CLEANING", { cleanup: "pending" });
-      // Live mode (P4) asks the runner to tear down and waits for its verified report here.
-      await appendEvent(q, tenantId, id, { type: "cleanup", message: "Browser container removed", data: { result: "cleaned", containerRemoved: true, volumeRemoved: true } });
-      await transition(q, tenantId, id, "CLEANED", { cleanup: "cleaned", stage: "done" });
       await q("INSERT INTO audit_events (tenant_id, actor, action, target, correlation_id) VALUES ($1,'user','run.cancel',$2,$3)", [tenantId, id, c.get("correlationId")]);
-      return loadRun(q, tenantId, id);
     });
+    // The worker sees CANCELLED on its next write or heartbeat and stops; cleanup runs here so the
+    // response reflects the verified result (the runner's teardown in live mode).
+    await runs.finalize(tenantId, id);
+    const row = await tenant(c, (q) => loadRun(q, tenantId, id));
     return send(c, api.Run, runToContract(row));
   });
 
