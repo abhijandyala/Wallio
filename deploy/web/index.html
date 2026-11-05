@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wallio</title>
+<style>
+  :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+  body { max-width: 40rem; margin: 15vh auto; padding: 0 1rem; line-height: 1.5; }
+  code { font-size: .9em; }
+</style>
+</head>
+<body>
+<h1>Wallio</h1>
+<p>The API is running on Vultr. The interface is on its way.</p>
+<p>API health: <code id="h">checking…</code></p>
+<script>
+fetch("/api/health").then(r => r.json()).then(j => { h.textContent = JSON.stringify(j); }).catch(() => { h.textContent = "unreachable"; });
+</script>
+</body>
+</html>
