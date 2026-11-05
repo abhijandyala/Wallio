@@ -39,6 +39,9 @@ All requests use a session cookie (guest session for judges). Every mutation is 
 ### What the UI should rely on
 - **Lifecycle vs outcome:** `Run.status` is lifecycle (ends in `CLEANED`/`CLEANUP_FAILED`). Show the result from `Run.outcome`. A run can be `CLEANED` with outcome `partial`.
 - **Timeline:** drive the five-step timeline from `stage`. Every event has a ready-to-show `message`.
+- **SSE:** events carry no `event:` name. Use `EventSource.onmessage` and switch on `type` inside the JSON. The stream closes itself after `CLEANED`; reconnecting sends `Last-Event-ID` automatically.
+- **Sessions:** the first `/api/*` call creates a guest workspace and sets an HttpOnly `wallio_sid` cookie. Proxy `/api` through your dev server so it stays same-origin.
+- **Mock runs:** while `RUN_MODE=mock`, runs start with a `warning` event saying the data is sample data. Show it.
 - **Labels:** show `accessMode` on every candidate and evidence item: *Researched* / *Tested via integration* / *Tested in owned demo*.
 - **Unknowns:** a `null` score component or `known: false` price must render as "Unknown", never 0.
 - **Approval:** on `approval_required`, fetch the intent, show fields + destination + screenshot + consequence, send back the same `intentHash`.

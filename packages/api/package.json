@@ -5,15 +5,22 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "test": "node --test \"test/**/*.test.ts\"",
+    "test": "node --env-file-if-exists=../../.env --test --test-concurrency=1 \"test/**/*.test.ts\"",
     "smoke:inference": "node --env-file-if-exists=../../.env scripts/inference-smoke.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dev": "node --env-file-if-exists=../../.env --watch src/server.ts",
+    "start": "node --env-file-if-exists=../../.env src/server.ts",
+    "db:setup": "node --env-file-if-exists=../../.env scripts/db-setup.ts"
   },
   "dependencies": {
-    "@wallio/contracts": "0.1.0"
+    "@hono/node-server": "^2.1.6",
+    "@wallio/contracts": "0.1.0",
+    "hono": "^4.13.16",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
     "typescript": "^5.9.3"
   }
 }

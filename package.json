@@ -13,6 +13,8 @@
     "contracts:schema": "npm run schema -w @wallio/contracts",
     "typecheck": "npm run typecheck -w @wallio/contracts && npm run typecheck -w @wallio/api",
     "api:test": "npm test -w @wallio/api",
-    "smoke:inference": "npm run smoke:inference -w @wallio/api --"
+    "smoke:inference": "npm run smoke:inference -w @wallio/api --",
+    "api:dev": "npm run dev -w @wallio/api",
+    "db:setup": "npm run db:setup -w @wallio/api --"
   }
 }
