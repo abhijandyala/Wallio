@@ -2,7 +2,8 @@
 
 import { useRef, useState } from "react";
 import { AnimatePresence, motion, useMotionValueEvent, useReducedMotionConfig, useScroll, useTransform } from "motion/react";
-import { Body, Container, Heading, MockFrame, P } from "../ui";
+import { Body, Container, Heading, MockFrame, Shot } from "../ui";
+import { LIVE } from "../content";
 import { cn } from "@/lib/utils";
 
 const FEATURES = [0, 1, 2];
@@ -20,7 +21,7 @@ export function SocialSection() {
   const headOpacity = useTransform(scrollYProgress, [0, 0.18], reduce ? [1, 1] : [0.25, 1]);
 
   return (
-    <div ref={ref} className="relative h-[200vh] max-md:h-auto">
+    <div ref={ref} id="live" className="relative h-[200vh] max-md:h-auto">
       <section className="sticky top-0 flex h-screen items-center max-md:static max-md:h-auto max-md:py-20">
         <Container className="flex items-center gap-[3.1875rem] max-md:flex-col max-md:items-start">
           {/* Media: lime-lit frame with a glow along its top edge */}
@@ -37,7 +38,9 @@ export function SocialSection() {
                   transition={{ duration: reduce ? 0 : 0.45 }}
                   className="absolute inset-0"
                 >
-                  <MockFrame className="size-full rounded-[1.2049rem]" />
+                  <MockFrame className="size-full rounded-[1.2049rem]">
+                    <Shot src={LIVE.images[active].src} alt={LIVE.images[active].alt} zoom={LIVE.images[active].zoom} />
+                  </MockFrame>
                 </motion.div>
               </AnimatePresence>
             </div>
@@ -45,9 +48,9 @@ export function SocialSection() {
 
           <div className="flex w-[27.3125rem] flex-col max-md:w-full">
             <motion.div style={{ opacity: headOpacity }} className="max-md:!opacity-100">
-              <Heading size="xl" />
+              <Heading size="xl">{LIVE.title}</Heading>
               <p className="mt-[0.9375rem] w-[22.5rem] text-[0.9036rem] leading-[1.3] text-[var(--gx-dim)] max-md:w-full">
-                {P} {P} {P}
+                {LIVE.body}
               </p>
             </motion.div>
             <ul className="mt-[2.4375rem] flex flex-col gap-[1.625rem]">
@@ -57,16 +60,13 @@ export function SocialSection() {
                   className={cn(
                     "grid grid-cols-[0.375rem_1fr] gap-x-[1rem] transition-opacity duration-500",
                     i <= active ? "opacity-100" : i === active + 1 ? "opacity-35" : "opacity-10",
+                    "max-md:opacity-100",
                   )}
                 >
                   <span className="mt-[0.3rem] h-[1.125rem] w-[0.375rem] rounded-full bg-[linear-gradient(color-mix(in_srgb,#58f6b1_12%,transparent)_0%,var(--gx-accent)_53%,color-mix(in_srgb,#58f6b1_12%,transparent)_100%)]" />
                   <div>
-                    <Heading as="h3" size="item" gradient={false} />
-                    <Body className="mt-[0.4rem] text-[0.8033rem]">
-                      {P} {P}
-                      <br />
-                      {P}
-                    </Body>
+                    <Heading as="h3" size="item" gradient={false}>{LIVE.features[i].title}</Heading>
+                    <Body className="mt-[0.4rem] text-[0.8033rem]">{LIVE.features[i].body}</Body>
                   </div>
                 </li>
               ))}

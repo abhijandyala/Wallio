@@ -1,7 +1,8 @@
 "use client";
 
 import { motion, useReducedMotionConfig } from "motion/react";
-import { Body, Btn, Container, Heading, MockFrame, P } from "../ui";
+import { Body, Btn, Container, Heading, MockFrame, Shot } from "../ui";
+import { RECEIPTS } from "../content";
 import { AiPanelArt, BarsArt, Circuit, DeviceArt, StackArt } from "./bottom/bento-art";
 import { cn } from "@/lib/utils";
 
@@ -22,23 +23,23 @@ export function JournalSection() {
     <section className="relative mt-[2.375rem] pb-[3.25rem]">
       <motion.div {...reveal()} className="mx-auto flex w-[33.75rem] flex-col items-center text-center max-md:w-[calc(100%-2rem)]">
         <Heading>
-          {P}
+          {RECEIPTS.title[0]}
           <br />
-          {P}
+          {RECEIPTS.title[1]}
         </Heading>
         <p className="mt-[1.4rem] w-[25rem] text-[0.9036rem] leading-[1.45] text-[var(--gx-dim)] max-md:w-full">
-          {P} {P} {P}
-          <br />
-          {P} {P}
+          {RECEIPTS.body}
         </p>
         <div className="mt-[1.4rem] flex gap-[0.5rem]">
-          <Btn variant="light" className="gap-[0.5rem] pl-[0.6rem]">
+          <Btn variant="light" href={RECEIPTS.primary.href} className="gap-[0.5rem] pl-[0.6rem]">
             <span className="grid size-[1.25rem] place-items-center rounded-full bg-[#05070d]">
               <span className="size-[0.4rem] rounded-full bg-[var(--gx-violet)]" />
             </span>
-            {P}
+            {RECEIPTS.primary.label}
           </Btn>
-          <Btn variant="violetGhost" />
+          <Btn variant="violetGhost" href={RECEIPTS.secondary.href}>
+            {RECEIPTS.secondary.label}
+          </Btn>
         </div>
       </motion.div>
 
@@ -46,7 +47,9 @@ export function JournalSection() {
         <div className="pointer-events-none absolute -inset-x-[0.625rem] -top-[0.625rem] bottom-0 rounded-t-[2rem] bg-[linear-gradient(color-mix(in_srgb,#58f6b1_22%,transparent),rgba(0,0,0,0))]" />
         <div className="pointer-events-none absolute inset-x-0 -top-[1.05rem] h-[2.44rem] bg-[radial-gradient(closest-side,var(--gx-accent),transparent)] opacity-75 blur-[6px]" />
         <div className="absolute inset-0">
-          <MockFrame className="size-full [mask-image:linear-gradient(#000_70%,transparent)]" />
+          <MockFrame className="size-full [mask-image:linear-gradient(#000_70%,transparent)]">
+            <Shot src={RECEIPTS.image.src} alt={RECEIPTS.image.alt} />
+          </MockFrame>
         </div>
       </motion.div>
 
@@ -58,10 +61,10 @@ export function JournalSection() {
               <DeviceArt />
             </div>
             <span className="gx-dots absolute top-0 left-0 h-[6rem] w-[9rem] [mask-image:radial-gradient(closest-side,#000,transparent)]" />
-            <CardText className="mt-auto" />
+            <CardText i={0} className="mt-auto" />
           </BentoCard>
           <BentoCard reveal={reveal(0.08)} className="flex-1" glow="bottom-left">
-            <CardText />
+            <CardText i={1} />
             <div className="absolute top-[7.4rem] right-[5rem] max-md:right-6">
               <AiPanelArt />
             </div>
@@ -75,14 +78,14 @@ export function JournalSection() {
               <BarsArt />
             </div>
             <span className="gx-dots absolute bottom-0 left-0 h-[7rem] w-[12rem] [mask-image:radial-gradient(closest-side,#000,transparent)]" />
-            <CardText className="mt-auto" />
+            <CardText i={2} className="mt-auto" />
           </BentoCard>
           <BentoCard reveal={reveal(0.08)} className="flex-1" glow="top-left">
             <div className="absolute top-[2rem] left-1/2 -translate-x-1/2">
               <StackArt />
             </div>
             <span className="gx-dots absolute right-0 bottom-0 h-[7rem] w-[12rem] [mask-image:radial-gradient(closest-side,#000,transparent)]" />
-            <CardText className="mt-auto" />
+            <CardText i={3} className="mt-auto" />
           </BentoCard>
         </div>
       </Container>
@@ -124,15 +127,12 @@ function BentoCard({
   );
 }
 
-function CardText({ className }: { className?: string }) {
+function CardText({ i, className }: { i: number; className?: string }) {
+  const card = RECEIPTS.cards[i];
   return (
     <div className={cn("relative max-w-[24rem]", className)}>
-      <Heading as="h3" size="sub" />
-      <Body className="mt-[0.5rem] text-[0.8033rem] text-[var(--gx-muted)]">
-        {P} {P} {P}
-        <br />
-        {P}
-      </Body>
+      <Heading as="h3" size="sub">{card.title}</Heading>
+      <Body className="mt-[0.5rem] text-[0.8033rem] text-[var(--gx-muted)]">{card.body}</Body>
     </div>
   );
 }

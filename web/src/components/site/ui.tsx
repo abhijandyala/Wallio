@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
@@ -235,5 +236,35 @@ export function IconSlot({ className, tone = "accent" }: { className?: string; t
     >
       <span className="size-[40%] rounded-[22%] border-[1.5px] border-current opacity-80" />
     </span>
+  );
+}
+
+/** A real Wallio screen inside a MockFrame: fills the frame, anchored to the top-left. */
+export function Shot({
+  src,
+  alt,
+  priority = false,
+  zoom,
+}: {
+  src: string;
+  alt: string;
+  priority?: boolean;
+  /** Crop into part of the screen: scale and the point to zoom toward, e.g. "100% 0%" (top right). */
+  zoom?: { scale: number; origin: string };
+}) {
+  return (
+    <div
+      className="absolute inset-0"
+      style={zoom ? { transform: `scale(${zoom.scale})`, transformOrigin: zoom.origin } : undefined}
+    >
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        priority={priority}
+        sizes={zoom ? "(max-width: 767px) 150vw, 100vw" : "(max-width: 767px) 100vw, 80vw"}
+        className="object-cover object-left-top"
+      />
+    </div>
   );
 }

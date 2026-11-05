@@ -1,21 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CaretDown, List, Question, X } from "@phosphor-icons/react";
+import { CaretDown, GithubLogo, List, Question, X } from "@phosphor-icons/react";
 import { Wordmark } from "@/components/kit/wordmark";
-import { Btn, P } from "../ui";
+import { Btn } from "../ui";
+import { LINKS, NAV } from "../content";
 import { cn } from "@/lib/utils";
 
 /**
  * Fixed header. The glass pill stays; the logo and the actions slide out once the page
  * scrolls past ~100px, like the reference (0.4s ease, 19px drift).
  */
-const ITEMS = [
-  { caret: true },
-  { caret: true },
-  { caret: false },
-  { caret: true },
-];
+const ITEMS = NAV.items;
 
 export function NavSection() {
   const [scrolled, setScrolled] = useState(false);
@@ -71,10 +67,10 @@ export function NavSection() {
           {ITEMS.map((it, i) => (
             <a
               key={i}
-              href="#"
+              href={it.href}
               className="relative flex h-[2.5625rem] items-center gap-[0.35rem] px-[0.884rem] text-[0.803rem] whitespace-nowrap text-[#c4c4c4] transition-colors hover:text-white"
             >
-              {P}
+              {it.label}
               {it.caret && <CaretDown className="size-[0.75rem]" />}
             </a>
           ))}
@@ -87,23 +83,25 @@ export function NavSection() {
             scrolled ? "translate-x-[1.2rem] -translate-y-[0.44rem] opacity-0" : "opacity-100",
           )}
         >
-          <button
-            type="button"
+          <a
+            href={LINKS.repo}
+            target="_blank"
+            rel="noreferrer"
             className="flex h-[1.94rem] items-center gap-[0.3rem] rounded-full px-[0.48rem] text-[0.75rem] text-[var(--gx-text)] hover:bg-white/[0.04]"
-            aria-label="Language"
+            aria-label="Wallio on GitHub"
           >
-            <span className="size-[1.1rem] rounded-full border border-white/20 bg-[var(--gx-deep)]" aria-hidden="true" />
+            <GithubLogo className="size-[1.1rem]" />
             <CaretDown className="size-[0.7rem]" />
-          </button>
-          <button
-            type="button"
+          </a>
+          <a
+            href="#judges"
             className="grid size-[1.625rem] place-items-center rounded-full text-[var(--gx-text)] opacity-80 hover:opacity-100"
-            aria-label="Help"
+            aria-label="For judges"
           >
             <Question className="size-[1.1rem]" weight="fill" />
-          </button>
-          <Btn variant="ghost" />
-          <Btn variant="glow" />
+          </a>
+          <Btn variant="ghost" href={NAV.secondary.href}>{NAV.secondary.label}</Btn>
+          <Btn variant="glow" href={NAV.primary.href}>{NAV.primary.label}</Btn>
         </div>
       </div>
 
@@ -122,14 +120,14 @@ export function NavSection() {
       </div>
       {open && (
         <div className="gx-glass mx-4 flex flex-col gap-1 rounded-[16px] p-3 md:hidden">
-          {ITEMS.map((_, i) => (
-            <a key={i} href="#" className="flex h-11 items-center px-3 text-[15px] text-[#c4c4c4]">
-              {P}
+          {ITEMS.map((it, i) => (
+            <a key={i} href={it.href} onClick={() => setOpen(false)} className="flex h-11 items-center px-3 text-[15px] text-[#c4c4c4]">
+              {it.label}
             </a>
           ))}
           <div className="mt-2 grid grid-cols-2 gap-2">
-            <Btn variant="ghost" className="h-11 text-[14px]" />
-            <Btn variant="glow" className="h-11 text-[14px]" />
+            <Btn variant="ghost" href={NAV.secondary.href} className="h-11 text-[14px]">{NAV.secondary.label}</Btn>
+            <Btn variant="glow" href={NAV.primary.href} className="h-11 text-[14px]">{NAV.primary.label}</Btn>
           </div>
         </div>
       )}

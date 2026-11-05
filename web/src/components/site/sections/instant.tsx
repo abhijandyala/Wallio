@@ -1,7 +1,8 @@
 "use client";
 
 import { motion, useReducedMotionConfig } from "motion/react";
-import { Btn, Container, P } from "../ui";
+import { Btn, Container } from "../ui";
+import { CLOSING } from "../content";
 import { CandlesCanvas } from "./bottom/candles-canvas";
 
 /** Closing call to action: a dark lit box with a large heading and particle candlesticks. */
@@ -26,14 +27,14 @@ export function InstantSection() {
 
           <motion.div {...fade} className="relative flex h-full flex-col justify-center px-[4rem] max-md:px-6 max-md:pt-16 max-md:pb-72">
             <h2 className="gx-heading w-[40rem] text-[4.016rem] leading-[1.26] max-md:w-full max-md:text-[2.5rem]">
-              {P}
+              {CLOSING.title[0]}
               <br />
-              {P}
+              {CLOSING.title[1]}
             </h2>
-            <p className="mt-[1rem] text-[0.9036rem] text-[var(--gx-dim)]">{P}</p>
+            <p className="mt-[1rem] text-[0.9036rem] text-[var(--gx-dim)]">{CLOSING.body}</p>
             <div className="mt-[1.5rem] flex gap-[0.5625rem]">
-              <Btn variant="glow" icon />
-              <Btn variant="ghost" />
+              <Btn variant="glow" icon href={CLOSING.primary.href}>{CLOSING.primary.label}</Btn>
+              <Btn variant="ghost" href={CLOSING.secondary.href}>{CLOSING.secondary.label}</Btn>
             </div>
           </motion.div>
         </div>

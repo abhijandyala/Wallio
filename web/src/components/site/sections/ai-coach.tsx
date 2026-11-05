@@ -2,7 +2,10 @@
 
 import { motion, useReducedMotionConfig } from "motion/react";
 import { ChatCircle, ArrowsOut, Columns, DotsThree, MagnifyingGlass, Plus } from "@phosphor-icons/react";
-import { Badge, Heading, MockFrame, P } from "../ui";
+import { Badge, Heading, MockFrame } from "../ui";
+import { VULTR } from "../content";
+
+const C = VULTR.chat;
 import { OrbCanvas } from "./bottom/orb-canvas";
 
 /** AI section: lavender orb, centred heading and a chat mockup rising from below. */
@@ -13,7 +16,7 @@ export function AiCoachSection() {
     : { initial: { opacity: 0, y: 40 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, amount: 0.25 }, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as const } };
 
   return (
-    <section className="relative mt-[2.4rem] h-[59.625rem] max-md:h-auto max-md:pb-16">
+    <section id="vultr" className="relative mt-[2.4rem] h-[59.625rem] scroll-mt-10 max-md:h-auto max-md:pb-16">
       {/* Orb area */}
       <div className="relative h-[18.875rem]">
         <div className="pointer-events-none absolute top-[-5.9rem] left-1/2 h-[21.94rem] w-[47.4rem] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(closest-side,color-mix(in_srgb,#ad96f1_38%,transparent),transparent)] blur-[30px] max-md:w-full" />
@@ -22,12 +25,12 @@ export function AiCoachSection() {
       </div>
 
       <motion.div {...rise} className="relative mx-auto -mt-[0.375rem] flex w-[43rem] flex-col items-center text-center max-md:w-[calc(100%-2rem)]">
-        <Badge tone="violet" />
-        <Heading className="mt-[1rem]" />
+        <Badge tone="violet">{VULTR.badge}</Badge>
+        <Heading className="mt-[1rem]">{VULTR.title}</Heading>
         <p className="mt-[1rem] text-[0.8033rem] leading-[1.6] text-[var(--gx-muted)]">
-          {P}
+          {VULTR.body[0]}
           <br />
-          {P}
+          {VULTR.body[1]}
         </p>
       </motion.div>
 
@@ -50,11 +53,11 @@ function ChatMock() {
       <div className="flex h-[2.6875rem] shrink-0 items-center justify-between border-b border-white/[0.06] px-[0.875rem]">
         <span className="flex items-center gap-[0.5rem] text-[var(--gx-text)]">
           <ChatCircle className="size-[0.85rem]" />
-          {P}
-          <span className="rounded-[0.3rem] border border-[color-mix(in_srgb,#ad96f1_35%,transparent)] px-[0.3rem] text-[0.55rem] text-[var(--gx-violet)]">{P}</span>
+          {C.title}
+          <span className="rounded-[0.3rem] border border-[color-mix(in_srgb,#ad96f1_35%,transparent)] px-[0.3rem] font-mono text-[0.55rem] text-[var(--gx-violet)]">{C.tag}</span>
         </span>
         <span className="flex items-center gap-[0.4rem]">
-          <span className="rounded-[0.4rem] border border-[color-mix(in_srgb,#ad96f1_35%,transparent)] bg-[color-mix(in_srgb,#ad96f1_10%,transparent)] px-[0.45rem] py-[0.15rem] text-[0.6rem] text-[var(--gx-violet)]">{P}</span>
+          <span className="rounded-[0.4rem] border border-[color-mix(in_srgb,#ad96f1_35%,transparent)] bg-[color-mix(in_srgb,#ad96f1_10%,transparent)] px-[0.45rem] py-[0.15rem] text-[0.6rem] text-[var(--gx-violet)]">Vultr</span>
           {[Columns, ArrowsOut, DotsThree].map((I, i) => (
             <span key={i} className="grid size-[1.375rem] place-items-center rounded-[0.32rem] text-white/40">
               <I className="size-[0.75rem]" />
@@ -66,35 +69,35 @@ function ChatMock() {
         <div className="flex flex-col gap-[0.6rem] border-r border-white/[0.06] p-[0.75rem]">
           <span className="flex h-[1.9rem] items-center gap-[0.4rem] rounded-[0.45rem] bg-[var(--gx-violet)] px-[0.6rem] text-[0.72rem] text-[#0b0714]">
             <Plus weight="bold" className="size-[0.7rem]" />
-            {P}
+            {C.newChat}
           </span>
           <span className="flex h-[1.6rem] items-center gap-[0.4rem] rounded-[0.4rem] bg-white/[0.04] px-[0.5rem] text-white/30">
             <MagnifyingGlass className="size-[0.65rem]" />
-            {P}
+            {C.search}
           </span>
           <span className="flex gap-[0.6rem] overflow-hidden border-b border-white/[0.06] pb-[0.35rem] text-[0.56rem] whitespace-nowrap">
-            <span className="border-b border-[var(--gx-violet)] pb-[0.3rem] text-[var(--gx-text)]">{P}</span>
-            <span>{P}</span>
-            <span>{P}</span>
+            <span className="border-b border-[var(--gx-violet)] pb-[0.3rem] text-[var(--gx-text)]">{C.tabs[0]}</span>
+            <span>{C.tabs[1]}</span>
+            <span>{C.tabs[2]}</span>
           </span>
           <span className="flex items-center gap-[0.4rem] text-white/40">
             <ChatCircle className="size-[0.65rem]" />
-            {P}
+            {C.history}
           </span>
         </div>
         <div className="flex flex-col items-center justify-center gap-[0.55rem] pb-[3rem]">
           <span className="grid size-[1.75rem] place-items-center rounded-full border border-[color-mix(in_srgb,#ad96f1_50%,transparent)] bg-[color-mix(in_srgb,#ad96f1_10%,transparent)] text-[var(--gx-violet)]">
             <ChatCircle className="size-[0.85rem]" />
           </span>
-          <span className="text-[0.8rem] text-[var(--gx-text)] opacity-80">{P}</span>
-          <span className="text-[0.62rem] text-white/30">{P}</span>
-          <span className="mt-[0.3rem] flex gap-[0.4rem]">
-            {[0, 1].map((i) => (
+          <span className="text-[0.8rem] text-[var(--gx-text)] opacity-80">{C.empty}</span>
+          <span className="text-[0.62rem] text-white/30">{C.hint}</span>
+          <span className="mt-[0.3rem] flex flex-wrap justify-center gap-[0.4rem] px-[1rem]">
+            {C.chips.map((chip) => (
               <span
-                key={i}
+                key={chip}
                 className="rounded-full border-[0.5px] border-[color-mix(in_srgb,#ad96f1_25%,transparent)] bg-[color-mix(in_srgb,#ad96f1_8%,transparent)] px-[0.64rem] py-[0.28rem] text-[0.66rem] text-[var(--gx-violet)]"
               >
-                {P}
+                {chip}
               </span>
             ))}
           </span>

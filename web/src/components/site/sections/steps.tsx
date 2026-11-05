@@ -2,7 +2,8 @@
 
 import { useRef, useState } from "react";
 import { motion, useMotionValueEvent, useReducedMotionConfig, useScroll, useTransform } from "motion/react";
-import { Badge, Body, Btn, Container, Heading, P } from "../ui";
+import { Badge, Body, Btn, Container, Heading } from "../ui";
+import { STEPS as COPY } from "../content";
 import { cn } from "@/lib/utils";
 
 const STEPS = [1, 2, 3];
@@ -23,22 +24,22 @@ export function StepsSection() {
   const fill = useTransform(scrollYProgress, [0.05, 0.85], ["0%", "100%"]);
 
   return (
-    <div ref={ref} data-stage="steps" className="relative h-[200vh] max-md:h-auto">
+    <div ref={ref} id="steps" data-stage="steps" className="relative h-[200vh] max-md:h-auto">
       <section className="sticky top-0 flex h-screen items-center max-md:static max-md:h-auto max-md:py-24">
         <Container className="relative flex items-center justify-between max-md:flex-col max-md:items-start max-md:gap-12">
           <motion.div style={{ opacity: introOpacity, y: introY }} className="flex w-[27.3125rem] flex-col items-start max-md:w-full max-md:!transform-none max-md:!opacity-100">
-            <Badge />
+            <Badge>{COPY.badge}</Badge>
             <Heading className="mt-[1.25rem] w-full">
-              {P}
+              {COPY.title[0]}
               <br />
-              {P}
+              {COPY.title[1]}
             </Heading>
-            <p className="mt-[1rem] w-[21.875rem] text-[0.9036rem] leading-[2] text-[var(--gx-dim)] max-md:w-full">
-              {P}
+            <p className="mt-[1rem] w-[21.875rem] text-[0.9036rem] leading-[1.6] text-[var(--gx-dim)] max-md:w-full">
+              {COPY.body}
             </p>
             <div className="mt-[1.4375rem] flex gap-[0.5625rem]">
-              <Btn variant="glow" icon />
-              <Btn variant="outline" />
+              <Btn variant="glow" icon href={COPY.primary.href}>{COPY.primary.label}</Btn>
+              <Btn variant="outline" href={COPY.secondary.href}>{COPY.secondary.label}</Btn>
             </div>
           </motion.div>
 
@@ -60,14 +61,12 @@ export function StepsSection() {
                     {n}
                   </span>
                   <div className="flex flex-col">
-                    <span className="text-[0.9036rem] text-[var(--gx-accent)]">{P}</span>
-                    <div className={cn("transition-opacity duration-300", on ? "opacity-100" : "opacity-40")}>
-                      <Heading as="h3" size="item" gradient={false} className="mt-[0.375rem]" />
-                      <Body className="mt-[0.375rem] text-[0.8033rem] text-[#a0a0a8]">
-                        {P}
-                        <br />
-                        {P}
-                      </Body>
+                    <span className="text-[0.9036rem] text-[var(--gx-accent)]">{COPY.steps[i].eyebrow}</span>
+                    <div className={cn("transition-opacity duration-300 max-md:opacity-100", on ? "opacity-100" : "opacity-40")}>
+                      <Heading as="h3" size="item" gradient={false} className="mt-[0.375rem]">
+                        {COPY.steps[i].title}
+                      </Heading>
+                      <Body className="mt-[0.375rem] text-[0.8033rem] text-[#a0a0a8]">{COPY.steps[i].body}</Body>
                     </div>
                   </div>
                 </li>

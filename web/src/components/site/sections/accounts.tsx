@@ -1,8 +1,9 @@
 "use client";
 
 import { motion, useReducedMotionConfig } from "motion/react";
-import { Fire, Plus, Star } from "@phosphor-icons/react";
-import { Badge, Btn, Heading, P } from "../ui";
+import { Plus, ShieldCheck, Star } from "@phosphor-icons/react";
+import { Badge, Btn, Heading } from "../ui";
+import { CONTAINMENT, MODES } from "../content";
 import { cn } from "@/lib/utils";
 import { Edge } from "./top/edge";
 
@@ -25,14 +26,14 @@ export function AccountsSection() {
   return (
     <section className="relative pb-[4.8rem] max-md:pb-16">
       <motion.div {...reveal()} className="mx-auto flex w-[37.875rem] flex-col items-center text-center max-md:w-[calc(100%-2rem)]">
-        <Badge tone="neutral" />
-        <Heading size="h2" className="mt-[1.19rem] leading-[1.25]" />
+        <Badge tone="neutral">{MODES.badge}</Badge>
+        <Heading size="h2" className="mt-[1.19rem] leading-[1.25]">{MODES.title}</Heading>
       </motion.div>
 
       <div className="group/cards mx-auto mt-[2.4rem] grid w-[74.75rem] grid-cols-3 gap-[1.2rem] py-[1.2rem] max-md:w-[calc(100%-2rem)] max-md:grid-cols-1">
-        {[false, true, false].map((featured, i) => (
-          <motion.div key={i} {...reveal(0.08 * i)}>
-            <AccountCard featured={featured} />
+        {MODES.cards.map((card, i) => (
+          <motion.div key={card.title} {...reveal(0.08 * i)}>
+            <AccountCard featured={card.tag !== null} card={card} />
           </motion.div>
         ))}
       </div>
@@ -46,7 +47,7 @@ export function AccountsSection() {
 
 /* ── Plan card ────────────────────────────────────────────────────────── */
 
-function AccountCard({ featured }: { featured: boolean }) {
+function AccountCard({ featured, card }: { featured: boolean; card: (typeof MODES.cards)[number] }) {
   return (
     <article
       className={cn(
@@ -75,28 +76,33 @@ function AccountCard({ featured }: { featured: boolean }) {
       />
 
       <div className="relative flex h-[2.1875rem] items-center justify-between gap-3">
-        <Heading as="h3" size="card" className="max-md:text-[1.6rem]" />
+        <Heading as="h3" size="card" className="max-md:text-[1.6rem]">{card.title}</Heading>
         {featured && (
           <span className="inline-flex h-[2.1875rem] items-center gap-[0.4rem] rounded-full border border-white/[0.07] bg-white/[0.02] px-[0.683rem] text-[0.6024rem] text-[var(--gx-text)]">
             <Star weight="fill" className="size-[0.75rem] text-[var(--gx-accent)]" />
-            {P}
+            {card.tag}
           </span>
         )}
       </div>
-      <p className="relative mt-[1.06rem] min-h-[3.375rem] text-[0.803rem] leading-[1.4] text-[#686868]">{P}</p>
+      <p className="relative mt-[1.06rem] min-h-[3.375rem] text-[0.803rem] leading-[1.4] text-[#686868]">{card.body}</p>
       <div className="relative mt-[1.375rem] flex flex-col gap-[0.5rem]">
-        <Btn variant="glow" icon wide />
+        <Btn variant="glow" icon wide href={MODES.primary.href}>
+          {MODES.primary.label}
+        </Btn>
         <Btn
           variant="ghost"
           wide
+          href={MODES.secondary.href}
           className="bg-[linear-gradient(268deg,color-mix(in_srgb,#58f6b1_16%,#010102)_4.91%,transparent_57.89%)]"
-        />
+        >
+          {MODES.secondary.label}
+        </Btn>
       </div>
       <ul className="relative mt-[1.44rem] flex flex-col gap-[0.68rem]">
-        {Array.from({ length: 5 }, (_, i) => (
-          <li key={i} className="relative pl-[1rem] text-[0.803rem] leading-none text-[#686868]">
+        {card.bullets.map((b) => (
+          <li key={b} className="relative pl-[1rem] text-[0.803rem] leading-none text-[#686868]">
             <span className="absolute top-1/2 left-[0.2rem] size-[0.25rem] -translate-y-1/2 rounded-full bg-[var(--gx-accent)]" />
-            {P}
+            {b}
           </li>
         ))}
       </ul>
@@ -107,11 +113,11 @@ function AccountCard({ featured }: { featured: boolean }) {
 /* ── Challenge panel ──────────────────────────────────────────────────── */
 
 type TierState = "on" | "dim" | "active" | "off";
-const TIERS: TierState[] = ["on", "dim", "active", "off"];
+const TIERS: TierState[] = ["on", "active", "dim", "off"];
 
 function ChallengePanel() {
   return (
-    <div className="relative mx-auto w-[74.69rem] max-md:w-[calc(100%-2rem)]">
+    <div id="containment" className="relative mx-auto w-[74.69rem] scroll-mt-24 max-md:w-[calc(100%-2rem)]">
       {/* Light rising from under the panel, over a dot texture */}
       <span
         aria-hidden="true"
@@ -127,10 +133,10 @@ function ChallengePanel() {
 
         {/* Tiers */}
         <div className="relative">
-          <Heading as="h3" size="sm" className="max-md:text-[1.1rem]" />
+          <Heading as="h3" size="sm" className="max-md:text-[1.1rem]">{CONTAINMENT.tiersTitle}</Heading>
           <ul className="mt-[1.19rem] flex flex-col gap-[0.69rem]">
             {TIERS.map((t, i) => (
-              <TierRow key={i} state={t} />
+              <TierRow key={i} state={t} tier={CONTAINMENT.tiers[i]} />
             ))}
           </ul>
         </div>
@@ -138,30 +144,32 @@ function ChallengePanel() {
         {/* Challenge */}
         <div className="relative">
           <div className="flex items-center gap-[0.8rem]">
-            <Heading as="h3" size="challenge" className="max-md:text-[1.6rem]" />
-            <span className="inline-flex h-[2.1875rem] items-center gap-[0.4rem] rounded-full border border-white/[0.07] bg-white/[0.02] px-[1rem] text-[0.703rem] text-[var(--gx-text)]">
-              <Fire weight="fill" className="size-[1.1rem] text-[var(--gx-accent)]" />
-              {P}
+            <Heading as="h3" size="challenge" className="max-md:text-[1.6rem]">{CONTAINMENT.title}</Heading>
+            <span className="inline-flex h-[2.1875rem] items-center gap-[0.4rem] rounded-full border border-white/[0.07] bg-white/[0.02] px-[1rem] text-[0.703rem] whitespace-nowrap text-[var(--gx-text)]">
+              <ShieldCheck weight="fill" className="size-[1.1rem] text-[var(--gx-accent)]" />
+              {CONTAINMENT.tag}
             </span>
           </div>
           <p className="mt-[0.75rem] w-[23.3rem] text-[0.6024rem] leading-[1.5] text-[#a0a0a0] max-md:w-auto max-md:text-[0.85rem]">
-            {P}
+            {CONTAINMENT.body}
           </p>
           <div className="mt-[1.25rem] grid grid-cols-4 gap-[0.6rem] max-md:grid-cols-2">
-            {Array.from({ length: 4 }, (_, i) => (
+            {CONTAINMENT.stats.map((st) => (
               <div
-                key={i}
+                key={st.label}
                 className="flex h-[4.31rem] flex-col items-center justify-center gap-[0.2rem] rounded-[0.803rem] border border-white/[0.07] bg-[radial-gradient(307.01%_88.35%_at_65.73%_3.01%,color-mix(in_srgb,#58f6b1_5%,#050507)_19.23%,color-mix(in_srgb,#58f6b1_10%,#0c0c10)_72.6%)] px-[0.88rem]"
               >
-                <span className="text-[1.205rem] leading-none whitespace-nowrap text-[var(--gx-text)]">{P}</span>
-                <span className="text-[0.6024rem] whitespace-nowrap text-[#686868]">{P}</span>
+                <span className="text-[1.205rem] leading-none whitespace-nowrap text-[var(--gx-text)]">{st.value}</span>
+                <span className="text-[0.6024rem] whitespace-nowrap text-[#686868]">{st.label}</span>
               </div>
             ))}
           </div>
-          <Btn variant="glow" icon wide className="mt-[1.19rem]" />
+          <Btn variant="glow" icon wide href={CONTAINMENT.cta.href} className="mt-[1.19rem]">
+            {CONTAINMENT.cta.label}
+          </Btn>
           <div className="mt-[0.625rem] flex items-center gap-[0.6rem]">
-            <Btn variant="light" />
-            <Btn variant="ghost" />
+            <Btn variant="light" href={CONTAINMENT.primary.href}>{CONTAINMENT.primary.label}</Btn>
+            <Btn variant="ghost" href={CONTAINMENT.secondary.href}>{CONTAINMENT.secondary.label}</Btn>
           </div>
         </div>
       </div>
@@ -169,7 +177,7 @@ function ChallengePanel() {
   );
 }
 
-function TierRow({ state }: { state: TierState }) {
+function TierRow({ state, tier }: { state: TierState; tier: (typeof CONTAINMENT.tiers)[number] }) {
   const active = state === "active";
   return (
     <li
@@ -188,15 +196,15 @@ function TierRow({ state }: { state: TierState }) {
           state === "off" && "bg-[#515151] text-[rgba(244,244,246,0.5)]",
         )}
       >
-        {P}
+        {tier.chip}
       </span>
-      <span className={cn("truncate text-[0.763rem]", active ? "text-white" : "text-[#686868]")}>{P}</span>
+      <span className={cn("truncate text-[0.763rem]", active ? "text-white" : "text-[#686868]")}>{tier.value}</span>
       <span className="inline-flex h-[2.1875rem] items-center gap-[0.3rem] rounded-full bg-[#404040] px-[1rem] text-[0.723rem] whitespace-nowrap text-[var(--gx-text)]">
         <Plus className="size-[0.7rem] text-white" weight="bold" />
-        {P}
+        {tier.note}
       </span>
       <span className={cn("truncate text-right text-[0.803rem]", active ? "text-[var(--gx-accent)]" : "text-[var(--gx-text)]")}>
-        {P}
+        {tier.amount}
       </span>
     </li>
   );

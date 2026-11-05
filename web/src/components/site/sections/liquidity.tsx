@@ -2,13 +2,19 @@
 
 import { motion, useReducedMotionConfig } from "motion/react";
 import { CaretRight } from "@phosphor-icons/react";
-import { Badge, Heading, P } from "../ui";
+import { Badge, Heading } from "../ui";
+import { LINKS, STACK } from "../content";
+import { homeSample } from "@/mocks/home";
+import type { Subscription } from "@/lib/types";
+import { ToolMark } from "@/components/kit/tool-mark";
+import { Money } from "@/components/kit/money";
+import { formatShortDate } from "@/lib/format";
 
 /**
  * Centred intro, then the 1212px table with a lime light sitting on its top edge.
- * Six rows: instrument, two values, status, category. All copy is a placeholder.
+ * Six rows from the sample stack: tool, monthly cost, renewal, price status, category.
  */
-const ROWS = 6;
+const SUBS = homeSample.subscriptions;
 
 export function LiquiditySection() {
   const reduce = useReducedMotionConfig();
@@ -25,9 +31,9 @@ export function LiquiditySection() {
   return (
     <section className="relative pt-[2.44rem] pb-[4.175rem] max-md:pt-16 max-md:pb-16">
       <motion.div {...reveal()} className="mx-auto flex w-[41.19rem] flex-col items-center text-center max-md:w-[calc(100%-2rem)]">
-        <Badge />
-        <Heading size="h2" className="mt-[2.1rem] max-md:mt-5" />
-        <p className="mt-[1.25rem] text-[0.904rem] leading-[1.2] text-[#a0a0a0] max-md:text-[0.95rem]">{P}</p>
+        <Badge>{STACK.badge}</Badge>
+        <Heading size="h2" className="mt-[2.1rem] max-md:mt-5">{STACK.title}</Heading>
+        <p className="mt-[1.25rem] text-[0.904rem] leading-[1.2] text-[#a0a0a0] max-md:text-[0.95rem]">{STACK.body}</p>
       </motion.div>
 
       <motion.div
@@ -50,19 +56,20 @@ export function LiquiditySection() {
             className="pointer-events-none absolute inset-[0.375rem] rounded-[0.924rem] bg-[color-mix(in_srgb,#58f6b1_5%,#08080a)]"
           />
           <div className="relative">
-            {Array.from({ length: ROWS }, (_, i) => (
-              <Row key={i} last={i === ROWS - 1} />
+            {SUBS.map((sub, i) => (
+              <Row key={sub.id} sub={sub} last={i === SUBS.length - 1} />
             ))}
           </div>
         </div>
       </motion.div>
 
-      <p className="mx-auto mt-[2.5rem] w-[36.8rem] text-center text-[0.703rem] text-[#686868] max-md:w-[calc(100%-2rem)]">{P}</p>
+      <p className="mx-auto mt-[2.5rem] w-[36.8rem] text-center text-[0.703rem] text-[#686868] max-md:w-[calc(100%-2rem)]">{STACK.footnote}</p>
     </section>
   );
 }
 
-function Row({ last }: { last: boolean }) {
+function Row({ sub, last }: { sub: Subscription; last: boolean }) {
+  const known = sub.monthlyCents !== null;
   return (
     <div
       className={
@@ -72,28 +79,38 @@ function Row({ last }: { last: boolean }) {
       }
     >
       <div className="flex min-w-0 items-center gap-[0.7rem]">
-        <span
-          aria-hidden="true"
-          className="size-[1.94rem] shrink-0 rounded-full border border-white/10 bg-[radial-gradient(circle_at_35%_30%,color-mix(in_srgb,#58f6b1_40%,#1a1a21),#0c0c10)]"
-        />
+        <span className="[&>span]:size-[1.94rem] [&>span]:rounded-full">
+          <ToolMark name={sub.toolName} />
+        </span>
         <span className="flex min-w-0 flex-col">
-          <span className="truncate text-[1.004rem] leading-tight text-[var(--gx-text)]">{P}</span>
-          <span className="truncate text-[0.6024rem] leading-tight text-[#686868]">{P}</span>
+          <span className="truncate text-[1.004rem] leading-tight text-[var(--gx-text)]">{sub.toolName}</span>
+          <span className="truncate text-[0.6024rem] leading-tight text-[#686868]">{sub.plan} plan</span>
         </span>
       </div>
-      <span className="text-[0.904rem] text-[var(--gx-text)] max-md:hidden">{P}</span>
-      <span className="text-[0.904rem] text-[var(--gx-text)] max-md:hidden">{P}</span>
+      <span className="text-[0.904rem] text-[var(--gx-text)] max-md:hidden">
+        <Money cents={sub.monthlyCents} />
+        {known && <span className="text-[#686868]"> /mo</span>}
+      </span>
+      <span className="text-[0.904rem] text-[var(--gx-text)] max-md:hidden">
+        {sub.renewsOn ? `Renews ${formatShortDate(sub.renewsOn)}` : "No renewal date"}
+      </span>
       <span className="max-md:hidden">
         <span className="inline-flex h-[1.75rem] items-center gap-[0.4rem] rounded-full border border-white/[0.07] bg-white/[0.02] px-[0.75rem] text-[0.703rem] text-[var(--gx-text)]">
-          <span className="size-[0.375rem] rounded-full bg-[var(--gx-accent)] shadow-[0_0_0.4rem_var(--gx-accent)]" />
-          {P}
+          <span
+            className={
+              known
+                ? "size-[0.375rem] rounded-full bg-[var(--gx-accent)] shadow-[0_0_0.4rem_var(--gx-accent)]"
+                : "size-[0.375rem] rounded-full bg-[#686868]"
+            }
+          />
+          {known ? "Price checked" : "Price unknown"}
         </span>
       </span>
       <a
-        href="#"
+        href={LINKS.myAi}
         className="flex items-center justify-end gap-[0.2rem] text-[0.703rem] text-[#a0a0a0] transition-colors hover:text-white"
       >
-        <span className="bg-[linear-gradient(#ffffff,#686868)] bg-clip-text text-transparent">{P}</span>
+        <span className="bg-[linear-gradient(#ffffff,#686868)] bg-clip-text text-transparent">{sub.category}</span>
         <CaretRight className="size-[0.8rem]" />
       </a>
     </div>

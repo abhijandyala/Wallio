@@ -1,5 +1,4 @@
 import { MagnifyingGlass, Plus } from "@phosphor-icons/react/dist/ssr";
-import { P } from "../../ui";
 
 /**
  * Line-art illustrations for the bento cards, lime on dark. Our own drawings,
@@ -75,7 +74,7 @@ export function BarsArt() {
           />
         ))}
         <span className="absolute -bottom-[1.5rem] left-1/2 -translate-x-1/2 rounded-full border border-[color-mix(in_srgb,#58f6b1_50%,transparent)] bg-[color-mix(in_srgb,#58f6b1_14%,#050507)] px-[0.55rem] py-[0.12rem] text-[0.55rem] text-white/80 whitespace-nowrap">
-          {P}
+          $60 a year
         </span>
       </div>
     </div>
@@ -96,7 +95,7 @@ export function StackArt() {
       </span>
       <div className="relative">
         <span className="absolute -top-[2.4rem] left-0 rounded-[0.5rem] border border-[color-mix(in_srgb,#58f6b1_50%,transparent)] bg-[color-mix(in_srgb,#58f6b1_14%,#050507)] px-[0.5rem] py-[0.2rem] text-[0.55rem] text-white/85 whitespace-nowrap">
-          {P}
+          Unknown
         </span>
         <div className="flex h-[5.6rem] items-end gap-[0.4rem] px-[0.6rem]">
           {[52, 72, 46, 100].map((h, i) => (
