@@ -47,9 +47,13 @@ test("policy enforces budgets, deadline margin and approval for external effects
   assert.equal(checkAction(spec(), { ...fresh, actionsUsed: 20 }, { type: "inspect", maxElements: 10 }).ok, false);
   assert.equal(checkAction(spec(), { ...fresh, screenshotsUsed: 12 }, { type: "screenshot", fullPage: false }).ok, false);
   assert.equal(checkAction(spec({ deadlineAt: new Date(Date.now() + 5_000) }), fresh, { type: "inspect", maxElements: 10 }).ok, false);
-  const fill = checkAction(spec(), fresh, { type: "fill", elementRef: "e1", value: "x" });
-  assert.equal(fill.ok, false);
-  assert.equal((fill as { needsApproval?: boolean }).needsApproval, true);
+  // Forms are only ever filled on Wallio's own trial form, and never credential fields.
+  const box = (name: string, inputType = "text") => ({ ref: "e1", role: "textbox", name, tag: "input", text: "", href: null, inputType, targetHost: null });
+  assert.equal(checkAction(spec(), { ...fresh, currentHost: "zed.dev", elements: [box("Email")] }, { type: "fill", elementRef: "e1", value: "x" }).ok, false, "vendor site");
+  const owned = spec({ fillHosts: ["forms.wallio.test"] });
+  assert.equal(checkAction(owned, { ...fresh, currentHost: "forms.wallio.test", elements: [box("Contact email", "email")] }, { type: "fill", elementRef: "e1", value: "x" }).ok, true);
+  assert.equal(checkAction(owned, { ...fresh, currentHost: "forms.wallio.test", elements: [box("Password", "password")] }, { type: "fill", elementRef: "e1", value: "x" }).ok, false);
+  assert.equal(checkAction(owned, { ...fresh, currentHost: "forms.wallio.test", elements: [box("Card number")] }, { type: "fill", elementRef: "e1", value: "x" }).ok, false);
   const elements = [
     { ref: "e1", role: "button", name: "Start free trial", tag: "button", text: "Start free trial", href: null, inputType: "submit", targetHost: "zed.dev" },
     { ref: "e2", role: "link", name: "Compare plans", tag: "a", text: "Compare plans", href: "/pricing#compare", inputType: null, targetHost: "zed.dev" },

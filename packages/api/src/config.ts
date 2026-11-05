@@ -45,6 +45,14 @@ export interface AppConfig {
   runner: { url: string | null; token: string | null; timeoutMs: number; approvalKey: string | null; caFile: string | null };
   /** https origin of the owned eval page, a separate subdomain so the eval job can't reach the API. */
   evalOrigin: string | null;
+  /** https origin of the owned synthetic trial form (forms.<domain>). */
+  formsOrigin: string | null;
+  /** https origin of the owned hostile containment page (hostile.<domain>). */
+  hostileOrigin: string | null;
+  /** Containment sentinel on the control VM's private IP (GET /count). Optional. */
+  sentinelUrl: string | null;
+  /** How long a user has to approve an intent. The runner caps tokens at 600 s. */
+  approvalTtlSecs: number;
 }
 
 export function loadAppConfig(env: Record<string, string | undefined> = process.env): AppConfig {
@@ -82,13 +90,16 @@ export function loadAppConfig(env: Record<string, string | undefined> = process.
       approvalKey: env.RUNNER_APPROVAL_KEY?.trim() || null,
       caFile: env.RUNNER_CA_FILE?.trim() || null,
     },
-    evalOrigin: env.EVAL_ORIGIN?.trim() || derivedEvalOrigin(env.APP_ORIGIN?.trim()),
+    evalOrigin: env.EVAL_ORIGIN?.trim() || derivedOrigin("eval", env.APP_ORIGIN?.trim()),
+    formsOrigin: env.FORMS_ORIGIN?.trim() || derivedOrigin("forms", env.APP_ORIGIN?.trim()),
+    hostileOrigin: env.HOSTILE_ORIGIN?.trim() || derivedOrigin("hostile", env.APP_ORIGIN?.trim()),
+    sentinelUrl: env.SENTINEL_URL?.trim() || null,
+    approvalTtlSecs: Math.min(300, Math.max(30, n(env.APPROVAL_TTL_SECS, 120))),
   };
 }
 
-/** https://example.com → https://eval.example.com. Only for https origins. */
-function derivedEvalOrigin(appOrigin: string | undefined): string | null {
+/** ("eval", https://example.com) → https://eval.example.com. Only for https origins. */
+function derivedOrigin(sub: string, appOrigin: string | undefined): string | null {
   if (!appOrigin?.startsWith("https://")) return null;
-  const u = new URL(appOrigin);
-  return `https://eval.${u.hostname}`;
+  return `https://${sub}.${new URL(appOrigin).hostname}`;
 }

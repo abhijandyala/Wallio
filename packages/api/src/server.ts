@@ -7,6 +7,7 @@ import { Worker, type Cleaner, type RunExecutor } from "./runs/worker.ts";
 import { LiveCleaner, LiveExecutor } from "./runs/live-executor.ts";
 import { RunnerClient } from "./runner/client.ts";
 import { createInferenceGateway } from "./inference/index.ts";
+import { httpSentinel } from "./runs/containment.ts";
 
 const config = loadAppConfig();
 const db = createDb(config.databaseUrl);
@@ -19,12 +20,19 @@ if (config.runner.url && config.runner.token) {
   if (config.runner.url.startsWith("https://") && config.runner.caFile && process.env.NODE_EXTRA_CA_CERTS !== config.runner.caFile) {
     console.log(JSON.stringify({ level: "warn", msg: "RUNNER_CA_FILE is set but NODE_EXTRA_CA_CERTS points elsewhere; the runner's certificate may not be trusted", caFile: config.runner.caFile }));
   }
-  live = { executor: new LiveExecutor({ runner, gateway: (onUsage) => createInferenceGateway({ onUsage }), evalBaseUrl }), cleaner: new LiveCleaner(runner) };
+  live = {
+    executor: new LiveExecutor({
+      runner, gateway: (onUsage) => createInferenceGateway({ onUsage }), evalBaseUrl,
+      formsBaseUrl: config.formsOrigin, approvalKey: config.runner.approvalKey, approvalTtlSecs: config.approvalTtlSecs,
+      hostileBaseUrl: config.hostileOrigin, sentinel: config.sentinelUrl ? httpSentinel(config.sentinelUrl) : null,
+    }),
+    cleaner: new LiveCleaner(runner),
+  };
 }
 const worker = new Worker({
   db,
   config,
-  executors: { mock: new MockExecutor(config.mockStepMs), live: live.executor },
+  executors: { mock: new MockExecutor(config.mockStepMs, { approvalTtlSecs: config.approvalTtlSecs }), live: live.executor },
   cleaners: { mock: new MockCleaner(), live: live.cleaner },
 });
 const app = createApp({ config, db, runs: worker });

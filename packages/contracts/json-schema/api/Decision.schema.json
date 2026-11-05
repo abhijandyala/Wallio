@@ -57,5 +57,5 @@
     "evidenceSnapshotIds",
     "createdAt"
   ],
-  "$id": "wallio/api/Decision@0.1.1"
+  "$id": "wallio/api/Decision@0.2.0"
 }

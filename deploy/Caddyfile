@@ -51,3 +51,41 @@ eval.__WALLIO_DOMAIN__ {
 		respond 404
 	}
 }
+
+# Wallio's own synthetic trial-request form, opened by the runner's browser in its own
+# job (approval-gated submit). Only /trial/<token> is served.
+forms.__WALLIO_DOMAIN__ {
+	request_body {
+		max_size 16KB
+	}
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Robots-Tag "noindex, nofollow"
+		Cache-Control "no-store"
+		-Server
+	}
+	handle /trial/* {
+		reverse_proxy 127.0.0.1:8787
+	}
+	handle {
+		respond 404
+	}
+}
+
+# Containment fixture (Adhvik's packages/runner/fixtures/hostile), static files only.
+# config.js is generated here so the page targets this deployment's private sentinel.
+hostile.__WALLIO_DOMAIN__ {
+	header {
+		Cache-Control "no-store"
+		X-Robots-Tag "noindex, nofollow"
+		-Server
+	}
+	handle /config.js {
+		header Content-Type "application/javascript; charset=utf-8"
+		respond `window.WALLIO_SENTINEL = "__SENTINEL_URL__";` 200
+	}
+	handle {
+		root * /opt/wallio/current/packages/runner/fixtures/hostile
+		file_server
+	}
+}

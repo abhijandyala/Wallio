@@ -97,5 +97,5 @@
     "expiresAt",
     "status"
   ],
-  "$id": "wallio/api/ApprovalIntent@0.1.1"
+  "$id": "wallio/api/ApprovalIntent@0.2.0"
 }

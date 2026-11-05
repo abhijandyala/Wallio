@@ -30,5 +30,5 @@
     "recommendationId",
     "choice"
   ],
-  "$id": "wallio/api/DecisionRequest@0.1.1"
+  "$id": "wallio/api/DecisionRequest@0.2.0"
 }

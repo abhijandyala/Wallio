@@ -92,5 +92,5 @@
     "deniedRequests",
     "detail"
   ],
-  "$id": "wallio/runner/CleanupReport@0.1.1"
+  "$id": "wallio/runner/CleanupReport@0.2.0"
 }

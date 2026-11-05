@@ -371,6 +371,9 @@ export class Worker implements Orchestrator {
     const run = await db.withTenant(tenantId, async (q) => {
       const r = (await q<{ status: RunStatus; mode: RunMode; runner_job_ids: string[] }>("SELECT status, mode, runner_job_ids FROM runs WHERE id = $1 AND tenant_id = $2 FOR UPDATE", [runId, tenantId])).rows[0];
       if (!r || !ENDED_UNCLEANED.has(r.status)) return null;
+      // A run that ended can't act on an approval any more.
+      await q("UPDATE approvals SET status = 'invalidated' WHERE run_id = $1 AND tenant_id = $2 AND status IN ('pending','approved')", [runId, tenantId]);
+      await q("UPDATE runs SET pending_approval_id = NULL WHERE id = $1 AND tenant_id = $2", [runId, tenantId]);
       await transition(q, tenantId, runId, "CLEANING", { cleanup: "pending" });
       return r;
     });

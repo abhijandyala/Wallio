@@ -11,6 +11,12 @@ import { createHash } from "node:crypto";
 import { api } from "@wallio/contracts";
 import type { Query } from "../db/pool.ts";
 import { appendEvent } from "./state.ts";
+import { markerPng } from "../../scripts/marker-png.ts";
+import { buildIntent, consume } from "../approvals/intent.ts";
+import { syntheticValues, TRIAL_FIELDS } from "../forms/trial-form.ts";
+import { checkAction } from "../runner/policy.ts";
+import { askForApproval, resumeAfterDecision, waitForDecision } from "./approval-flow.ts";
+import { storeEvidence } from "./evidence.ts";
 import { RunFailure, type Cleaner, type CleanupReport, type ExecResult, type RunContext, type RunExecutor } from "./worker.ts";
 
 const SAMPLE_LIMITATION = "Sample evidence from demo playback; not captured by a live browser in this run.";
@@ -36,11 +42,82 @@ export function evidenceToContract(r: any) {
 
 export class MockExecutor implements RunExecutor {
   stepMs: number;
-  constructor(stepMs: number) {
+  approvalTtlSecs: number;
+  constructor(stepMs: number, opts: { approvalTtlSecs?: number } = {}) {
     this.stepMs = stepMs;
+    this.approvalTtlSecs = opts.approvalTtlSecs ?? 120;
   }
 
   async execute(ctx: RunContext): Promise<ExecResult> {
+    const { kind, request } = await ctx.q(async (q) =>
+      (await q<{ kind: string; request: any }>("SELECT c.kind, c.request FROM runs r JOIN comparisons c ON c.id = r.comparison_id WHERE r.id = $1 AND r.tenant_id = $2", [ctx.runId, ctx.tenantId])).rows[0]!);
+    if (kind === "trial_request") return this.trial(ctx, request.toolId);
+    if (kind === "containment") return this.containment(ctx);
+    return this.comparison(ctx);
+  }
+
+  /**
+   * Demo playback of the approval gate. The approval itself is real (intent, hash,
+   * decision endpoint, single consume); only the browser is simulated, and nothing is sent.
+   */
+  private async trial(ctx: RunContext, toolId: string): Promise<ExecResult> {
+    await ctx.emit({ type: "warning", message: "Demo playback: no browser is used and nothing is sent; the approval steps are real", data: { detail: "RUN_MODE=mock" } });
+    await ctx.stage("testing", "Preparing a synthetic trial request (demo playback)");
+    const toolName = await ctx.q(async (q) => (await q<{ name: string }>("SELECT name FROM catalog_tools WHERE id = $1", [toolId])).rows[0]?.name ?? toolId);
+    const values = syntheticValues(toolName);
+    const origin = "https://forms.wallio.example";
+    await ctx.sleep(this.stepMs);
+    const png = markerPng("TRPX"); // placeholder image: the glyph set has no full alphabet
+    const screenshotEvidenceId = await storeEvidence(ctx, {
+      kind: "observed_behavior", accessMode: "tested_owned_demo", toolId: null, url: `${origin}/trial/session-demo`, text: JSON.stringify(values), method: "manual",
+      excerpt: `Sample: ${TRIAL_FIELDS.map((f) => `${f.label}: ${values[f.name]}`).join("; ")}`,
+      limitation: "Demo playback: a placeholder image, not a browser capture. Nothing is sent anywhere.",
+      shot: { bytes: png, hash: `sha256:${createHash("sha256").update(png).digest("hex")}` },
+      message: "Prepared the sample form for your review",
+    });
+    const intent = buildIntent({
+      runId: ctx.runId, jobId: "demo-playback", actionType: "submit_form", targetOrigin: origin, targetUrl: `${origin}/trial/session-demo`, submitHost: "forms.wallio.example",
+      fields: TRIAL_FIELDS.map((f) => ({ name: f.name, label: f.label, value: values[f.name]! })),
+      consequence: `Demo playback: approving records your decision, but nothing is sent. In a live run this sends one synthetic ${toolName} trial request to Wallio's own form.`,
+      elementRef: "e0", pageFingerprint: fakeHash(JSON.stringify(values)), screenshotEvidenceId,
+    }, this.approvalTtlSecs);
+    const hash = await askForApproval(ctx, intent, `Waiting for your approval (demo playback: nothing will be sent)`);
+    const result = await waitForDecision(ctx, intent.id);
+    await resumeAfterDecision(ctx, intent.id, result);
+    if (result !== "approved") return { outcome: result === "declined" ? "succeeded" : "partial" };
+    if (!(await ctx.q((q) => consume(q, ctx.tenantId, intent.id, hash)))) return { outcome: "partial" };
+    await ctx.emit({ type: "action_result", message: "Demo playback: the approval was used once; nothing was sent", data: { approvalId: intent.id, result: "simulated", evidenceId: null } });
+    return { outcome: "succeeded" };
+  }
+
+  /** Demo playback of the containment test: the page is scripted, the policy decisions are real. */
+  private async containment(ctx: RunContext): Promise<ExecResult> {
+    await ctx.emit({ type: "warning", message: "Demo playback: the hostile page is simulated; the policy decisions below are real", data: { detail: "RUN_MODE=mock" } });
+    await ctx.stage("testing", "Checking a simulated hostile page (demo playback)");
+    const host = "hostile.wallio.example";
+    const elements = [
+      { ref: "e1", role: "button", name: "Claim credit", tag: "button", text: "Claim credit", href: null, inputType: "submit", targetHost: "10.5.96.3" },
+      { ref: "e2", role: "link", name: "Open admin console", tag: "a", text: "Open admin console", href: "https://169.254.169.254/latest/meta-data/", inputType: null, targetHost: "169.254.169.254" },
+      { ref: "e3", role: "link", name: "Download agent update", tag: "a", text: "Download agent update", href: "https://downloads.attacker.example/agent-update.exe", inputType: null, targetHost: "downloads.attacker.example" },
+    ];
+    const policy = { allowed: { [host]: ["/"] }, maxActions: 8, maxScreenshots: 2, deadlineAt: ctx.deadlineAt };
+    const state = { actionsUsed: 0, screenshotsUsed: 0, elements, currentHost: host };
+    let refused = 0;
+    for (const el of elements) {
+      await ctx.sleep(this.stepMs);
+      const d = checkAction(policy, state, { type: "click", elementRef: el.ref });
+      if (d.ok) continue;
+      refused++;
+      await ctx.emit({ type: "policy_denied", message: `Refused "${el.name}" (demo playback)`, data: { attemptedAction: "click", target: `click ${el.name}`, reason: d.reason } });
+    }
+    await ctx.emit({
+      type: "containment_result", message: `Demo playback: ${refused} action(s) refused by policy; no browser or sentinel was involved`,
+      data: { contained: true, deniedRequests: 0, refusedActions: refused, sentinel: null, cleanupVerified: true, evidenceId: null },
+    });
+    return { outcome: "succeeded" };
+  }
+
+  private async comparison(ctx: RunContext): Promise<ExecResult> {
     const { tenantId, runId } = ctx;
     const req = await ctx.q(async (q) =>
       (await q("SELECT c.request FROM runs r JOIN comparisons c ON c.id = r.comparison_id WHERE r.id = $1 AND r.tenant_id = $2", [runId, tenantId])).rows[0]!.request as {

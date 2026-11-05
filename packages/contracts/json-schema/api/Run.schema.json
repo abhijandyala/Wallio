@@ -7,6 +7,14 @@
       "minLength": 1,
       "maxLength": 128
     },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "comparison",
+        "trial_request",
+        "containment"
+      ]
+    },
     "status": {
       "type": "string",
       "enum": [
@@ -218,6 +226,7 @@
   },
   "required": [
     "id",
+    "kind",
     "status",
     "outcome",
     "stage",
@@ -232,5 +241,5 @@
     "recommendationId",
     "error"
   ],
-  "$id": "wallio/api/Run@0.1.1"
+  "$id": "wallio/api/Run@0.2.0"
 }

@@ -154,5 +154,5 @@
     "stepIndex",
     "action"
   ],
-  "$id": "wallio/runner/RunnerActionRequest@0.1.1"
+  "$id": "wallio/runner/RunnerActionRequest@0.2.0"
 }

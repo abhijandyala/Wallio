@@ -152,7 +152,27 @@ export const ComparisonRequest = z.object({
 });
 export type ComparisonRequest = z.infer<typeof ComparisonRequest>;
 
-/** 202 Accepted from POST /api/comparisons */
+/** What a run does. Trial requests and containment runs are created by their own endpoints. */
+export const RunKind = z.enum(["comparison", "trial_request", "containment"]);
+export type RunKind = z.infer<typeof RunKind>;
+
+/**
+ * POST /api/trial-requests. Prepares a SYNTHETIC trial request on Wallio's own form
+ * (forms.<domain>) for a candidate from a recommendation. Nothing is submitted until
+ * the user approves the exact intent; no vendor ever receives it.
+ */
+export const TrialRequestCreate = z.object({
+  idempotencyKey: z.uuid(),
+  recommendationId: Id,
+  toolId: Id,
+});
+export type TrialRequestCreate = z.infer<typeof TrialRequestCreate>;
+
+/** POST /api/containment-runs. Opens Wallio's own hostile test page in the isolated browser. */
+export const ContainmentRunCreate = z.object({ idempotencyKey: z.uuid() });
+export type ContainmentRunCreate = z.infer<typeof ContainmentRunCreate>;
+
+/** 202 Accepted from POST /api/comparisons, /api/trial-requests and /api/containment-runs */
 export const ComparisonAccepted = z.object({
   runId: Id,
   status: z.literal("QUEUED"),
@@ -163,6 +183,7 @@ export const ComparisonAccepted = z.object({
 /** GET /api/runs/:id */
 export const Run = z.object({
   id: Id,
+  kind: RunKind,
   status: RunStatus,
   outcome: RunOutcome,
   stage: RunStage,
@@ -230,6 +251,23 @@ export const RunEvent = z.discriminatedUnion("type", [
   EventBase.extend({
     type: z.literal("approval_resolved"),
     data: z.object({ approvalId: Id, result: z.enum(["approved", "declined", "expired", "invalidated"]) }),
+  }),
+  /** Trial request: what happened to the approved action. "simulated" only in demo playback. */
+  EventBase.extend({
+    type: z.literal("action_result"),
+    data: z.object({ approvalId: Id, result: z.enum(["submitted", "uncertain", "refused", "simulated"]), evidenceId: Id.nullable() }),
+  }),
+  /** Containment run summary. sentinel is null when the sentinel couldn't be read (or in demo playback). */
+  EventBase.extend({
+    type: z.literal("containment_result"),
+    data: z.object({
+      contained: z.boolean(),
+      deniedRequests: z.int().nonnegative(),
+      refusedActions: z.int().nonnegative(),
+      sentinel: z.object({ before: z.int().nonnegative(), after: z.int().nonnegative() }).nullable(),
+      cleanupVerified: z.boolean(),
+      evidenceId: Id.nullable(),
+    }),
   }),
   EventBase.extend({ type: z.literal("warning"), data: z.object({ detail: z.string() }) }),
   EventBase.extend({ type: z.literal("error"), data: z.object({ error: ApiError }) }),
@@ -392,6 +430,8 @@ export const ApprovalDecisionRequest = z.object({
   decision: z.enum(["approve", "decline"]),
   intentHash: Sha256,
 });
+
+export type ApprovalDecisionRequest = z.infer<typeof ApprovalDecisionRequest>;
 
 // ───────────────────────── Decisions ─────────────────────────
 

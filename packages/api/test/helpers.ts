@@ -21,6 +21,10 @@ export const testConfig = (over: Partial<AppConfig> = {}, worker: Partial<AppCon
   mockStepMs: 5,
   runner: { url: null, token: null, timeoutMs: 5000, approvalKey: null, caFile: null },
   evalOrigin: null,
+  formsOrigin: null,
+  hostileOrigin: null,
+  sentinelUrl: null,
+  approvalTtlSecs: 120,
   ...over,
   worker: {
     leaseSecs: 3,

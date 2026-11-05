@@ -20,6 +20,8 @@ import { transition, TERMINAL, FINISHED } from "../runs/state.ts";
 import { evidenceToContract } from "../runs/executors.ts";
 import type { Orchestrator } from "../runs/worker.ts";
 import { renderEvalPage, tokenHash } from "../eval/harness.ts";
+import { approvalToContract, canonicalJson, refreshStatus } from "../approvals/intent.ts";
+import { FORM_CSP, formTokenHash, newReference, parseSubmission, renderFormPage, renderResultPage } from "../forms/trial-form.ts";
 
 type Env = { Variables: { tenantId: string; correlationId: string } };
 
@@ -254,6 +256,7 @@ export function createApp({ config, db, runs }: AppDeps) {
 
   const runToContract = (r: any) => ({
     id: r.id,
+    kind: r.kind ?? "comparison",
     status: r.status,
     outcome: r.outcome,
     stage: r.stage,
@@ -271,29 +274,57 @@ export function createApp({ config, db, runs }: AppDeps) {
 
   const accepted = (runId: string) => ({ runId, status: "QUEUED" as const, eventsUrl: `/api/runs/${runId}/events`, statusUrl: `/api/runs/${runId}` });
 
-  app.post("/api/comparisons", async (c) => {
-    const req = await body(c, api.ComparisonRequest);
-    const requestHash = createHash("sha256").update(JSON.stringify(req, Object.keys(req).sort())).digest("hex");
+  /**
+   * Creates a queued run for any kind. The comparisons row is the stored request:
+   * same idempotency key + same body (and kind) → same run; different → conflict.
+   */
+  async function createRun(c: Context<Env>, kind: "comparison" | "trial_request" | "containment", idempotencyKey: string, req: Record<string, unknown>,
+    validate: (q: Query, tenantId: string) => Promise<void>): Promise<Response> {
+    const requestHash = createHash("sha256").update(canonicalJson({ kind, ...req })).digest("hex");
 
     // Capacity and spend checks before anything is written (PRD §19, §22).
     const paused = runs.pausedReason(config.runMode);
     const capacityError = paused
-      ? new HttpError("runner_unavailable", "Live comparisons are paused while the browser runner is checked. Try again later.")
+      ? new HttpError("runner_unavailable", "Live runs are paused while the browser runner is checked. Try again later.")
       : (await runs.spendTodayMinor()) >= config.dailySpendCapMinor
-        ? new HttpError("budget_exceeded", "Wallio has reached today's spending limit for comparisons. Try again tomorrow.")
+        ? new HttpError("budget_exceeded", "Wallio has reached today's spending limit for runs. Try again tomorrow.")
         : (await runs.queueDepth(config.runMode)) >= config.worker.maxQueued
           ? new HttpError("quota_exceeded", "Wallio is busy running other comparisons. Try again in a minute.")
           : null;
 
     const result = await tenant(c, async (q, tenantId) => {
-      // Idempotency: same key + same body → same run; same key + different body → conflict.
-      const prior = (await q("SELECT c.request_hash, r.id AS run_id FROM comparisons c JOIN runs r ON r.comparison_id = c.id WHERE c.tenant_id = $1 AND c.idempotency_key = $2", [tenantId, req.idempotencyKey])).rows[0];
+      const prior = (await q("SELECT c.request_hash, r.id AS run_id FROM comparisons c JOIN runs r ON r.comparison_id = c.id WHERE c.tenant_id = $1 AND c.idempotency_key = $2", [tenantId, idempotencyKey])).rows[0];
       if (prior) {
-        if (prior.request_hash !== requestHash) throw new HttpError("idempotency_conflict", "This idempotency key was already used for a different comparison. Generate a new key.");
+        if (prior.request_hash !== requestHash) throw new HttpError("idempotency_conflict", "This idempotency key was already used for a different request. Generate a new key.");
         return { runId: prior.run_id as string, created: false };
       }
       if (capacityError) throw capacityError;
+      await validate(q, tenantId);
 
+      // One active run per workspace keeps the single runner free for others.
+      const active = await q("SELECT id FROM runs WHERE tenant_id = $1 AND status NOT IN ('CLEANED','CLEANUP_FAILED') LIMIT 1", [tenantId]);
+      if (active.rowCount) throw new HttpError("conflict", "Another run is still going. Wait for it to finish or cancel it.", { runId: active.rows[0].id });
+
+      const capMinor = Math.min(typeof req.spendCapMinor === "number" ? req.spendCapMinor : config.runSpendCapMinor, config.runSpendCapMinor);
+      const cmp = (await q("INSERT INTO comparisons (tenant_id, idempotency_key, request_hash, request, kind) VALUES ($1,$2,$3,$4,$5) RETURNING id", [tenantId, idempotencyKey, requestHash, req, kind])).rows[0]!;
+      // deadline_at starts as the latest start time; the worker resets it to the execution deadline when it claims the run.
+      const run = (await q(
+        `INSERT INTO runs (tenant_id, comparison_id, mode, status, deadline_at, cap_minor)
+         VALUES ($1,$2,$3,'CREATED', now() + make_interval(secs => $5), $4) RETURNING id`,
+        [tenantId, cmp.id, config.runMode, capMinor, config.worker.queueMaxWaitSecs + config.worker.execDeadlineSecs],
+      )).rows[0]!;
+      await transition(q, tenantId, run.id, "QUEUED");
+      await q("INSERT INTO audit_events (tenant_id, actor, action, target, correlation_id) VALUES ($1,'user',$2,$3,$4)", [tenantId, `${kind}.create`, run.id, c.get("correlationId")]);
+      return { runId: run.id as string, created: true };
+    });
+
+    if (result.created) runs.kick();
+    return send(c, api.ComparisonAccepted, accepted(result.runId), 202);
+  }
+
+  app.post("/api/comparisons", async (c) => {
+    const req = await body(c, api.ComparisonRequest);
+    return createRun(c, "comparison", req.idempotencyKey, req, async (q, tenantId) => {
       const profile = (await q("SELECT body FROM profile_versions WHERE id = $1 AND tenant_id = $2", [UUID.test(req.profileVersionId) ? req.profileVersionId : null, tenantId])).rows[0];
       if (!profile) throw new HttpError("validation_failed", "That profile version doesn't exist.", { field: "profileVersionId" });
       if (!profile.body.workflows.some((w: { id: string }) => w.id === req.workflowId)) {
@@ -307,31 +338,29 @@ export function createApp({ config, db, runs }: AppDeps) {
       const found = (await q("SELECT id FROM catalog_tools WHERE id = ANY($1)", [toolIds])).rows.map((r) => r.id);
       const missing = toolIds.filter((t) => !found.includes(t));
       if (missing.length) throw new HttpError("validation_failed", "Some tools aren't in the catalog.", { missing });
-
-      // One active comparison per workspace keeps the single runner free for others.
-      const active = await q("SELECT id FROM runs WHERE tenant_id = $1 AND status NOT IN ('CLEANED','CLEANUP_FAILED') LIMIT 1", [tenantId]);
-      if (active.rowCount) throw new HttpError("conflict", "A comparison is already running. Wait for it to finish or cancel it.", { runId: active.rows[0].id });
-
-      const capMinor = Math.min(req.spendCapMinor ?? config.runSpendCapMinor, config.runSpendCapMinor);
-      const cmp = (await q("INSERT INTO comparisons (tenant_id, idempotency_key, request_hash, request) VALUES ($1,$2,$3,$4) RETURNING id", [tenantId, req.idempotencyKey, requestHash, req])).rows[0]!;
-      // deadline_at starts as the latest start time; the worker resets it to the execution deadline when it claims the run.
-      const run = (await q(
-        `INSERT INTO runs (tenant_id, comparison_id, mode, status, deadline_at, cap_minor)
-         VALUES ($1,$2,$3,'CREATED', now() + make_interval(secs => $5), $4) RETURNING id`,
-        [tenantId, cmp.id, config.runMode, capMinor, config.worker.queueMaxWaitSecs + config.worker.execDeadlineSecs],
-      )).rows[0]!;
-      await transition(q, tenantId, run.id, "QUEUED");
-      await q("INSERT INTO audit_events (tenant_id, actor, action, target, correlation_id) VALUES ($1,'user','comparison.create',$2,$3)", [tenantId, run.id, c.get("correlationId")]);
-      return { runId: run.id as string, created: true };
     });
+  });
 
-    if (result.created) runs.kick();
-    return send(c, api.ComparisonAccepted, accepted(result.runId), 202);
+  // A synthetic trial request on Wallio's own form, for a candidate the recommendation named.
+  app.post("/api/trial-requests", async (c) => {
+    const req = await body(c, api.TrialRequestCreate);
+    return createRun(c, "trial_request", req.idempotencyKey, req, async (q, tenantId) => {
+      const rec = (await q("SELECT body FROM recommendations WHERE id = $1 AND tenant_id = $2", [UUID.test(req.recommendationId) ? req.recommendationId : null, tenantId])).rows[0];
+      if (!rec) throw notFound("Recommendation");
+      const candidates = (rec.body.candidates ?? []).filter((x: { role: string }) => x.role === "candidate").map((x: { toolId: string }) => x.toolId);
+      if (!candidates.includes(req.toolId)) throw new HttpError("validation_failed", "Trial requests are only for a candidate in this recommendation.", { field: "toolId" });
+    });
+  });
+
+  // The containment test on Wallio's own hostile page.
+  app.post("/api/containment-runs", async (c) => {
+    const req = await body(c, api.ContainmentRunCreate);
+    return createRun(c, "containment", req.idempotencyKey, req, async () => {});
   });
 
   async function loadRun(q: Query, tenantId: string, id: string) {
     if (!UUID.test(id)) throw notFound("Run");
-    const row = (await q("SELECT * FROM runs WHERE id = $1 AND tenant_id = $2", [id, tenantId])).rows[0];
+    const row = (await q("SELECT r.*, c.kind FROM runs r JOIN comparisons c ON c.id = r.comparison_id WHERE r.id = $1 AND r.tenant_id = $2", [id, tenantId])).rows[0];
     if (!row) throw notFound("Run");
     return row;
   }
@@ -400,6 +429,73 @@ export function createApp({ config, db, runs }: AppDeps) {
     const row = await tenant(c, async (q, t) => (await q("SELECT * FROM evidence WHERE id = $1 AND tenant_id = $2", [id, t])).rows[0]);
     if (!row) throw notFound("Evidence");
     return send(c, api.Evidence, evidenceToContract(row));
+  });
+
+  // ───────────────────────── approvals ─────────────────────────
+
+  async function loadApproval(q: Query, tenantId: string, id: string, lock = false) {
+    if (!UUID.test(id)) throw notFound("Approval");
+    // RLS + tenant filter: another visitor's approval is simply not found.
+    const row = (await q(`SELECT a.*, r.status AS run_status FROM approvals a JOIN runs r ON r.id = a.run_id AND r.tenant_id = a.tenant_id
+                           WHERE a.id = $1 AND a.tenant_id = $2 ${lock ? "FOR UPDATE OF a" : ""}`, [id, tenantId])).rows[0];
+    if (!row) throw notFound("Approval");
+    return row;
+  }
+
+  app.get("/api/approvals/:id", async (c) => {
+    const row = await tenant(c, (q, t) => loadApproval(q, t, c.req.param("id")));
+    return send(c, api.ApprovalIntent, approvalToContract(row));
+  });
+
+  // The ONLY way an intent becomes approved. Checks owner, expiry, hash, unused state and
+  // that the run is waiting. The worker consumes it once, right before dispatch.
+  app.post("/api/approvals/:id/decision", async (c) => {
+    const req = await body(c, api.ApprovalDecisionRequest);
+    const id = c.req.param("id");
+    const out = await tenant(c, async (q, tenantId) => {
+      const row = await loadApproval(q, tenantId, id, true);
+      const status = await refreshStatus(q, tenantId, id);
+      if (status === "expired") return { error: new HttpError("approval_expired", "This approval has expired and nothing was sent. Start a new request if you still want it.") };
+      if (status !== "pending") throw new HttpError("approval_invalid", `This request was already ${status}. It can't be decided again.`, { status });
+      if (row.run_status !== "AWAITING_APPROVAL") throw new HttpError("approval_invalid", "The run is no longer waiting for this approval.");
+      if (req.intentHash !== row.intent_hash) {
+        throw new HttpError("approval_invalid", "What you approved doesn't match the current request. Reload it and review again.");
+      }
+      const next = req.decision === "approve" ? "approved" : "declined";
+      const updated = (await q("UPDATE approvals SET status = $3, decided_at = now() WHERE id = $1 AND tenant_id = $2 AND status = 'pending' RETURNING *", [id, tenantId, next])).rows[0];
+      if (!updated) throw new HttpError("approval_invalid", "This request was decided at the same moment by another tab.");
+      await q("INSERT INTO audit_events (tenant_id, actor, action, target, details, correlation_id) VALUES ($1,'user',$2,$3,$4,$5)",
+        [tenantId, `approval.${next}`, id, { intentHash: row.intent_hash }, c.get("correlationId")]);
+      return { row: updated };
+    });
+    // Expiry is committed before the error is returned, so it sticks.
+    if ("error" in out) throw out.error;
+    return send(c, api.ApprovalIntent, approvalToContract(out.row));
+  });
+
+  // ───────────────────────── owned synthetic trial form (forms.<domain>) ─────────────────────────
+  // Opened by the runner's browser (no session). The URL token is the only credential.
+
+  const formsHostOk = (c: Context<Env>) => !config.formsOrigin || c.req.header("host") === new URL(config.formsOrigin).host;
+  const FORM_HEADERS = { "content-security-policy": FORM_CSP, "cache-control": "no-store", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer", "x-robots-tag": "noindex" };
+
+  app.get("/trial/:token", async (c) => {
+    const token = c.req.param("token");
+    if (!formsHostOk(c) || !/^[A-Za-z0-9_-]{43}$/.test(token)) throw notFound("Form");
+    const row = (await db.pool.query("SELECT * FROM wallio_form_page($1)", [formTokenHash(token)])).rows[0];
+    if (!row) throw notFound("Form");
+    return c.html(row.submitted ? renderResultPage("duplicate", row.reference) : renderFormPage(row.tool_name), 200, FORM_HEADERS);
+  });
+
+  app.post("/trial/:token", async (c) => {
+    const token = c.req.param("token");
+    if (!formsHostOk(c) || !/^[A-Za-z0-9_-]{43}$/.test(token)) throw notFound("Form");
+    if (Number(c.req.header("content-length") ?? 0) > 8192) throw new HttpError("validation_failed", "The form is too large.");
+    const fields = parseSubmission(await c.req.parseBody().catch(() => ({})));
+    if (!fields) throw new HttpError("validation_failed", "The form has missing or unexpected fields.");
+    const r = (await db.pool.query("SELECT * FROM wallio_form_submit($1,$2,$3)", [formTokenHash(token), fields, newReference()])).rows[0];
+    if (!r || r.result === "unknown") throw notFound("Form");
+    return c.html(renderResultPage(r.result, r.reference), r.result === "accepted" ? 200 : 409, FORM_HEADERS);
   });
 
   // ───────────────────────── decisions ─────────────────────────

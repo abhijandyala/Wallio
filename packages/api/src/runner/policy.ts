@@ -17,6 +17,8 @@ export interface PolicySpec {
   deadlineAt: Date;
   /** Stop issuing actions this long before the deadline, so cleanup has time. */
   marginMs?: number;
+  /** Hosts whose forms may be filled (only Wallio's own synthetic trial form). Never vendor sites. */
+  fillHosts?: string[];
 }
 
 export interface PolicyState {
@@ -24,11 +26,14 @@ export interface PolicyState {
   screenshotsUsed: number;
   /** Elements from the most recent inspect on the current page. */
   elements: rc.Observation["elements"];
+  /** Host of the page the browser is on, after the last successful navigation. */
+  currentHost?: string | null;
 }
 
 export type Decision = { ok: true; needsApproval?: false } | { ok: false; reason: string; needsApproval?: boolean };
 
 const IP_LITERAL = /^(\d{1,3}(\.\d{1,3}){3}|\[?[0-9a-f:]+\]?)$/i;
+const SENSITIVE_FIELD = /\b(password|passcode|one[- ]?time|otp|card|cvv|cvc|iban|ssn|social security|routing|account number)\b/i;
 const EXTERNAL_EFFECT = /\b(submit|buy|purchase|subscribe|sign ?up|register|checkout|pay|order|delete|remove|send|confirm|upgrade|start (free )?trial)\b/i;
 
 export function hostAllowed(spec: PolicySpec, rawUrl: string): Decision {
@@ -81,9 +86,16 @@ export function checkAction(spec: PolicySpec, state: PolicyState, action: rc.Run
       if (effect && !action.approvalToken) return { ok: false, needsApproval: true, reason: "this would cause an external effect and needs your approval" };
       return { ok: true };
     }
-    case "fill":
-      // Research never fills forms. Approved form filling arrives with the approval gate (P7).
-      return { ok: false, needsApproval: true, reason: "filling forms needs an approved action" };
+    case "fill": {
+      // Only Wallio's own trial form, only plain text fields, never credentials or payment.
+      // Filling has no external effect by itself; the submit is what needs approval.
+      if (!state.currentHost || !spec.fillHosts?.includes(state.currentHost)) return { ok: false, reason: "forms are only filled on Wallio's own trial form" };
+      const el = state.elements?.find((e) => e.ref === action.elementRef);
+      if (!el) return { ok: false, reason: "element was not in the last inspection" };
+      if (!["text", "email", "number", "textarea", null].includes(el.inputType) && el.tag !== "textarea") return { ok: false, reason: `won't fill a ${el.inputType} field` };
+      if (SENSITIVE_FIELD.test(`${el.name} ${el.text}`)) return { ok: false, reason: "won't fill credential or payment fields" };
+      return { ok: true };
+    }
   }
 }
 

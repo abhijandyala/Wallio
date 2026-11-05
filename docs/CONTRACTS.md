@@ -26,7 +26,9 @@ All requests use a session cookie (guest session for judges). Every mutation is 
 | POST | `/api/profile/versions` | `ProfileVersionInput` → `ProfileVersion` | Each save is a new version; recommendations pin the version they used |
 | GET | `/api/catalog` | → `CatalogTool[]` | ~15 curated tools |
 | POST | `/api/comparisons` | `ComparisonRequest` → **202** `ComparisonAccepted` | Validates scope, reserves budget. Same `idempotencyKey` returns the same run |
-| GET | `/api/runs/:id` | → `Run` | Poll fallback if SSE drops |
+| POST | `/api/trial-requests` | `TrialRequestCreate` → **202** `ComparisonAccepted` | v0.2: synthetic trial request on Wallio's own form for a candidate in a recommendation. Pauses in `AWAITING_APPROVAL` |
+| POST | `/api/containment-runs` | `ContainmentRunCreate` → **202** `ComparisonAccepted` | v0.2: opens Wallio's own hostile page; ends with a `containment_result` event |
+| GET | `/api/runs/:id` | → `Run` | Poll fallback if SSE drops. v0.2 adds `kind` |
 | GET | `/api/runs/:id/events` | → SSE stream of `RunEvent` | `id:` = `seq`; reconnect with `Last-Event-ID` |
 | POST | `/api/runs/:id/cancel` | → `Run` | Ends in `CANCELLED` → `CLEANING` → `CLEANED` |
 | GET | `/api/recommendations/:id` | → `Recommendation` | Includes all cited `Evidence` |
@@ -45,6 +47,11 @@ All requests use a session cookie (guest session for judges). Every mutation is 
 - **Labels:** show `accessMode` on every candidate and evidence item: *Researched* / *Tested via integration* / *Tested in owned demo*.
 - **Unknowns:** a `null` score component or `known: false` price must render as "Unknown", never 0.
 - **Approval:** on `approval_required`, fetch the intent, show fields + destination + screenshot + consequence, send back the same `intentHash`.
+  - Decision errors: `409 approval_invalid` (already decided, run not waiting, or the hash doesn't match what you showed; reload the intent), `410 approval_expired` (nothing was sent), `404` for anyone else's approval.
+  - If the page changes after approval, you get `approval_resolved` with `invalidated`, then a **new** `approval_required` with a new id: show the new intent.
+  - After approval, `action_result` says `submitted` (sent once to Wallio's form), `uncertain`, `refused`, or `simulated` (demo playback, nothing sent).
+- **Run kinds (v0.2):** `Run.kind` is `comparison`, `trial_request` or `containment`. Only comparisons produce a recommendation (`result_ready`).
+- **Containment:** show each `policy_denied` event as it arrives, then the `containment_result` summary (`contained`, refused requests and actions, sentinel before/after, cleanup verified). Label it "controlled containment test", not proof of invulnerability.
 
 ## B. API ↔ Runner (Anish ↔ Adhvik)
 

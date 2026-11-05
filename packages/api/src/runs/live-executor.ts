@@ -10,19 +10,19 @@
  *
  * This executor never fills forms or clicks anything with an external effect.
  */
-import { createHash } from "node:crypto";
 import type { runner as rc } from "@wallio/contracts";
 import type { InferenceGateway, UsageRecord } from "../inference/index.ts";
 import { InferenceError } from "../inference/index.ts";
-import { RunnerClient, RunnerError } from "../runner/client.ts";
-import { checkAction, jobHosts, observationInPolicy, type PolicySpec, type PolicyState } from "../runner/policy.ts";
+import type { RunnerClient } from "../runner/client.ts";
+import { jobHosts, observationInPolicy, type PolicySpec } from "../runner/policy.ts";
 import { extractFindings, type Finding } from "../research/extract.ts";
 import { baselineQuestions, defaultPages, planResearch, policyFor, type PlanOutcome, type ProfileForPlan, type ToolForPlan } from "../research/planner.ts";
 import { writeRecommendation } from "./recommend-step.ts";
 import { newEvalToken, parseResult, proposeFix } from "../eval/harness.ts";
 import { RunFailure, type Cleaner, type CleanupReport, type ExecResult, type RunContext, type RunExecutor } from "./worker.ts";
-
-const sha256 = (b: Buffer | string) => `sha256:${createHash("sha256").update(b).digest("hex")}`;
+import { BrowserSession, sha256, verifiedCleanup } from "./browser-session.ts";
+import { runTrialRequest } from "./trial-request.ts";
+import { runContainment, type Sentinel } from "./containment.ts";
 const LIMITATION = "What the vendor's own page said at capture time. A published claim, not verified by testing.";
 
 export interface ToolKnowledge {
@@ -47,6 +47,14 @@ export interface LiveExecutorDeps {
   ownedHosts?: Record<string, string[]>;
   /** Public https origin serving /eval/<token>. Without it the testing stage is skipped. */
   evalBaseUrl?: string | null;
+  /** https origin of Wallio's own synthetic trial form. Trial requests need it and approvalKey. */
+  formsBaseUrl?: string | null;
+  /** Signs approval tokens the runner verifies. */
+  approvalKey?: string | null;
+  approvalTtlSecs?: number;
+  /** https origin of Wallio's own hostile containment page. */
+  hostileBaseUrl?: string | null;
+  sentinel?: Sentinel | null;
 }
 
 export class LiveExecutor implements RunExecutor {
@@ -55,11 +63,26 @@ export class LiveExecutor implements RunExecutor {
     this.deps = deps;
   }
 
-  private runHarness(ctx: RunContext, gw: InferenceGateway, infer: <T>(fn: () => Promise<T>) => Promise<T>, act: Act, openJob: () => Promise<void>) {
-    return runHarnessStage({ runner: this.deps.runner, evalBaseUrl: this.deps.evalBaseUrl!, openJob }, ctx, gw, infer, act);
+  async execute(ctx: RunContext): Promise<ExecResult> {
+    const { kind, request } = await ctx.q(async (q) =>
+      (await q<{ kind: string; request: any }>("SELECT c.kind, c.request FROM runs r JOIN comparisons c ON c.id = r.comparison_id WHERE r.id = $1 AND r.tenant_id = $2", [ctx.runId, ctx.tenantId])).rows[0]!);
+    const d = this.deps;
+    const owned = (base: string, paths: string[], extra: Partial<PolicySpec> = {}): PolicySpec =>
+      ({ allowed: { [new URL(base).hostname.toLowerCase()]: paths }, maxActions: 20, maxScreenshots: 6, deadlineAt: ctx.deadlineAt, ...extra });
+    if (kind === "trial_request") {
+      if (!d.formsBaseUrl || !d.approvalKey) throw new RunFailure("runner_unavailable", "Trial requests aren't set up on this server yet (form host or approval key missing).");
+      const session = new BrowserSession(d.runner, ctx, owned(d.formsBaseUrl, ["/trial/"], { fillHosts: [new URL(d.formsBaseUrl).hostname.toLowerCase()] }));
+      return runTrialRequest(ctx, session, { formsBaseUrl: d.formsBaseUrl, approvalKey: d.approvalKey, approvalTtlSecs: d.approvalTtlSecs ?? 120 }, request);
+    }
+    if (kind === "containment") {
+      if (!d.hostileBaseUrl) throw new RunFailure("runner_unavailable", "The containment test isn't set up on this server yet (hostile page host missing).");
+      const session = new BrowserSession(d.runner, ctx, owned(d.hostileBaseUrl, ["/"], { maxActions: 8, maxScreenshots: 2 }));
+      return runContainment(ctx, session, { hostileBaseUrl: d.hostileBaseUrl, sentinel: d.sentinel ?? null });
+    }
+    return this.research(ctx);
   }
 
-  async execute(ctx: RunContext): Promise<ExecResult> {
+  private async research(ctx: RunContext): Promise<ExecResult> {
     const { runner } = this.deps;
     const pending: UsageRecord[] = [];
     const gw = this.deps.gateway((u) => pending.push(u));
@@ -113,81 +136,21 @@ export class LiveExecutor implements RunExecutor {
       await ctx.emit({ type: "policy_denied", message: "Skipped a proposed page outside the allowed sites", data: { attemptedAction: "navigate", target: r.url.slice(0, 200), reason: r.reason } });
     }
 
-    // ── runner jobs ──
-    let job: rc.RunnerJobStatus | null = null;
-    const openJob = async (key: string, purpose: string, hosts: string[]) => {
-      const jobId = `job_${ctx.runId}_${key}`.slice(0, 128);
-      // Recorded before the job exists, so cleanup can always find it (PRD §15).
-      await ctx.q((q) => q("UPDATE runs SET runner_job_id = $3, runner_job_ids = array_append(runner_job_ids, $3) WHERE id = $1 AND tenant_id = $2", [ctx.runId, ctx.tenantId, jobId]));
-      const deadlineMs = Math.max(10_000, Math.min(180_000, ctx.deadlineAt.getTime() - Date.now() - 5_000));
-      state.elements = null;
-      try {
-        job = await runner.createJob({
-          jobId, runId: ctx.runId, correlationId: ctx.runId, purpose: purpose.slice(0, 200), allowedHosts: hosts,
-          limits: { deadlineMs, maxActions: Math.max(1, policy.maxActions - state.actionsUsed), maxScreenshots: Math.max(0, policy.maxScreenshots - state.screenshotsUsed) },
-        });
-      } catch {
-        throw new RunFailure("runner_unavailable", "The browser runner isn't reachable right now. Try again in a minute.");
-      }
-    };
-    /** Finishes the open job and waits for its verified cleanup before anything else runs. */
-    const closeJob = async () => {
-      if (!job) return;
-      const id = job.jobId;
-      job = null;
-      const rep = await verifiedCleanup(runner, id).catch(() => null);
-      if (rep?.status !== "cleaned") {
-        throw new RunFailure("runner_unavailable", "A browser session couldn't be verified as removed, so the comparison stopped before starting another.");
-      }
-    };
+    const session = new BrowserSession(runner, ctx, policy);
     await ctx.stage("researching", "Researching official pages in an isolated browser");
-
-    // ── browse ──
-    const state: PolicyState = { actionsUsed: 0, screenshotsUsed: 0, elements: null };
-    let step = 0;
     const knowledge: RunKnowledge = {
       plannedBy: plan.plannedBy,
       questions: plan.questions,
       tools: Object.fromEntries(tools.map((t) => [t.id, { known: [], missing: [], needsTesting: ["Quality on your own debugging task"], blocked: [] }])),
     };
 
-    const act = async (action: rc.RunnerAction, toolId: string | null, displayUrl?: string): Promise<rc.RunnerActionResult | null> => {
-      ctx.checkpoint();
-      const d = checkAction(policy, state, action);
-      if (!d.ok) {
-        await ctx.emit({ type: "policy_denied", message: d.needsApproval ? "Held an action that needs your approval" : "Refused an action outside policy", data: { attemptedAction: action.type, target: "url" in action ? action.url.slice(0, 200) : action.type, reason: d.reason } });
-        return null;
-      }
-      const stepIndex = step++;
-      if (action.type === "navigate") {
-        const shown = displayUrl ?? action.url;
-        await ctx.emit({ type: "step", message: `Opening ${new URL(shown).hostname}${new URL(shown).pathname}`.slice(0, 300), data: { stepIndex, maxSteps: policy.maxActions, actionType: "navigate", url: shown, candidateToolId: toolId } });
-      }
-      // Read-only navigation is retried at most twice on a transient failure (PRD §15).
-      for (let attempt = 0; ; attempt++) {
-        let res: rc.RunnerActionResult;
-        try {
-          if (!job) throw new Error("no open runner job");
-          res = await runner.act(job.jobId, { actionId: `a_${ctx.runId.slice(0, 8)}_${stepIndex}_${attempt}`, stepIndex, action });
-        } catch (e) {
-          if (e instanceof RunFailure) throw e;
-          if (e instanceof RunnerError && e.code === "deadline_exceeded") throw new RunFailure("runner_timeout", "The browser hit its time limit.");
-          throw new RunFailure("runner_unavailable", "The browser runner stopped responding during research.");
-        }
-        state.actionsUsed++;
-        if (action.type === "screenshot" && res.status === "ok") state.screenshotsUsed++;
-        if (res.status === "ok" || action.type !== "navigate" || !res.error?.retryable || attempt >= 2) return res;
-        ctx.checkpoint();
-      }
-    };
-
     for (const tool of tools) {
       const pages = plan.pages.filter((p) => p.toolId === tool.id);
       if (!pages.length) continue;
-      await openJob(`research_${tool.id}`, `Research ${tool.name}'s official pages`, jobHosts(policyFor([tool], {}, { maxActions: policy.maxActions, maxScreenshots: policy.maxScreenshots, deadlineAt: policy.deadlineAt }).allowed));
+      await session.open(`research_${tool.id}`, `Research ${tool.name}'s official pages`, jobHosts(policyFor([tool], {}, { maxActions: policy.maxActions, maxScreenshots: policy.maxScreenshots, deadlineAt: policy.deadlineAt }).allowed));
       for (const page of pages) {
       const tk = knowledge.tools[tool.id]!;
-      const nav = await act({ type: "navigate", url: page.url }, tool.id);
+      const nav = await session.act({ type: "navigate", url: page.url }, { toolId: tool.id });
       if (!nav) { tk.blocked.push({ url: page.url, reason: "refused by policy" }); continue; }
       for (const dr of nav.observation?.deniedRequests ?? []) {
         await ctx.emit({ type: "policy_denied", message: "The runner blocked a request outside the allowed sites", data: { attemptedAction: "request", target: dr.url.slice(0, 200), reason: dr.reason } });
@@ -211,17 +174,7 @@ export class LiveExecutor implements RunExecutor {
       }
 
       // Screenshot, copied out of the runner and checked against the hash it reported.
-      let shot: { bytes: Buffer; hash: string } | null = null;
-      const snap = await act({ type: "screenshot", fullPage: false }, tool.id);
-      if (snap?.status === "ok" && snap.observation?.screenshot) {
-        try {
-          const bytes = await runner.artifact(snap.observation.screenshot.artifactId);
-          if (sha256(bytes) === snap.observation.screenshot.sha256) shot = { bytes, hash: sha256(bytes) };
-          else await ctx.emit({ type: "warning", message: "A screenshot didn't match its reported hash and was discarded", data: { detail: "hash_mismatch" } });
-        } catch {
-          await ctx.emit({ type: "warning", message: "A screenshot couldn't be downloaded; text evidence is kept", data: { detail: "artifact_failed" } });
-        }
-      }
+      const shot = await session.screenshot(tool.id);
 
       const text = obs.textExcerpt ?? "";
       const evidenceId = await ctx.q(async (q) => {
@@ -250,7 +203,7 @@ export class LiveExecutor implements RunExecutor {
         await ctx.emit({ type: "warning", message: `Couldn't read ${tool.name}'s page with the AI service; the capture is kept`, data: { detail: e.code } });
       }
       }
-      await closeJob();
+      await session.close();
     }
 
     // ── knowledge ──
@@ -271,8 +224,8 @@ export class LiveExecutor implements RunExecutor {
     // ── owned test (harness on Vultr, run inside the runner's browser) ──
     if (this.deps.evalBaseUrl) {
       const evalHost = new URL(this.deps.evalBaseUrl).hostname;
-      knowledge.harness = await this.runHarness(ctx, gw, infer, act, () => openJob("eval", "Run Wallio's owned test page", [evalHost]));
-      await closeJob();
+      knowledge.harness = await runHarnessStage({ evalBaseUrl: this.deps.evalBaseUrl, openJob: () => session.open("eval", "Run Wallio's owned test page", [evalHost]) }, ctx, gw, infer, session);
+      await session.close();
     }
     if (knowledge.harness !== undefined) await ctx.q((q) => q("UPDATE runs SET knowledge = $3 WHERE id = $1 AND tenant_id = $2", [ctx.runId, ctx.tenantId, knowledge]));
 
@@ -285,17 +238,14 @@ export class LiveExecutor implements RunExecutor {
   }
 }
 
-type Act = (action: rc.RunnerAction, toolId: string | null, displayUrl?: string) => Promise<rc.RunnerActionResult | null>;
-
 export interface HarnessDeps {
-  runner: RunnerClient;
   evalBaseUrl: string;
   /** Opens the eval job (eval host only), after the fix is generated so the job's clock isn't spent waiting on inference. */
   openJob: () => Promise<void>;
 }
 
 /** Generates a fix on Vultr, opens the owned test page in the runner, records the result as evidence. */
-export async function runHarnessStage(deps: HarnessDeps, ctx: RunContext, gw: InferenceGateway, infer: <T>(fn: () => Promise<T>) => Promise<T>, act: Act): Promise<HarnessResult | null> {
+export async function runHarnessStage(deps: HarnessDeps, ctx: RunContext, gw: InferenceGateway, infer: <T>(fn: () => Promise<T>) => Promise<T>, session: BrowserSession): Promise<HarnessResult | null> {
   await ctx.stage("testing", "Running the sample bug through a Vultr model in the owned test page");
   const task = await ctx.q(async (q) => {
     const r = (await q(`SELECT t.* FROM runs r JOIN comparisons c ON c.id = r.comparison_id JOIN eval_tasks t ON t.id = c.request->>'taskId' WHERE r.id = $1 AND r.tenant_id = $2`, [ctx.runId, ctx.tenantId])).rows[0];
@@ -317,20 +267,13 @@ export async function runHarnessStage(deps: HarnessDeps, ctx: RunContext, gw: In
   const shownUrl = `${base}/eval/session-${sessionId}`; // the token never appears in events or evidence
   await deps.openJob();
 
-  const nav = await act({ type: "navigate", url: `${base}/eval/${token}` }, null, shownUrl);
+  const nav = await session.act({ type: "navigate", url: `${base}/eval/${token}` }, { displayUrl: shownUrl });
   const result = parseResult(nav?.observation?.textExcerpt ?? null);
   if (!nav || nav.status !== "ok" || !result) {
     await ctx.emit({ type: "warning", message: "The owned test page didn't report a result", data: { detail: nav?.error?.code ?? (nav ? "no_result_line" : "refused") } });
     return null;
   }
-  let shot: { bytes: Buffer; hash: string } | null = null;
-  const snap = await act({ type: "screenshot", fullPage: false }, null);
-  if (snap?.status === "ok" && snap.observation?.screenshot) {
-    try {
-      const bytes = await deps.runner.artifact(snap.observation.screenshot.artifactId);
-      if (sha256(bytes) === snap.observation.screenshot.sha256) shot = { bytes, hash: sha256(bytes) };
-    } catch { /* text result is still evidence */ }
-  }
+  const shot = await session.screenshot();
   const evidenceId = await ctx.q(async (q) => {
     const ev = (await q<{ id: string }>(
       `INSERT INTO evidence (tenant_id, run_id, kind, candidate_tool_id, access_mode, url, canonical_url, captured_at, content_hash, screenshot_key, extraction_method, excerpt, limitation)
@@ -353,35 +296,6 @@ export function canonical(raw: string): string {
   u.hash = "";
   for (const k of [...u.searchParams.keys()]) if (/^(utm_|ref$|fbclid$|gclid$)/i.test(k)) u.searchParams.delete(k);
   return u.toString();
-}
-
-/**
- * Finishes a runner job (or cancels it if finish fails) and polls until cleanup is
- * verified or reported failed. A job that is already finished just returns its report.
- */
-export async function verifiedCleanup(runner: RunnerClient, jobId: string, pollMs = 500, maxMs = 20_000): Promise<rc.CleanupReport | null> {
-  let rep: rc.CleanupReport;
-  try {
-    rep = await runner.cleanup(jobId);
-  } catch (e) {
-    // Recorded but never created on the runner (create failed): nothing exists to remove.
-    if (e instanceof RunnerError && e.code === "job_not_found") return null;
-    throw e;
-  }
-  if (rep.status === "pending") {
-    try {
-      rep = await runner.finish(jobId);
-    } catch {
-      await runner.cancel(jobId, "shutdown").catch(() => {});
-      rep = await runner.cleanup(jobId);
-    }
-  }
-  const until = Date.now() + maxMs;
-  while (rep.status === "pending" && Date.now() < until) {
-    await new Promise((r) => setTimeout(r, pollMs));
-    rep = await runner.cleanup(jobId);
-  }
-  return rep;
 }
 
 /** Verifies every runner job the run created was torn down (PRD §15). */

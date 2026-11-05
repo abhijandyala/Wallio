@@ -4,7 +4,7 @@
  * browser; it serves scripted pages. It is not deployed and is not a competing
  * runner implementation.
  */
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { Hono } from "hono";
 import { runner as rc } from "@wallio/contracts";
 import { markerPng, randomMarker } from "../scripts/marker-png.ts";
@@ -21,6 +21,10 @@ export interface FakePage {
   /** Fail with a retryable navigation error this many times first. */
   failTimes?: number;
   deniedRequests?: Array<{ url: string; reason: string }>;
+  /** Visible elements returned by inspect (forms and the hostile page). */
+  elements?: rc.Observation["elements"];
+  /** Submitting the page's form: receives field values by element name, returns the next page. */
+  submit?: (values: Record<string, string>) => Promise<FakePage>;
 }
 
 interface Job {
@@ -30,6 +34,10 @@ interface Job {
   screenshotsUsed: number;
   current: { url: string; page: FakePage } | null;
   state: "ready" | "finished" | "cleaned";
+  /** Field values by element ref on the current page. */
+  values: Record<string, string>;
+  denied: Array<{ url: string; reason: string; at: string }>;
+  inspects: number;
 }
 
 export class FakeRunner {
@@ -42,6 +50,13 @@ export class FakeRunner {
   resolve: ((url: string) => Promise<FakePage | undefined>) | null = null;
   failCreate = false;
   failCleanup = false;
+  /** Like the real runner: verifies approval tokens on submit clicks with this key. */
+  approvalKey: string | null = null;
+  usedNonces = new Set<string>();
+  /** Called after each inspect; tests use it to change a field (a page that changes after approval). */
+  onInspect: ((job: { values: Record<string, string>; inspects: number }) => void) | null = null;
+  /** Submit clicks that reached the page, after token checks. */
+  submits = 0;
   readonly app = new Hono();
   private failCounts = new Map<string, number>();
 
@@ -57,7 +72,7 @@ export class FakeRunner {
       const spec = rc.RunnerJobCreate.parse(await c.req.json());
       // Like the real daemon: one active job per runner.
       if ([...this.jobs.values()].some((j) => j.state === "ready")) return c.json({ code: "busy", message: "a job is already active" }, 409);
-      this.jobs.set(spec.jobId, { spec, results: new Map(), actionsUsed: 0, screenshotsUsed: 0, current: null, state: "ready" });
+      this.jobs.set(spec.jobId, { spec, results: new Map(), actionsUsed: 0, screenshotsUsed: 0, current: null, state: "ready", values: {}, denied: [], inspects: 0 });
       return c.json(this.status(spec.jobId), 201);
     });
 
@@ -100,14 +115,16 @@ export class FakeRunner {
     const j = this.jobs.get(jobId);
     const ok = j?.state === "cleaned";
     if (j?.state === "ready") return { jobId, status: "pending", containerId: "c0ffee", containerRemoved: false, volumeRemoved: false, verifiedAt: null, actionsExecuted: j.actionsUsed, screenshotsTaken: j.screenshotsUsed, deniedRequests: [], detail: null };
-    return { jobId, status: ok ? "cleaned" : "cleanup_failed", containerId: "c0ffee", containerRemoved: ok, volumeRemoved: ok, verifiedAt: ok ? new Date().toISOString() : null, actionsExecuted: j?.actionsUsed ?? 0, screenshotsTaken: j?.screenshotsUsed ?? 0, deniedRequests: [], detail: ok ? null : "container still present" };
+    return { jobId, status: ok ? "cleaned" : "cleanup_failed", containerId: "c0ffee", containerRemoved: ok, volumeRemoved: ok, verifiedAt: ok ? new Date().toISOString() : null, actionsExecuted: j?.actionsUsed ?? 0, screenshotsTaken: j?.screenshotsUsed ?? 0, deniedRequests: j?.denied ?? [], detail: ok ? null : "container still present" };
   }
 
-  private observation(url: string, page: FakePage, screenshot: rc.Observation["screenshot"] = null): rc.Observation {
+  private observation(url: string, page: FakePage, screenshot: rc.Observation["screenshot"] = null, values: Record<string, string> = {}, withElements = false): rc.Observation {
+    const ordered = Object.keys(values).sort().map((k) => [k, values[k]]);
     return {
       url: page.finalUrl ?? url, title: page.title ?? "Page", httpStatus: 200, redirectChain: page.redirectChain ?? [],
-      pageFingerprint: sha(url + page.text), textExcerpt: page.text.slice(0, 4000), textSha256: sha(page.text),
-      elements: null, screenshot, blocked: page.blocked ?? null, deniedRequests: page.deniedRequests ?? [], capturedAt: new Date().toISOString(),
+      // Like the real runner: URL + structure + current field values.
+      pageFingerprint: sha(url + page.text + JSON.stringify(page.elements ?? []) + JSON.stringify(ordered)), textExcerpt: page.text.slice(0, 4000), textSha256: sha(page.text),
+      elements: withElements ? (page.elements ?? []) : null, screenshot, blocked: page.blocked ?? null, deniedRequests: page.deniedRequests ?? [], capturedAt: new Date().toISOString(),
     };
   }
 
@@ -133,6 +150,8 @@ export class FakeRunner {
         return { ...base, status: "failed", observation: null, error: { code: "navigation_failed", message: "timeout", retryable: true }, actionsRemaining: remaining };
       }
       job.current = { url: a.url, page };
+      job.values = {};
+      for (const d of page.deniedRequests ?? []) job.denied.push({ ...d, at: new Date().toISOString() });
       return { ...base, status: "ok", observation: this.observation(a.url, page), error: null, actionsRemaining: remaining };
     }
     if (a.type === "screenshot") {
@@ -143,8 +162,64 @@ export class FakeRunner {
       job.screenshotsUsed++;
       return { ...base, status: "ok", observation: this.observation(job.current.url, job.current.page, { artifactId: id, sha256: sha(png), width: 100, height: 40, bytes: png.length, mimeType: "image/png" }), error: null, actionsRemaining: remaining };
     }
-    return { ...base, status: "failed", observation: null, error: { code: "invalid_action", message: `fake runner does not script ${a.type}`, retryable: false }, actionsRemaining: remaining };
+    const cur = job.current;
+    const fail = (code: rc.RunnerActionResult["error"] extends infer E ? E extends { code: infer C } ? C : never : never, message: string, status: "failed" | "denied" = "failed") =>
+      ({ ...base, status, observation: null, error: { code, message, retryable: false }, actionsRemaining: remaining }) as rc.RunnerActionResult;
+    if (!cur) return fail("invalid_action", "no page");
+    const obs = (withElements = true) => this.observation(cur.url, cur.page, null, job.values, withElements);
+    if (a.type === "inspect") {
+      job.inspects++;
+      this.onInspect?.(job);
+      return { ...base, status: "ok", observation: obs(), error: null, actionsRemaining: remaining };
+    }
+    const el = "elementRef" in a ? cur.page.elements?.find((e) => e.ref === a.elementRef) : undefined;
+    if (a.type === "fill") {
+      if (!el || el.role !== "textbox") return fail("element_not_found", "not a text field");
+      job.values[el.ref] = a.value;
+      return { ...base, status: "ok", observation: obs(), error: null, actionsRemaining: remaining };
+    }
+    if (a.type === "click") {
+      if (!el) return fail("element_not_found", "no such element");
+      if (el.inputType !== "submit" || !cur.page.submit) return fail("invalid_action", "fake runner only scripts form submits");
+      // Like the real runner: a submit needs a valid, unused token bound to this job, action, element and current page.
+      const fp = obs().pageFingerprint.replace(/^sha256:/, "");
+      const parts = (a.approvalToken ?? "").split(".");
+      const [, exp, nonce, tokFp, sig] = parts;
+      const want = this.approvalKey && parts.length === 5
+        ? createHmac("sha256", this.approvalKey).update(["wallio-approval-v1", jobId, req.actionId, el.ref, tokFp, exp, nonce].join("|")).digest("base64url") : null;
+      if (!want || want !== sig || tokFp !== fp || Number(exp) * 1000 <= Date.now() || this.usedNonces.has(nonce!)) {
+        return fail("approval_token_invalid", "missing, invalid, expired, page changed, or already used", "denied");
+      }
+      this.usedNonces.add(nonce!);
+      this.submits++;
+      const byName = Object.fromEntries((cur.page.elements ?? []).filter((e) => job.values[e.ref] !== undefined).map((e) => [e.name, job.values[e.ref]!]));
+      const next = await cur.page.submit(byName);
+      job.current = { url: cur.url, page: next };
+      job.values = {};
+      return { ...base, status: "ok", observation: this.observation(cur.url, next), error: null, actionsRemaining: remaining };
+    }
+    return fail("invalid_action", `fake runner does not script ${a.type}`);
   }
+}
+
+/** Opens Wallio's real trial form through the app, the way a browser would (test double). */
+export async function ownedFormPage(app: { request: (p: string, i?: RequestInit) => Response | Promise<Response> }, url: string, labels: ReadonlyArray<{ name: string; label: string }>, submitLabel: string): Promise<FakePage | undefined> {
+  const u = new URL(url);
+  const res = await app.request(u.pathname, { headers: { host: u.host } });
+  if (res.status !== 200) return undefined;
+  const text = (await res.text()).replace(/<style[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const elements = [
+    ...labels.map((f, i) => ({ ref: `e${i + 1}`, role: "textbox", name: f.label, tag: f.name === "note" ? "textarea" : "input", text: "", href: null, inputType: f.name === "note" ? null : f.name === "email" ? "email" : "text", targetHost: null })),
+    { ref: `e${labels.length + 1}`, role: "button", name: submitLabel, tag: "button", text: submitLabel, href: null, inputType: "submit", targetHost: u.hostname },
+  ];
+  return {
+    title: "Trial request", text, elements,
+    submit: async (byLabel) => {
+      const form = new URLSearchParams(labels.map((f) => [f.name, byLabel[f.label] ?? ""]));
+      const r = await app.request(u.pathname, { method: "POST", headers: { host: u.host, "content-type": "application/x-www-form-urlencoded" }, body: form.toString() });
+      return { title: "Result", text: (await r.text()).replace(/<style[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() };
+    },
+  };
 }
 
 /** A fake Vultr chat-completions endpoint. `planner` and `extractor` produce the assistant's JSON text. */
