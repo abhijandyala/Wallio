@@ -56,5 +56,5 @@
     "deadlineAt",
     "imageDigest"
   ],
-  "$id": "wallio/runner/RunnerJobStatus@0.1.0"
+  "$id": "wallio/runner/RunnerJobStatus@0.1.1"
 }

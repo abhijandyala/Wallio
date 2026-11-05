@@ -15,6 +15,11 @@ __WALLIO_DOMAIN__ {
 		-Server
 	}
 
+	# Owned evaluation page, opened by the runner's isolated browser.
+	handle /eval/* {
+		reverse_proxy 127.0.0.1:8787
+	}
+
 	handle /api/* {
 		# flush_interval -1 streams SSE run events immediately
 		reverse_proxy 127.0.0.1:8787 {

@@ -14,7 +14,9 @@ const db = createDb(config.databaseUrl);
 let live: { executor: RunExecutor; cleaner: Cleaner } = { executor: new LiveExecutorUnavailable(), cleaner: new NoRunnerCleaner() };
 if (config.runner.url && config.runner.token) {
   const runner = new RunnerClient({ baseUrl: config.runner.url, token: config.runner.token, timeoutMs: config.runner.timeoutMs });
-  live = { executor: new LiveExecutor({ runner, gateway: (onUsage) => createInferenceGateway({ onUsage }) }), cleaner: new LiveCleaner(runner) };
+  // The owned test page is served from the public https origin (Caddy routes /eval/* here).
+  const evalBaseUrl = config.appOrigin?.startsWith("https://") ? config.appOrigin : null;
+  live = { executor: new LiveExecutor({ runner, gateway: (onUsage) => createInferenceGateway({ onUsage }), evalBaseUrl }), cleaner: new LiveCleaner(runner) };
 }
 const worker = new Worker({
   db,

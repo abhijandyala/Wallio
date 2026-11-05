@@ -38,6 +38,8 @@ export class FakeRunner {
   artifacts = new Map<string, Buffer>();
   /** Every action the runner was asked to execute (after idempotency), in order. */
   log: Array<{ jobId: string; type: string; url?: string }> = [];
+  /** Dynamic pages (e.g. the owned eval page), consulted before `pages`. */
+  resolve: ((url: string) => Promise<FakePage | undefined>) | null = null;
   failCreate = false;
   failCleanup = false;
   readonly app = new Hono();
@@ -64,7 +66,7 @@ export class FakeRunner {
       if (!job) return c.json({ code: "job_not_found", message: "no job" }, 404);
       const req = rc.RunnerActionRequest.parse(await c.req.json());
       if (job.results.has(req.actionId)) return c.json(job.results.get(req.actionId)); // idempotent
-      const result = this.execute(c.req.param("id"), job, req);
+      const result = await this.execute(c.req.param("id"), job, req);
       job.results.set(req.actionId, result);
       return c.json(result);
     });
@@ -105,7 +107,7 @@ export class FakeRunner {
     };
   }
 
-  private execute(jobId: string, job: Job, req: rc.RunnerActionRequest): rc.RunnerActionResult {
+  private async execute(jobId: string, job: Job, req: rc.RunnerActionRequest): Promise<rc.RunnerActionResult> {
     const a = req.action;
     const base = { actionId: req.actionId, stepIndex: req.stepIndex, durationMs: 5 };
     this.log.push({ jobId, type: a.type, ...(a.type === "navigate" ? { url: a.url } : {}) });
@@ -119,7 +121,7 @@ export class FakeRunner {
       if (!job.spec.allowedHosts.includes(host)) {
         return { ...base, status: "denied", observation: null, error: { code: "egress_denied", message: `${host} not allowed`, retryable: false }, actionsRemaining: remaining };
       }
-      const page = this.pages.get(a.url);
+      const page = (this.resolve ? await this.resolve(a.url) : undefined) ?? this.pages.get(a.url);
       if (!page) return { ...base, status: "failed", observation: null, error: { code: "navigation_failed", message: "404", retryable: false }, actionsRemaining: remaining };
       const failed = this.failCounts.get(a.url) ?? 0;
       if (page.failTimes && failed < page.failTimes) {
@@ -146,6 +148,8 @@ export function fakeInference(opts: {
   planner?: (userContent: any) => unknown;
   extractor?: (questions: string[], pageText: string) => unknown;
   plannerRaw?: string;
+  explainer?: (facts: Array<{ id: string; text: string }>) => unknown;
+  fixer?: () => unknown;
 }) {
   const calls: string[] = [];
   const fn = (async (_url: string, init: RequestInit) => {
@@ -153,7 +157,14 @@ export function fakeInference(opts: {
     const system = body.messages[0].content as string;
     const user = body.messages.at(-1).content as string;
     let content: string;
-    if (system.includes("plan bounded research")) {
+    if (system.includes("You fix bugs")) {
+      calls.push("task");
+      content = JSON.stringify(opts.fixer ? opts.fixer() : { code: "function lastN(items, n) {\n  return n === 0 ? [] : items.slice(-n);\n}" });
+    } else if (system.includes("explain an AI-tool decision")) {
+      calls.push("explain");
+      const facts = JSON.parse(user.split("\n\nYour previous answer")[0]).facts as Array<{ id: string; text: string }>;
+      content = JSON.stringify(opts.explainer ? opts.explainer(facts) : defaultExplain(facts));
+    } else if (system.includes("plan bounded research")) {
       calls.push("plan");
       content = opts.plannerRaw ?? JSON.stringify(opts.planner ? opts.planner(JSON.parse(user)) : { pages: [], questions: [] });
     } else {
@@ -177,5 +188,18 @@ export function defaultExtract(questions: string[], text: string) {
         ? { question: q, answer: "supported", statement: "The page lists the plan price.", quote: priced }
         : { question: q, answer: "not_found", statement: "Not stated on this page.", quote: "" },
     ),
+  };
+}
+
+/** Restates price facts and the untested-quality fact, citing them. */
+export function defaultExplain(facts: Array<{ id: string; text: string }>) {
+  const priced = facts.filter((f) => /per month/.test(f.text)).slice(0, 2);
+  const untested = facts.find((f) => /not tested/.test(f.text));
+  return {
+    statements: [
+      ...priced.map((f) => ({ text: f.text, role: "supporting", factIds: [f.id] })),
+      ...(untested ? [{ text: "Quality on your own task hasn't been tested yet.", role: "uncertainty", factIds: [untested.id] }] : []),
+      { text: "Try it on a real bug.", role: "next_step", factIds: [] },
+    ],
   };
 }

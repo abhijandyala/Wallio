@@ -416,7 +416,8 @@
                 "plan",
                 "extract",
                 "verify",
-                "explain"
+                "explain",
+                "task"
               ]
             },
             "model": {
@@ -968,5 +969,5 @@
       ]
     }
   ],
-  "$id": "wallio/api/RunEvent@0.1.0"
+  "$id": "wallio/api/RunEvent@0.1.1"
 }

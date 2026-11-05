@@ -15,6 +15,8 @@ import { RunnerClient, RunnerError } from "../runner/client.ts";
 import { checkAction, observationInPolicy, type PolicySpec, type PolicyState } from "../runner/policy.ts";
 import { extractFindings, type Finding } from "../research/extract.ts";
 import { baselineQuestions, defaultPages, planResearch, policyFor, type PlanOutcome, type ProfileForPlan, type ToolForPlan } from "../research/planner.ts";
+import { writeRecommendation } from "./recommend-step.ts";
+import { newEvalToken, parseResult, proposeFix } from "../eval/harness.ts";
 import { RunFailure, type Cleaner, type CleanupReport, type ExecResult, type RunContext, type RunExecutor } from "./worker.ts";
 
 const sha256 = (b: Buffer | string) => `sha256:${createHash("sha256").update(b).digest("hex")}`;
@@ -26,7 +28,9 @@ export interface ToolKnowledge {
   needsTesting: string[];
   blocked: Array<{ url: string; reason: string }>;
 }
+export interface HarnessResult { passed: number; total: number; pass: boolean; model: string; evidenceId: string }
 export interface RunKnowledge {
+  harness?: HarnessResult | null;
   plannedBy: "model" | "default";
   questions: Array<{ toolId: string; topic: string; question: string }>;
   tools: Record<string, ToolKnowledge>;
@@ -38,12 +42,18 @@ export interface LiveExecutorDeps {
   gateway: (onUsage: (u: UsageRecord) => void) => InferenceGateway;
   /** Hosts the runner may reach besides the tools' own (owned eval/form pages), host → path prefixes. */
   ownedHosts?: Record<string, string[]>;
+  /** Public https origin serving /eval/<token>. Without it the testing stage is skipped. */
+  evalBaseUrl?: string | null;
 }
 
 export class LiveExecutor implements RunExecutor {
   private readonly deps: LiveExecutorDeps;
   constructor(deps: LiveExecutorDeps) {
     this.deps = deps;
+  }
+
+  private runHarness(ctx: RunContext, gw: InferenceGateway, infer: <T>(fn: () => Promise<T>) => Promise<T>, act: Act) {
+    return runHarnessStage({ runner: this.deps.runner, evalBaseUrl: this.deps.evalBaseUrl! }, ctx, gw, infer, act);
   }
 
   async execute(ctx: RunContext): Promise<ExecResult> {
@@ -83,7 +93,9 @@ export class LiveExecutor implements RunExecutor {
       return { tools, profile, goal: `Decide whether to keep ${tools[0]!.name} for ${wf.name.toLowerCase()} or try ${tools.slice(1).map((t) => t.name).join(", ")}` };
     });
 
-    const policy: PolicySpec = policyFor(tools, this.deps.ownedHosts ?? {}, { maxActions: 20, maxScreenshots: 12, deadlineAt: ctx.deadlineAt });
+    const owned: Record<string, string[]> = { ...(this.deps.ownedHosts ?? {}) };
+    if (this.deps.evalBaseUrl) (owned[new URL(this.deps.evalBaseUrl).hostname] ??= []).push("/eval");
+    const policy: PolicySpec = policyFor(tools, owned, { maxActions: 20, maxScreenshots: 12, deadlineAt: ctx.deadlineAt });
 
     // ── plan ──
     let plan: PlanOutcome;
@@ -124,7 +136,7 @@ export class LiveExecutor implements RunExecutor {
       tools: Object.fromEntries(tools.map((t) => [t.id, { known: [], missing: [], needsTesting: ["Quality on your own debugging task"], blocked: [] }])),
     };
 
-    const act = async (action: rc.RunnerAction, toolId: string | null): Promise<rc.RunnerActionResult | null> => {
+    const act = async (action: rc.RunnerAction, toolId: string | null, displayUrl?: string): Promise<rc.RunnerActionResult | null> => {
       ctx.checkpoint();
       const d = checkAction(policy, state, action);
       if (!d.ok) {
@@ -133,7 +145,8 @@ export class LiveExecutor implements RunExecutor {
       }
       const stepIndex = step++;
       if (action.type === "navigate") {
-        await ctx.emit({ type: "step", message: `Opening ${new URL(action.url).hostname}${new URL(action.url).pathname}`.slice(0, 300), data: { stepIndex, maxSteps: policy.maxActions, actionType: "navigate", url: action.url, candidateToolId: toolId } });
+        const shown = displayUrl ?? action.url;
+        await ctx.emit({ type: "step", message: `Opening ${new URL(shown).hostname}${new URL(shown).pathname}`.slice(0, 300), data: { stepIndex, maxSteps: policy.maxActions, actionType: "navigate", url: shown, candidateToolId: toolId } });
       }
       // Read-only navigation is retried at most twice on a transient failure (PRD §15).
       for (let attempt = 0; ; attempt++) {
@@ -232,8 +245,74 @@ export class LiveExecutor implements RunExecutor {
       ),
     );
     const everyToolHasEvidence = tools.every((t) => knowledge.tools[t.id]!.blocked.length < plan.pages.filter((p) => p.toolId === t.id).length);
+
+    // ── owned test (harness on Vultr, run inside the runner's browser) ──
+    if (this.deps.evalBaseUrl) knowledge.harness = await this.runHarness(ctx, gw, infer, act);
+    if (knowledge.harness !== undefined) await ctx.q((q) => q("UPDATE runs SET knowledge = $3 WHERE id = $1 AND tenant_id = $2", [ctx.runId, ctx.tenantId, knowledge]));
+
+    // ── score and recommend (P6) ──
+    await ctx.transition("VERIFYING", { stage: "verifying" });
+    await ctx.stage("reporting", "Scoring the tools and writing the recommendation");
+    const recommendationId = await writeRecommendation(ctx, gw, infer);
+    await ctx.emit({ type: "result_ready", message: "Recommendation ready", data: { recommendationId, outcome: everyToolHasEvidence ? "succeeded" : "partial" } });
     return { outcome: everyToolHasEvidence ? "succeeded" : "partial" };
   }
+}
+
+type Act = (action: rc.RunnerAction, toolId: string | null, displayUrl?: string) => Promise<rc.RunnerActionResult | null>;
+
+export interface HarnessDeps { runner: RunnerClient; evalBaseUrl: string }
+
+/** Generates a fix on Vultr, opens the owned test page in the runner, records the result as evidence. */
+export async function runHarnessStage(deps: HarnessDeps, ctx: RunContext, gw: InferenceGateway, infer: <T>(fn: () => Promise<T>) => Promise<T>, act: Act): Promise<HarnessResult | null> {
+  await ctx.stage("testing", "Running the sample bug through a Vultr model in the owned test page");
+  const task = await ctx.q(async (q) => {
+    const r = (await q(`SELECT t.* FROM runs r JOIN comparisons c ON c.id = r.comparison_id JOIN eval_tasks t ON t.id = c.request->>'taskId' WHERE r.id = $1 AND r.tenant_id = $2`, [ctx.runId, ctx.tenantId])).rows[0];
+    return r ? { id: r.id, title: r.title, description: r.description, sanitizedInput: r.sanitized_input, entrypoint: r.entrypoint, tests: r.tests } : null;
+  });
+  if (!task || !task.entrypoint || !task.tests.length) return null;
+  let fix: { code: string; model: string };
+  try {
+    fix = await infer(() => proposeFix(gw, ctx.runId, task));
+  } catch (e) {
+    await ctx.emit({ type: "warning", message: "The model didn't produce a usable fix, so the owned test was skipped", data: { detail: (e as Error).message.slice(0, 200) } });
+    return null;
+  }
+  const { token, hash } = newEvalToken();
+  const sessionId = await ctx.q(async (q) =>
+    (await q<{ id: string }>(`INSERT INTO eval_sessions (tenant_id, run_id, token_hash, task_id, candidate_code, model, expires_at) VALUES ($1,$2,$3,$4,$5,$6, now() + interval '10 minutes') RETURNING id`,
+      [ctx.tenantId, ctx.runId, hash, task.id, fix.code, fix.model])).rows[0]!.id);
+  const base = deps.evalBaseUrl.replace(/\/+$/, "");
+  const shownUrl = `${base}/eval/session-${sessionId}`; // the token never appears in events or evidence
+
+  const nav = await act({ type: "navigate", url: `${base}/eval/${token}` }, null, shownUrl);
+  const result = parseResult(nav?.observation?.textExcerpt ?? null);
+  if (!nav || nav.status !== "ok" || !result) {
+    await ctx.emit({ type: "warning", message: "The owned test page didn't report a result", data: { detail: nav?.error?.code ?? (nav ? "no_result_line" : "refused") } });
+    return null;
+  }
+  let shot: { bytes: Buffer; hash: string } | null = null;
+  const snap = await act({ type: "screenshot", fullPage: false }, null);
+  if (snap?.status === "ok" && snap.observation?.screenshot) {
+    try {
+      const bytes = await deps.runner.artifact(snap.observation.screenshot.artifactId);
+      if (sha256(bytes) === snap.observation.screenshot.sha256) shot = { bytes, hash: sha256(bytes) };
+    } catch { /* text result is still evidence */ }
+  }
+  const evidenceId = await ctx.q(async (q) => {
+    const ev = (await q<{ id: string }>(
+      `INSERT INTO evidence (tenant_id, run_id, kind, candidate_tool_id, access_mode, url, canonical_url, captured_at, content_hash, screenshot_key, extraction_method, excerpt, limitation)
+       VALUES ($1,$2,'executed_test',NULL,'tested_owned_demo',$3,$3,now(),$4,$5,'dom',$6,$7) RETURNING id`,
+      [ctx.tenantId, ctx.runId, shownUrl, nav.observation!.textSha256 ?? sha256(nav.observation!.textExcerpt ?? ""), shot ? "db" : null,
+       `${result.line} (fix proposed by ${fix.model} on Vultr)`,
+       "Tests Wallio's own harness running the sample bug through a Vultr model. It does not measure GitHub Copilot, Zed or any other product."],
+    )).rows[0]!.id;
+    if (shot) await q("INSERT INTO evidence_screenshots (evidence_id, tenant_id, sha256, mime, bytes) VALUES ($1,$2,$3,'image/png',$4)", [ev, ctx.tenantId, shot.hash, shot.bytes]);
+    await q("UPDATE runs SET evidence_count = evidence_count + 1 WHERE id = $1 AND tenant_id = $2", [ctx.runId, ctx.tenantId]);
+    return ev;
+  });
+  await ctx.emit({ type: "evidence_captured", message: `Owned test: ${result.passed}/${result.total} cases passed`, data: { evidenceId, kind: "executed_test", url: shownUrl, candidateToolId: null } });
+  return { passed: result.passed, total: result.total, pass: result.pass, model: fix.model, evidenceId };
 }
 
 /** Drops fragments and common tracking parameters. */

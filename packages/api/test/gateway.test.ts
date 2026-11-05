@@ -16,7 +16,7 @@ const baseCfg = (over: Partial<InferenceConfig> = {}): InferenceConfig => ({
   baseUrl: "https://api.vultrinference.com/v1",
   textModel: "text-model",
   visionModel: "vision-model",
-  maxOutputTokens: { plan: 100, extract: 100, verify: 50, explain: 100 },
+  maxOutputTokens: { plan: 100, extract: 100, verify: 50, explain: 100, task: 100 },
   timeoutMs: 1000,
   maxRetries: 2,
   jsonMode: false,

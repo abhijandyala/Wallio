@@ -19,6 +19,7 @@ import { createGuestSession, findSession, SESSION_COOKIE } from "./session.ts";
 import { transition, TERMINAL, FINISHED } from "../runs/state.ts";
 import { evidenceToContract } from "../runs/executors.ts";
 import type { Orchestrator } from "../runs/worker.ts";
+import { renderEvalPage, tokenHash } from "../eval/harness.ts";
 
 type Env = { Variables: { tenantId: string; correlationId: string } };
 
@@ -58,6 +59,17 @@ export function createApp({ config, db, runs }: AppDeps) {
   app.notFound((c) => c.json(notFound("That endpoint").toBody(c.get("correlationId") ?? "unknown"), 404));
 
   app.get("/api/health", (c) => c.json({ ok: true, runMode: config.runMode }));
+
+  // Owned evaluation page, opened by the runner's isolated browser (no session). The random
+  // token in the URL is the only credential; it expires in minutes and only its hash is stored.
+  app.get("/eval/:token", async (c) => {
+    const token = c.req.param("token");
+    if (!/^[A-Za-z0-9_-]{43}$/.test(token)) throw notFound("Evaluation");
+    const row = (await db.pool.query("SELECT * FROM wallio_eval_page($1)", [tokenHash(token)])).rows[0];
+    if (!row) throw notFound("Evaluation");
+    const { html, csp } = renderEvalPage({ title: row.title, description: row.description, entrypoint: row.entrypoint, tests: row.tests, code: row.candidate_code });
+    return c.html(html, 200, { "content-security-policy": csp, "cache-control": "no-store", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer", "x-robots-tag": "noindex" });
+  });
 
   // ── CSRF: mutations must be JSON, and same-origin when an Origin header is sent ──
   app.use("/api/*", async (c, next) => {
@@ -386,6 +398,29 @@ export function createApp({ config, db, runs }: AppDeps) {
     const row = await tenant(c, async (q, t) => (await q("SELECT * FROM evidence WHERE id = $1 AND tenant_id = $2", [id, t])).rows[0]);
     if (!row) throw notFound("Evidence");
     return send(c, api.Evidence, evidenceToContract(row));
+  });
+
+  // ───────────────────────── decisions ─────────────────────────
+
+  app.post("/api/decisions", async (c) => {
+    const req = await body(c, api.DecisionRequest);
+    const out = await tenant(c, async (q, tenantId) => {
+      const rec = (await q("SELECT id, profile_version_id, body FROM recommendations WHERE id = $1 AND tenant_id = $2", [UUID.test(req.recommendationId) ? req.recommendationId : null, tenantId])).rows[0];
+      if (!rec) throw notFound("Recommendation");
+      const evidenceIds = (rec.body.evidence ?? []).map((e: { id: string }) => e.id);
+      const row = (await q(
+        `INSERT INTO decisions (tenant_id, recommendation_id, profile_version_id, choice, reason, review_date, evidence_snapshot_ids)
+         VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+        [tenantId, rec.id, rec.profile_version_id, req.choice, req.reason ?? null, req.reviewDate ?? null, evidenceIds],
+      )).rows[0];
+      await q("INSERT INTO audit_events (tenant_id, actor, action, target, details, correlation_id) VALUES ($1,'user','decision.create',$2,$3,$4)", [tenantId, row.id, { choice: req.choice }, c.get("correlationId")]);
+      return row;
+    });
+    return send(c, api.Decision, {
+      id: out.id, recommendationId: out.recommendation_id, choice: out.choice,
+      ...(out.reason ? { reason: out.reason } : {}), ...(out.review_date ? { reviewDate: out.review_date } : {}),
+      profileVersionId: out.profile_version_id, evidenceSnapshotIds: out.evidence_snapshot_ids, createdAt: iso(out.created_at),
+    }, 201);
   });
 
   // Screenshot bytes, after the same ownership check. Never a public bucket URL.

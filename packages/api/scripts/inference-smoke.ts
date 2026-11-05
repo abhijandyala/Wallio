@@ -97,7 +97,7 @@ const cfgFor = (textModel: string, visionModel: string | null, jsonMode = false)
   baseUrl,
   textModel,
   visionModel,
-  maxOutputTokens: { plan: 3000, extract: 3000, verify: 1500, explain: 3000 },
+  maxOutputTokens: { plan: 3000, extract: 3000, verify: 1500, explain: 3000, task: 2000 },
   timeoutMs: 90_000,
   maxRetries: 2,
   jsonMode,

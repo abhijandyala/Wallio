@@ -8,6 +8,11 @@ if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
   echo "Note: uncommitted changes are NOT deployed. Deploying $SHA."
 fi
 REL="/opt/wallio/releases/$SHA"
+DOMAIN="$(cat deploy/.domain 2>/dev/null || true)"
+if [ -n "$DOMAIN" ]; then
+  echo "== caddy config"
+  sed "s/__WALLIO_DOMAIN__/$DOMAIN/" deploy/Caddyfile | "${SSH[@]}" "cat > /tmp/Caddyfile.new && caddy validate --config /tmp/Caddyfile.new --adapter caddyfile >/dev/null 2>&1 && (cmp -s /tmp/Caddyfile.new /etc/caddy/Caddyfile || (mv /tmp/Caddyfile.new /etc/caddy/Caddyfile && systemctl reload caddy && echo 'caddy reloaded'))"
+fi
 echo "== upload $SHA"
 git archive --format=tar.gz HEAD | "${SSH[@]}" "set -e; rm -rf '$REL'; mkdir -p '$REL'; tar -xz -C '$REL'"
 "${SSH[@]}" bash -s <<REMOTE
@@ -28,5 +33,4 @@ for i in \$(seq 1 20); do
 done
 ls -1dt /opt/wallio/releases/* | tail -n +4 | xargs -r rm -rf
 REMOTE
-DOMAIN="$(cat deploy/.domain 2>/dev/null || true)"
 [ -n "$DOMAIN" ] && echo "Live: https://$DOMAIN/api/health"

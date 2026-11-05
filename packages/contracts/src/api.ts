@@ -220,7 +220,7 @@ export const RunEvent = z.discriminatedUnion("type", [
   }),
   EventBase.extend({
     type: z.literal("inference_call"),
-    data: z.object({ purpose: z.enum(["plan", "extract", "verify", "explain"]), model: z.string(), latencyMs: z.int().nonnegative(), ok: z.boolean() }),
+    data: z.object({ purpose: z.enum(["plan", "extract", "verify", "explain", "task"]), model: z.string(), latencyMs: z.int().nonnegative(), ok: z.boolean() }),
   }),
   EventBase.extend({
     type: z.literal("policy_denied"),

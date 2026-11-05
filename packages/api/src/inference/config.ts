@@ -6,7 +6,7 @@
 export const VULTR_INFERENCE_ORIGIN = "https://api.vultrinference.com";
 export const DEFAULT_BASE_URL = `${VULTR_INFERENCE_ORIGIN}/v1`;
 
-export type Purpose = "plan" | "extract" | "verify" | "explain";
+export type Purpose = "plan" | "extract" | "verify" | "explain" | "task";
 
 export interface ModelPrice {
   /** USD per 1M input tokens, from Vultr's current price sheet. */
@@ -53,7 +53,7 @@ export function assertVultrInferenceUrl(url: string): void {
 }
 
 /** Output caps include reasoning tokens on thinking models, so they are larger than the visible answer needs. */
-const DEFAULT_CAPS: Record<Purpose, number> = { plan: 3000, extract: 3000, verify: 1500, explain: 3000 };
+const DEFAULT_CAPS: Record<Purpose, number> = { plan: 3000, extract: 3000, verify: 1500, explain: 3000, task: 2000 };
 
 /** Model IDs and prices pinned after the capability gate. Edit pinned-models.json, not code. */
 export interface PinnedModels {

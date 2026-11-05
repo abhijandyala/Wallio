@@ -49,6 +49,12 @@ export const EVAL_TASKS = [
     sanitizedInput:
       "function lastN(items, n) {\n  return items.slice(items.length - n + 1);\n}\n// lastN([1,2,3,4,5], 2) should be [4,5]",
     expected: "lastN([1,2,3,4,5], 2) deep-equals [4,5]; lastN([1,2,3], 3) deep-equals [1,2,3]; lastN([1], 0) deep-equals []",
+    entrypoint: "lastN",
+    tests: [
+      { args: [[1, 2, 3, 4, 5], 2], expected: [4, 5] },
+      { args: [[1, 2, 3], 3], expected: [1, 2, 3] },
+      { args: [[1], 0], expected: [] },
+    ],
   },
 ];
 
@@ -65,11 +71,12 @@ export async function seedCatalog(q: Query): Promise<number> {
   }
   for (const t of EVAL_TASKS) {
     await q(
-      `INSERT INTO eval_tasks (id, title, description, rubric_version, sanitized_input, expected)
-       VALUES ($1,$2,$3,$4,$5,$6)
+      `INSERT INTO eval_tasks (id, title, description, rubric_version, sanitized_input, expected, entrypoint, tests)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
        ON CONFLICT (id) DO UPDATE SET title=EXCLUDED.title, description=EXCLUDED.description,
-         rubric_version=EXCLUDED.rubric_version, sanitized_input=EXCLUDED.sanitized_input, expected=EXCLUDED.expected`,
-      [t.id, t.title, t.description, t.rubricVersion, t.sanitizedInput, t.expected],
+         rubric_version=EXCLUDED.rubric_version, sanitized_input=EXCLUDED.sanitized_input, expected=EXCLUDED.expected,
+         entrypoint=EXCLUDED.entrypoint, tests=EXCLUDED.tests`,
+      [t.id, t.title, t.description, t.rubricVersion, t.sanitizedInput, t.expected, t.entrypoint, JSON.stringify(t.tests)],
     );
   }
   return CATALOG.length;

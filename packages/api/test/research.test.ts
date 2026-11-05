@@ -113,7 +113,7 @@ let plannerImpl: (u: any) => unknown;
 
 const gatewayFor = (onUsage: (u: any) => void) =>
   new InferenceGateway(
-    { apiKey: "test", baseUrl: "https://api.vultrinference.com/v1", textModel: "qwen3.8-flash-next", visionModel: "qwen3.8-flash-next", maxOutputTokens: { plan: 3000, extract: 3000, verify: 1500, explain: 3000 }, timeoutMs: 2000, maxRetries: 0, jsonMode: true, prices: { "qwen3.8-flash-next": { inputPerMTokUsd: 0.1, outputPerMTokUsd: 0.2 } } },
+    { apiKey: "test", baseUrl: "https://api.vultrinference.com/v1", textModel: "qwen3.8-flash-next", visionModel: "qwen3.8-flash-next", maxOutputTokens: { plan: 3000, extract: 3000, verify: 1500, explain: 3000, task: 2000 }, timeoutMs: 2000, maxRetries: 0, jsonMode: true, prices: { "qwen3.8-flash-next": { inputPerMTokUsd: 0.1, outputPerMTokUsd: 0.2 } } },
     { fetch: inference.fn, onUsage, sleep: async () => {} },
   );
 
@@ -175,6 +175,54 @@ test("live run: plans on Vultr, browses both pricing pages, stores hashed eviden
   const bytes = Buffer.from(await shot.arrayBuffer());
   assert.equal(`sha256:${createHash("sha256").update(bytes).digest("hex")}`, shot.headers.get("x-content-sha256"));
   assert.equal((await new Visitor(app).req("GET", `/api/evidence/${zedEv.id}/screenshot`)).status, 404, "other workspaces can't see it");
+
+  // P6: a stored, contract-valid recommendation where every statement traces to evidence or user input.
+  assert.ok(done.recommendationId);
+  const rec = await v.json("GET", `/api/recommendations/${done.recommendationId}`);
+  assert.equal(rec.status, 200);
+  assert.equal(rec.body.action, "review_renewal", "same price, untested, Copilot renews within 30 days");
+  assert.equal(rec.body.calculationVersion, "score-v1+spend-v1");
+  const evIds = new Set(rec.body.evidence.map((e: any) => e.id));
+  for (const s of rec.body.statements) {
+    if (s.role !== "next_step") assert.ok(s.evidenceIds.length + s.userInputRefs.length > 0, s.text);
+    for (const id of s.evidenceIds) assert.ok(evIds.has(id));
+  }
+  assert.ok(rec.body.statements.some((s: any) => s.evidenceIds.includes(zedEv.id)), "the Zed price statement cites the Zed capture");
+  const zed = rec.body.candidates.find((c: any) => c.toolId === "tool_zed");
+  assert.equal(zed.accessMode, "researched");
+  assert.equal(zed.score.components.quality.value, null);
+  assert.ok(zed.score.max > zed.score.min);
+  assert.equal(rec.body.spending.scenarios[1].immediateCashSavingMinor, 0);
+  assert.ok(events.some((e) => e.type === "result_ready"));
+
+  const dec = await v.json("POST", "/api/decisions", { recommendationId: done.recommendationId, choice: "defer", reason: "Will try Zed next week", reviewDate: "2026-11-19" });
+  assert.equal(dec.status, 201);
+  assert.equal(dec.body.evidenceSnapshotIds.length, 2);
+  assert.equal((await new Visitor(app).json("POST", "/api/decisions", { recommendationId: done.recommendationId, choice: "accept" })).status, 404, "can't decide on someone else's recommendation");
+});
+
+test("an explanation that invents numbers falls back to the template, still fully cited", async () => {
+  await worker.stop();
+  inference = fakeInference({
+    planner: (u) => plannerImpl(u),
+    explainer: (facts) => ({ statements: [
+      { text: "Zed costs $3 and is 50% faster.", role: "supporting", factIds: [facts[0]!.id] },
+      { text: "Switch now.", role: "supporting", factIds: [] },
+      { text: "Do it.", role: "next_step", factIds: [] },
+    ] }),
+  });
+  const client = new RunnerClient({ baseUrl: "http://runner.test", token: RUNNER_TOKEN, fetch: runner.fetch, sleep: async () => {} });
+  worker = new Worker({ db, config: cfg, executors: { live: new LiveExecutor({ runner: client, gateway: gatewayFor }) }, cleaners: { mock: new MockCleaner(), live: new LiveCleaner(client, 10) } });
+  worker.start();
+  app = createApp({ config: cfg, db, runs: worker });
+  const v = new Visitor(app);
+  const { runId } = (await v.startRun()).body;
+  const done = await v.waitFinished(runId);
+  const rec = (await v.json("GET", `/api/recommendations/${done.recommendationId}`)).body;
+  assert.ok(!rec.statements.some((s: any) => /\$3|50%/.test(s.text)), "invented numbers never reach the user");
+  assert.ok(rec.limitations.some((l: string) => /template/.test(l)));
+  assert.ok((await v.events(runId)).some((e) => e.type === "warning" && /citation checks/.test(e.message)));
+  assert.equal(inference.calls.filter((c) => c === "explain").length, 2, "one repair attempt, then the template");
 });
 
 test("prompt injection and off-policy plans never reach the browser", async () => {

@@ -324,5 +324,5 @@
     "durationMs",
     "actionsRemaining"
   ],
-  "$id": "wallio/runner/RunnerActionResult@0.1.0"
+  "$id": "wallio/runner/RunnerActionResult@0.1.1"
 }
