@@ -1,0 +1,47 @@
+{
+  "base": "https://149-28-76-16.sslip.io",
+  "rows": [
+    {
+      "n": 1,
+      "label": "cold-start",
+      "at": "2026-11-05T22:29:35.631Z",
+      "comparison": {
+        "runId": "143a45c6-f05d-43d9-ad18-9a53ed696e94",
+        "correlationId": "corr_5b1f26579c61442d",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 7.8,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "compare_further",
+        "confidence": "low",
+        "statements": 3,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 1.6,
+        "actionResults": [
+          "simulated"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 2.9,
+        "contained": true,
+        "refused": 3,
+        "denied": 0,
+        "sentinel": null,
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    }
+  ]
+}
