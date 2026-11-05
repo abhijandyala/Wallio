@@ -2,7 +2,7 @@
 
 Owner: Adhvik (browser execution and containment). Written 5 Nov 2026.
 
-**Status (5 Nov 2026, end of day):** R0–R5 built and tested locally (37 unit, 13 Docker integration, live smoke 12/12; see `docs/RUNNER_TEST_REPORT.md`). R6 deploy scripts written, not yet run on a VM (waiting for Vultr access). R7 needs Anish's live orchestrator. R8 docs: `packages/runner/README.md`. Changes from this plan while building: the process limit is 192 (measured peak ~91); daemon HTTP timeout for `/actions` should be ≥ 50 s; clicks wait for `aria-busy` (up to 15 s) instead of needing a `wait` action.
+**Status (5 Nov 2026, end of day):** R0–R5 built and tested locally (37 unit, 13 Docker integration, live smoke 12/12; see `docs/RUNNER_TEST_REPORT.md`). R6 deploy scripts written, not yet run on a VM (waiting for Vultr access). R7 needs Anish's live orchestrator. R8 docs: `packages/runner/README.md`. Changes from this plan while building: the process limit is 192 (measured peak ~91); daemon HTTP timeout for `/actions` should be ≥ 50 s; clicks wait for `aria-busy` (up to 15 s) instead of needing a `wait` action. Anish agreed to all of §6 (see §6a for the values).
 Builds against contracts v0.1.0 (`packages/contracts/src/runner.ts`, `docs/CONTRACTS.md` §B). Sources: scope brief, PRD §13–15, §19, §24, `docs/GOLDEN_PATH.md`.
 
 The runner is a daemon on its own Vultr VM. Anish's control plane calls it one action at a time. It runs each job in a short-lived, locked-down Chromium container whose only way out is an egress proxy we control. It returns observations and screenshots, enforces its own limits, and proves cleanup. It never calls inference and holds no provider or cloud keys.
@@ -202,6 +202,22 @@ The runner enforces on its own that a click on a submit control (submit button, 
 5. **Transport.** HTTPS with a self-signed cert pinned by the API, on the VPC private IP, port 8443.
 6. **Hostile + sentinel.** Anish adds a Caddy site for `hostile.<domain>` serving `packages/runner/fixtures/hostile/`. A sentinel on the control VM's private IP counts hits (I write it as a ~20-line script; Anish runs it) and exposes its count to the API for the "unchanged" check.
 7. **Timeouts.** API → runner HTTP timeout ≥ 40 s per action; cancel is 202, then poll `/cleanup`.
+
+### 6a. Agreed with Anish (5 Nov 2026)
+
+All seven items are agreed. These are the values we settled on:
+
+- **Control VM:** private IP `10.5.96.3` on `wallio-vpc` (`10.5.96.0/20`), region Los Angeles, public IP `149.28.76.16`, domain `149-28-76-16.sslip.io`. The runner VM goes in LA on `wallio-vpc`, with SSH from the admin IP as its only public port. Anish opens 9099 to the runner's private IP once it exists.
+- **Timeouts:** Anish uses 60 s for `/actions`. Cancel returns 202, and he then polls `/cleanup`.
+- **Approval:** Anish signs with `signApprovalToken` from `@wallio/runner/approval` with a 300 s TTL. The order is fill, then the fingerprint from that result, then user approval, then the click. He never retries a click that carries a token. An unclear result is reported as uncertain.
+- **Jobs:** one job per purpose, run in sequence. That means one research job per tool, then eval, form and hostile. Allowlists: Copilot `github.com` + `github.githubassets.com`; Zed `zed.dev`.
+- **Owned hosts:** `eval.149-28-76-16.sslip.io`, `forms.149-28-76-16.sslip.io`, `hostile.149-28-76-16.sslip.io`. These are separate hosts from the API's domain, so the eval job can't reach the API.
+- **Eval page:** the result is shown when the page loads, so no click is needed. The page has `data-testid="eval-result"` and `aria-busy`. The result line reads `WALLIO-EVAL RESULT: PASS n/m`.
+- **Sentinel:** `config.js` sets `window.WALLIO_SENTINEL = "http://10.5.96.3:9099"`. `wallio-sentinel.service` runs on the control VM, with 9099 open only to the runner.
+- **Screenshots:** fetched right after each action and checked against the sha256 and the `x-content-sha256` header.
+- **Transport:** HTTPS on the runner's private IP, port 8443. The certificate's SAN is the IP itself. Anish trusts it with `NODE_EXTRA_CA_CERTS=$RUNNER_CA_FILE`.
+- **Testing before the VM:** Anish tests his client against `RUNNER_DRIVER=fake`.
+- **Dependency:** `@wallio/runner` has to be on `main` before Anish can import the signer.
 
 ---
 
