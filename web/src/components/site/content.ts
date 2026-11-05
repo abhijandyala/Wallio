@@ -32,7 +32,6 @@ export const NAV = {
 };
 
 export const HERO = {
-  badge: "Vultr Agent Rush · Blast Radius Zero",
   title: "Your Personal AI Wallet",
   subtitle: "Know What Your AI Really Costs",
   body: "Wallio tracks every AI tool you pay for, tests a new one against yours on your own task, and acts only after you approve.",
@@ -41,7 +40,6 @@ export const HERO = {
 };
 
 export const STATS = {
-  badge: "Limits on every run",
   title: ["Limits that", "Protect You."],
   body: "The same hard limits apply to every comparison Wallio runs. You can lower them in Settings.",
   primary: { label: "Run it live", href: LINKS.live },
@@ -68,14 +66,12 @@ export const GATEWAY = {
 };
 
 export const STACK = {
-  badge: "Sample stack",
   title: "Every Tool. Its Real Cost.",
   body: "What a developer with six AI tools pays each month, as Wallio shows it.",
   footnote: "Sample data. A price nobody has confirmed shows as Unknown, never $0.",
 };
 
 export const MODES = {
-  badge: "How far Wallio goes",
   title: "From Tracking to Deciding",
   cards: [
     {
@@ -124,7 +120,6 @@ export const CONTAINMENT = {
 };
 
 export const STEPS = {
-  badge: "How it works",
   title: ["From Your Stack", "to a Decision."],
   body: "Add what you pay for, test what could fit better on your own work, then decide. Wallio does the research in a sealed browser on Vultr.",
   primary: { label: "Try the demo", href: LINKS.app },
@@ -152,7 +147,6 @@ export const LIVE = {
 };
 
 export const VULTR = {
-  badge: "Runs on Vultr",
   title: "Every Model Call on Vultr",
   body: ["Vultr Serverless Inference with a pinned model.", "No other model provider, ever."],
   chat: {
@@ -183,7 +177,6 @@ export const RECEIPTS = {
 };
 
 export const DATA = {
-  badge: "Your data",
   title: ["Your Data,", "Under Your Control."],
   body: "Budget, spend caps, approvals and privacy live in Settings. Export everything or delete it, any time.",
   image: { src: "/landing/settings.webp", alt: "Wallio Settings: privacy and data controls", zoom: { scale: 1.3, origin: "100% 0%" } },

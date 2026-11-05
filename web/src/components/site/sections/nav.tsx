@@ -57,7 +57,7 @@ export function NavSection() {
           ref={pill}
           onPointerMove={onMove}
           onPointerLeave={onLeave}
-          className="gx-glass absolute top-[1rem] left-1/2 flex h-[2.6875rem] -translate-x-1/2 items-center overflow-hidden rounded-[1.004rem] px-[0.4rem]"
+          className="gx-glass absolute top-[1rem] left-1/2 flex h-[2.6875rem] -translate-x-1/2 items-center overflow-hidden rounded-[0.5rem] px-[0.4rem]"
         >
           <span
             ref={glow}
@@ -87,7 +87,7 @@ export function NavSection() {
             href={LINKS.repo}
             target="_blank"
             rel="noreferrer"
-            className="flex h-[1.94rem] items-center gap-[0.3rem] rounded-full px-[0.48rem] text-[0.75rem] text-[var(--gx-text)] hover:bg-white/[0.04]"
+            className="flex h-[1.94rem] items-center gap-[0.3rem] rounded-[0.5rem] px-[0.48rem] text-[0.75rem] text-[var(--gx-text)] hover:bg-white/[0.04]"
             aria-label="Wallio on GitHub"
           >
             <GithubLogo className="size-[1.1rem]" />
@@ -95,7 +95,7 @@ export function NavSection() {
           </a>
           <a
             href="#judges"
-            className="grid size-[1.625rem] place-items-center rounded-full text-[var(--gx-text)] opacity-80 hover:opacity-100"
+            className="grid size-[1.625rem] place-items-center rounded-[0.5rem] text-[var(--gx-text)] opacity-80 hover:opacity-100"
             aria-label="For judges"
           >
             <Question className="size-[1.1rem]" weight="fill" />

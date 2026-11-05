@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotionConfig } from "motion/react";
 import { CaretRight } from "@phosphor-icons/react";
-import { Badge, Heading } from "../ui";
+import { Heading } from "../ui";
 import { LINKS, STACK } from "../content";
 import { homeSample } from "@/mocks/home";
 import type { Subscription } from "@/lib/types";
@@ -31,7 +31,6 @@ export function LiquiditySection() {
   return (
     <section className="relative pt-[2.44rem] pb-[4.175rem] max-md:pt-16 max-md:pb-16">
       <motion.div {...reveal()} className="mx-auto flex w-[41.19rem] flex-col items-center text-center max-md:w-[calc(100%-2rem)]">
-        <Badge>{STACK.badge}</Badge>
         <Heading size="h2" className="mt-[2.1rem] max-md:mt-5">{STACK.title}</Heading>
         <p className="mt-[1.25rem] text-[0.904rem] leading-[1.2] text-[#a0a0a0] max-md:text-[0.95rem]">{STACK.body}</p>
       </motion.div>
@@ -95,7 +94,7 @@ function Row({ sub, last }: { sub: Subscription; last: boolean }) {
         {sub.renewsOn ? `Renews ${formatShortDate(sub.renewsOn)}` : "No renewal date"}
       </span>
       <span className="max-md:hidden">
-        <span className="inline-flex h-[1.75rem] items-center gap-[0.4rem] rounded-full border border-white/[0.07] bg-white/[0.02] px-[0.75rem] text-[0.703rem] text-[var(--gx-text)]">
+        <span className="inline-flex h-[1.75rem] items-center gap-[0.4rem] rounded-[0.5rem] border border-white/[0.07] bg-white/[0.02] px-[0.75rem] text-[0.703rem] text-[var(--gx-text)]">
           <span
             className={
               known

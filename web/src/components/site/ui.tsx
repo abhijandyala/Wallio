@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 
 /**
@@ -13,45 +12,6 @@ export const P = "(insert here)";
 /** Content width: 1361px of 1512 (76px side margins). */
 export function Container({ className, children }: { className?: string; children: React.ReactNode }) {
   return <div className={cn("mx-auto w-[85.0625rem] max-md:w-[calc(100%-2rem)]", className)}>{children}</div>;
-}
-
-type BadgeTone = "accent" | "neutral" | "violet" | "verified";
-
-/** Small rounded label above a heading. */
-export function Badge({
-  tone = "accent",
-  icon = true,
-  className,
-  children = P,
-}: {
-  tone?: BadgeTone;
-  icon?: boolean;
-  className?: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-[0.4rem] rounded-full border border-[var(--gx-line-strong)] whitespace-nowrap",
-        tone === "violet"
-          ? "h-[2.625rem] border-0 px-[0.964rem] text-[0.803rem] font-medium text-white"
-          : "h-[2.1875rem] px-[0.904rem] text-[0.6024rem]",
-        tone === "accent" && "bg-[var(--gx-deep)] text-[var(--gx-accent-ink)]",
-        tone === "neutral" && "bg-white/[0.02] text-[var(--gx-text)]",
-        tone === "verified" && "bg-[linear-gradient(266deg,var(--gx-deep-3)_0.95%,var(--gx-deep)_79.28%)] text-white",
-        tone === "violet" && "bg-[linear-gradient(266deg,var(--gx-violet-deep)_0.95%,var(--gx-violet-deep-2)_79.28%)]",
-        className,
-      )}
-    >
-      {icon &&
-        (tone === "violet" ? (
-          <span className="size-[1.2rem] rounded-full bg-[radial-gradient(circle_at_35%_35%,#fff,var(--gx-violet)_55%,transparent_75%)]" />
-        ) : (
-          <ShieldCheck weight="fill" className="size-[0.75rem] text-[var(--gx-accent)]" />
-        ))}
-      {children}
-    </span>
-  );
 }
 
 type BtnVariant = "glow" | "ghost" | "dark" | "tint" | "tintFill" | "light" | "outline" | "violetGhost";
@@ -97,7 +57,7 @@ export function Btn({
     <Link
       href={href}
       className={cn(
-        "inline-flex h-[2.1875rem] items-center justify-center gap-[0.4rem] rounded-full px-[1.285rem] text-[0.803rem] whitespace-nowrap transition-[filter,background-color] duration-200 hover:brightness-110",
+        "inline-flex h-[2.1875rem] items-center justify-center gap-[0.4rem] rounded-[0.5rem] px-[1.285rem] text-[0.803rem] whitespace-nowrap transition-[filter,background-color] duration-200 hover:brightness-110",
         wide && "w-full",
         BTN[variant],
         className,
@@ -153,25 +113,6 @@ export function Heading({
 /** Body copy at the reference's 11.25px, muted. */
 export function Body({ className, children = P }: { className?: string; children?: React.ReactNode }) {
   return <p className={cn("text-[0.703rem] leading-[1.55] text-[var(--gx-muted)] max-md:text-[0.85rem]", className)}>{children}</p>;
-}
-
-/** Centered section opener: badge, heading, one line. */
-export function Intro({
-  badge = true,
-  tone = "accent",
-  className,
-}: {
-  badge?: boolean;
-  tone?: BadgeTone;
-  className?: string;
-}) {
-  return (
-    <div className={cn("flex flex-col items-center gap-[1rem] text-center", className)}>
-      {badge && <Badge tone={tone} />}
-      <Heading />
-      <Body className="max-w-[20rem]" />
-    </div>
-  );
 }
 
 /**

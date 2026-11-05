@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotionConfig } from "motion/react";
 import { Plus, ShieldCheck, Star } from "@phosphor-icons/react";
-import { Badge, Btn, Heading } from "../ui";
+import { Btn, Heading } from "../ui";
 import { CONTAINMENT, MODES } from "../content";
 import { cn } from "@/lib/utils";
 import { Edge } from "./top/edge";
@@ -26,7 +26,6 @@ export function AccountsSection() {
   return (
     <section className="relative pb-[4.8rem] max-md:pb-16">
       <motion.div {...reveal()} className="mx-auto flex w-[37.875rem] flex-col items-center text-center max-md:w-[calc(100%-2rem)]">
-        <Badge tone="neutral">{MODES.badge}</Badge>
         <Heading size="h2" className="mt-[1.19rem] leading-[1.25]">{MODES.title}</Heading>
       </motion.div>
 
@@ -78,7 +77,7 @@ function AccountCard({ featured, card }: { featured: boolean; card: (typeof MODE
       <div className="relative flex h-[2.1875rem] items-center justify-between gap-3">
         <Heading as="h3" size="card" className="max-md:text-[1.6rem]">{card.title}</Heading>
         {featured && (
-          <span className="inline-flex h-[2.1875rem] items-center gap-[0.4rem] rounded-full border border-white/[0.07] bg-white/[0.02] px-[0.683rem] text-[0.6024rem] text-[var(--gx-text)]">
+          <span className="inline-flex h-[2.1875rem] items-center gap-[0.4rem] rounded-[0.5rem] border border-white/[0.07] bg-white/[0.02] px-[0.683rem] text-[0.6024rem] text-[var(--gx-text)]">
             <Star weight="fill" className="size-[0.75rem] text-[var(--gx-accent)]" />
             {card.tag}
           </span>
@@ -145,7 +144,7 @@ function ChallengePanel() {
         <div className="relative">
           <div className="flex items-center gap-[0.8rem]">
             <Heading as="h3" size="challenge" className="max-md:text-[1.6rem]">{CONTAINMENT.title}</Heading>
-            <span className="inline-flex h-[2.1875rem] items-center gap-[0.4rem] rounded-full border border-white/[0.07] bg-white/[0.02] px-[1rem] text-[0.703rem] whitespace-nowrap text-[var(--gx-text)]">
+            <span className="inline-flex h-[2.1875rem] items-center gap-[0.4rem] rounded-[0.5rem] border border-white/[0.07] bg-white/[0.02] px-[1rem] text-[0.703rem] whitespace-nowrap text-[var(--gx-text)]">
               <ShieldCheck weight="fill" className="size-[1.1rem] text-[var(--gx-accent)]" />
               {CONTAINMENT.tag}
             </span>
@@ -190,7 +189,7 @@ function TierRow({ state, tier }: { state: TierState; tier: (typeof CONTAINMENT.
     >
       <span
         className={cn(
-          "inline-flex h-[1.75rem] items-center rounded-full px-[0.7rem] text-[0.683rem] whitespace-nowrap",
+          "inline-flex h-[1.75rem] items-center rounded-[0.5rem] px-[0.7rem] text-[0.683rem] whitespace-nowrap",
           (state === "on" || active) && "border-[0.5px] border-[color-mix(in_srgb,#58f6b1_50%,#010102)] bg-[var(--gx-accent)] text-[#010102]",
           state === "dim" && "border-[0.5px] border-[color-mix(in_srgb,#58f6b1_25%,#010102)] bg-[color-mix(in_srgb,#58f6b1_30%,#010102)] text-[var(--gx-text)]",
           state === "off" && "bg-[#515151] text-[rgba(244,244,246,0.5)]",
@@ -199,7 +198,7 @@ function TierRow({ state, tier }: { state: TierState; tier: (typeof CONTAINMENT.
         {tier.chip}
       </span>
       <span className={cn("truncate text-[0.763rem]", active ? "text-white" : "text-[#686868]")}>{tier.value}</span>
-      <span className="inline-flex h-[2.1875rem] items-center gap-[0.3rem] rounded-full bg-[#404040] px-[1rem] text-[0.723rem] whitespace-nowrap text-[var(--gx-text)]">
+      <span className="inline-flex h-[2.1875rem] items-center gap-[0.3rem] rounded-[0.5rem] bg-[#404040] px-[1rem] text-[0.723rem] whitespace-nowrap text-[var(--gx-text)]">
         <Plus className="size-[0.7rem] text-white" weight="bold" />
         {tier.note}
       </span>

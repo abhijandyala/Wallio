@@ -22,7 +22,7 @@ import {
   Timer,
   Wallet,
 } from "@phosphor-icons/react";
-import { Badge, Body, Btn, Heading, MockFrame, Shot } from "../ui";
+import { Body, Btn, Heading, MockFrame, Shot } from "../ui";
 import { GATEWAY, HERO, STATS } from "../content";
 import { cn } from "@/lib/utils";
 import { usePhone } from "./top/use-phone";
@@ -56,10 +56,12 @@ function Hero() {
   // drop adds the scroll back in (445 → 806 → 1418px over the first 400px).
   const drop = useTransform(scrollY, [0, 200, 400], [27.86, 50.4, 88.6], { clamp: true });
   const y = useMotionTemplate`${drop}rem`;
+  // Fade out as it drops, so it is never cut off mid-screen and never shows up again lower down.
+  const fade = useTransform(scrollY, [0, 140, 360], [1, 1, 0], { clamp: true });
 
   return (
     <section data-stage="hero" className="relative h-[60vh] max-md:h-[100svh]">
-      <div className="absolute inset-x-0 top-0 h-screen overflow-hidden max-md:h-[100svh]">
+      <div className="absolute inset-x-0 top-0 h-screen max-md:h-[100svh]">
         <div className="relative mx-auto flex w-[85.0625rem] flex-col items-center pt-[6.8125rem] text-center max-md:w-[calc(100%-2rem)] max-md:pt-28">
           <motion.div
             initial={reduce ? false : { opacity: 0, y: 12 }}
@@ -67,7 +69,6 @@ function Hero() {
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-col items-center"
           >
-            <Badge className="bg-[color-mix(in_srgb,var(--gx-deep)_50%,transparent)]">{HERO.badge}</Badge>
             <Heading as="h1" size="hero" className="mt-[0.8rem]">{HERO.title}</Heading>
             <p className="mt-[0.6rem] text-[1.506rem] leading-[1.1] text-[var(--gx-text)] max-md:text-[1.15rem]">{HERO.subtitle}</p>
             <p className="mt-[0.75rem] w-[27.3rem] text-[0.904rem] leading-[1.4] text-[#a0a0a0] max-md:w-auto max-md:text-[0.95rem]">
@@ -80,8 +81,8 @@ function Hero() {
         </div>
 
         <motion.div
-          className="absolute top-[19.19rem] left-1/2 w-[76rem] -translate-x-1/2 max-md:hidden"
-          style={reduce ? { y: "27.86rem" } : { y }}
+          className="pointer-events-none absolute top-[19.19rem] left-1/2 w-[76rem] -translate-x-1/2 max-md:hidden"
+          style={reduce ? { y: "27.86rem", opacity: fade } : { y, opacity: fade }}
         >
           <motion.div
             initial={reduce ? false : { opacity: 0, y: "12rem" }}
@@ -121,7 +122,6 @@ function Stats() {
             style={reduce ? { opacity: 1, x: 0 } : { opacity: shown, x }}
             className="absolute top-1/2 left-0 flex w-[19.69rem] -translate-y-1/2 flex-col items-start max-md:static max-md:w-auto max-md:translate-y-0"
           >
-            <Badge>{STATS.badge}</Badge>
             <Heading size="h2" className="mt-[1.19rem]">
               {STATS.title[0]}
               <br />

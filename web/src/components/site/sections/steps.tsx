@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { motion, useMotionValueEvent, useReducedMotionConfig, useScroll, useTransform } from "motion/react";
-import { Badge, Body, Btn, Container, Heading } from "../ui";
+import { Body, Btn, Container, Heading } from "../ui";
 import { STEPS as COPY } from "../content";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +28,6 @@ export function StepsSection() {
       <section className="sticky top-0 flex h-screen items-center max-md:static max-md:h-auto max-md:py-24">
         <Container className="relative flex items-center justify-between max-md:flex-col max-md:items-start max-md:gap-12">
           <motion.div style={{ opacity: introOpacity, y: introY }} className="flex w-[27.3125rem] flex-col items-start max-md:w-full max-md:!transform-none max-md:!opacity-100">
-            <Badge>{COPY.badge}</Badge>
             <Heading className="mt-[1.25rem] w-full">
               {COPY.title[0]}
               <br />

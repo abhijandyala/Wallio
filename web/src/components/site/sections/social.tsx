@@ -63,7 +63,7 @@ export function SocialSection() {
                     "max-md:opacity-100",
                   )}
                 >
-                  <span className="mt-[0.3rem] h-[1.125rem] w-[0.375rem] rounded-full bg-[linear-gradient(color-mix(in_srgb,#58f6b1_12%,transparent)_0%,var(--gx-accent)_53%,color-mix(in_srgb,#58f6b1_12%,transparent)_100%)]" />
+                  <span className="mt-[0.3rem] h-[1.125rem] w-[0.375rem] rounded-[2px] bg-[linear-gradient(color-mix(in_srgb,#58f6b1_12%,transparent)_0%,var(--gx-accent)_53%,color-mix(in_srgb,#58f6b1_12%,transparent)_100%)]" />
                   <div>
                     <Heading as="h3" size="item" gradient={false}>{LIVE.features[i].title}</Heading>
                     <Body className="mt-[0.4rem] text-[0.8033rem]">{LIVE.features[i].body}</Body>

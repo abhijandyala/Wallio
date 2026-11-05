@@ -73,7 +73,7 @@ export function BarsArt() {
             className="w-[0.75rem] rounded-[0.15rem] border border-white/45 bg-white/10"
           />
         ))}
-        <span className="absolute -bottom-[1.5rem] left-1/2 -translate-x-1/2 rounded-full border border-[color-mix(in_srgb,#58f6b1_50%,transparent)] bg-[color-mix(in_srgb,#58f6b1_14%,#050507)] px-[0.55rem] py-[0.12rem] text-[0.55rem] text-white/80 whitespace-nowrap">
+        <span className="absolute -bottom-[1.5rem] left-1/2 -translate-x-1/2 rounded-[0.5rem] border border-[color-mix(in_srgb,#58f6b1_50%,transparent)] bg-[color-mix(in_srgb,#58f6b1_14%,#050507)] px-[0.55rem] py-[0.12rem] text-[0.55rem] text-white/80 whitespace-nowrap">
           $60 a year
         </span>
       </div>

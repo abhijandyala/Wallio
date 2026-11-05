@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotionConfig } from "motion/react";
 import { ChatCircle, ArrowsOut, Columns, DotsThree, MagnifyingGlass, Plus } from "@phosphor-icons/react";
-import { Badge, Heading, MockFrame } from "../ui";
+import { Heading, MockFrame } from "../ui";
 import { VULTR } from "../content";
 
 const C = VULTR.chat;
@@ -25,7 +25,6 @@ export function AiCoachSection() {
       </div>
 
       <motion.div {...rise} className="relative mx-auto -mt-[0.375rem] flex w-[43rem] flex-col items-center text-center max-md:w-[calc(100%-2rem)]">
-        <Badge tone="violet">{VULTR.badge}</Badge>
         <Heading className="mt-[1rem]">{VULTR.title}</Heading>
         <p className="mt-[1rem] text-[0.8033rem] leading-[1.6] text-[var(--gx-muted)]">
           {VULTR.body[0]}
@@ -95,7 +94,7 @@ function ChatMock() {
             {C.chips.map((chip) => (
               <span
                 key={chip}
-                className="rounded-full border-[0.5px] border-[color-mix(in_srgb,#ad96f1_25%,transparent)] bg-[color-mix(in_srgb,#ad96f1_8%,transparent)] px-[0.64rem] py-[0.28rem] text-[0.66rem] text-[var(--gx-violet)]"
+                className="rounded-[0.5rem] border-[0.5px] border-[color-mix(in_srgb,#ad96f1_25%,transparent)] bg-[color-mix(in_srgb,#ad96f1_8%,transparent)] px-[0.64rem] py-[0.28rem] text-[0.66rem] text-[var(--gx-violet)]"
               >
                 {chip}
               </span>

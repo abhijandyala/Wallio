@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotionConfig } from "motion/react";
-import { Badge, Container, Heading, Shot } from "../ui";
+import { Container, Heading, Shot } from "../ui";
 import { DATA } from "../content";
 
 /** Your data: text at left, the real Settings screen running off the right edge. */
@@ -15,7 +15,6 @@ export function VerifiedSection() {
     <section className="relative mt-[3.25rem] h-[45.0625rem] max-md:h-auto max-md:py-16">
       <Container className="flex h-full items-center max-md:flex-col max-md:items-start max-md:gap-10">
         <motion.div {...fade} className="flex w-[30.5rem] flex-col items-start max-md:w-full">
-          <Badge tone="verified">{DATA.badge}</Badge>
           <Heading className="mt-[1.375rem] leading-[1.1]">
             {DATA.title[0]}
             <br />
