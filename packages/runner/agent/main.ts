@@ -101,6 +101,28 @@ async function settle(): Promise<void> {
   await page.waitForLoadState("networkidle", { timeout: 2_000 }).catch(() => {});
 }
 
+/**
+ * After a click: wait until the page stops changing. Honors aria-busy="true"
+ * (pages that run something slow, like the owned eval page, mark their result
+ * region busy until done), capped at 15 s; otherwise waits for 1 s without DOM
+ * mutations, capped at 6 s.
+ */
+async function settleAfterClick(): Promise<void> {
+  await settle();
+  await page.waitForFunction(() => !document.querySelector('[aria-busy="true"]'), undefined, { timeout: 15_000, polling: 250 }).catch(() => {});
+  await page.evaluate(
+    ({ quietMs, maxMs }) =>
+      new Promise<void>((resolve) => {
+        let timer = setTimeout(done, quietMs);
+        const cap = setTimeout(done, maxMs);
+        const obs = new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(done, quietMs); });
+        obs.observe(document.documentElement, { subtree: true, childList: true, characterData: true, attributes: true });
+        function done() { obs.disconnect(); clearTimeout(timer); clearTimeout(cap); resolve(); }
+      }),
+    { quietMs: 1_000, maxMs: 6_000 },
+  ).catch(() => {});
+}
+
 // ───────────── page reading (runs inside the page; must be self-contained) ─────────────
 
 interface Described {
@@ -130,7 +152,9 @@ function describeInPage(input: Element | Element[]): Described | Described[] {
     href = h.href;
     try { const u = new URL(h.href); if (u.protocol === "http:" || u.protocol === "https:") targetHost = u.hostname; } catch {}
   } else if (submits) {
-    try { targetHost = new URL(h.formAction || (form as HTMLFormElement).action || location.href).hostname; } catch {}
+    // button.formAction falls back to the page URL when the attribute is absent, so only trust it if set.
+    const action = el.hasAttribute("formaction") ? h.formAction : (form as HTMLFormElement).action;
+    try { targetHost = new URL(action || location.href).hostname; } catch {}
   }
   const ac = (el.getAttribute("autocomplete") || "").toLowerCase();
   const sensitive =
@@ -303,7 +327,7 @@ async function run(req: AgentRequest): Promise<AgentObservation | null> {
       }
       resetStepFlags();
       await h.click({ timeout: 10_000 });
-      await settle();
+      await settleAfterClick();
       const obs = await observe();
       if (navDenied) throw Object.assign(new AgentError("egress_denied", `The click tried to open ${hostOf(navDenied)}, which the egress proxy refused.`), { obs });
       return obs;

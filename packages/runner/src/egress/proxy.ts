@@ -30,6 +30,8 @@ interface Job {
   byteCap: number;
   bytes: number;
   denials: Denial[];
+  /** url|reason already recorded: repeats (e.g. 150 assets from one host) are counted, not listed. */
+  seen: Map<string, number>;
   dropped: number;
   conns: Set<net.Socket>;
 }
@@ -49,6 +51,10 @@ const sha = (s: string) => createHash("sha256").update(s).digest();
 const local = (s: net.Socket) => (s.localAddress ?? "").replace(/^::ffff:/, "");
 
 function deny(job: Job, url: string, reason: DenyReason) {
+  const key = `${url}|${reason}`;
+  const n = job.seen.get(key);
+  job.seen.set(key, (n ?? 0) + 1);
+  if (n !== undefined) return;
   if (job.denials.length < MAX_DENIALS) job.denials.push({ url: url.slice(0, 500), reason, at: new Date().toISOString() });
   else job.dropped++;
   log({ level: "warn", msg: "egress denied", jobId: job.jobId, host: safeHost(url), reason });
@@ -174,7 +180,7 @@ const control = http.createServer(async (req, res) => {
     const b = JSON.parse(raw) as { jobId: string; pass: string; allowedHosts: string[]; byteCap: number };
     jobs.set(user, {
       jobId: b.jobId, passHash: sha(b.pass), allowed: new Set(b.allowedHosts.map(normalizeHost)), byteCap: b.byteCap,
-      bytes: 0, denials: [], dropped: 0, conns: new Set(),
+      bytes: 0, denials: [], seen: new Map(), dropped: 0, conns: new Set(),
     });
     log({ level: "info", msg: "job registered", jobId: b.jobId, hosts: b.allowedHosts.length });
     return json(200, { ok: true });
@@ -183,13 +189,13 @@ const control = http.createServer(async (req, res) => {
   if (!job) return json(404, { error: "unknown_job" });
   if (req.method === "GET" && m[2]) {
     const since = Math.max(0, Number(u.searchParams.get("since")) || 0);
-    return json(200, { denials: job.denials.slice(since), next: job.denials.length, dropped: job.dropped, bytes: job.bytes });
+    return json(200, { denials: job.denials.slice(since), next: job.denials.length, attempts: Object.fromEntries(job.seen), dropped: job.dropped, bytes: job.bytes });
   }
   if (req.method === "DELETE" && !m[2]) {
     for (const s of job.conns) s.destroy();
     jobs.delete(user);
     log({ level: "info", msg: "job removed", jobId: job.jobId, bytes: job.bytes, denials: job.denials.length });
-    return json(200, { denials: job.denials, dropped: job.dropped, bytes: job.bytes });
+    return json(200, { denials: job.denials, attempts: Object.fromEntries(job.seen), dropped: job.dropped, bytes: job.bytes });
   }
   return json(405, { error: "method_not_allowed" });
 });
