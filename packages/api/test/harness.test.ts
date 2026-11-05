@@ -22,9 +22,10 @@ import { ADMIN, APP, asAdmin, testConfig, Visitor } from "./helpers.ts";
 function runPage(html: string): string {
   const data = html.match(/<script type="application\/json" id="data">([\s\S]*?)<\/script>/)![1]!;
   const script = html.match(/<script nonce="[^"]+">([\s\S]*?)<\/script>/)![1]!;
-  const els: Record<string, any> = { data: { textContent: data }, code: { textContent: "" }, result: { textContent: "", className: "" }, cases: { children: [] as any[], appendChild(c: any) { this.children.push(c); } } };
+  const els: Record<string, any> = { data: { textContent: data }, code: { textContent: "" }, result: { textContent: "", className: "", attrs: {} as Record<string, string>, setAttribute(k: string, v: string) { this.attrs[k] = v; } }, cases: { children: [] as any[], appendChild(c: any) { this.children.push(c); } } };
   const document = { getElementById: (id: string) => els[id], createElement: () => ({ textContent: "" }) };
   vm.runInNewContext(script, { document, JSON }, { timeout: 1000 });
+  if (els.result.attrs["aria-busy"] !== "false") throw new Error("the result region was left aria-busy");
   return [els.result.textContent, ...els.cases.children.map((c: any) => c.textContent)].join("\n");
 }
 
@@ -32,6 +33,7 @@ const TESTS = [{ args: [[1, 2, 3, 4, 5], 2], expected: [4, 5] }, { args: [[1, 2,
 const page = (code: string) => renderEvalPage({ title: "Fix an off-by-one bug", description: "d", entrypoint: "lastN", tests: TESTS, code });
 
 test("the page passes a correct fix and fails the original bug", () => {
+  assert.match(page("x").html, /id="result" data-testid="eval-result" aria-busy="true"/, "the runner waits on aria-busy and reads data-testid");
   assert.match(runPage(page("function lastN(items, n) { return n === 0 ? [] : items.slice(-n); }").html), /WALLIO-EVAL RESULT: PASS 3\/3/);
   const buggy = runPage(page("function lastN(items, n) {\n  return items.slice(items.length - n + 1);\n}").html);
   assert.match(buggy, /WALLIO-EVAL RESULT: FAIL 1\/3/);
@@ -57,7 +59,7 @@ test("model code can't break out of the data block, and the CSP forbids network 
 const ORIGIN = "https://wallio.test";
 const COPILOT = "https://github.com/features/copilot/plans";
 const ZED = "https://zed.dev/pricing";
-const cfg = testConfig({ runMode: "live", appOrigin: ORIGIN, runner: { url: "http://runner.test", token: RUNNER_TOKEN, timeoutMs: 5000 } });
+const cfg = testConfig({ runMode: "live", appOrigin: ORIGIN, runner: { url: "http://runner.test", token: RUNNER_TOKEN, timeoutMs: 5000, approvalKey: null, caFile: null } });
 let db: Db, worker: Worker, app: ReturnType<typeof createApp>;
 const runner = new FakeRunner();
 const inference = fakeInference({
@@ -113,6 +115,18 @@ test("live run: the owned page runs the Vultr fix in the runner's browser and is
   assert.ok(rec.limitations.some((l: string) => /measures Wallio's harness/.test(l)));
   assert.ok(rec.evidence.some((e: any) => e.accessMode === "tested_owned_demo"));
   for (const c of rec.candidates) assert.equal(c.score.components.quality.value, null, "the harness never becomes a product quality score");
+
+  // Its own runner job, allowed only the eval host; research jobs never get it.
+  const [jobs] = await asAdmin("SELECT runner_job_ids FROM runs WHERE id = $1", [runId]);
+  assert.equal(jobs.runner_job_ids.length, 3);
+  assert.deepEqual(runner.jobs.get(`job_${runId}_eval`)!.spec.allowedHosts, ["wallio.test"]);
+  for (const id of jobs.runner_job_ids.filter((j: string) => j.includes("_research_"))) assert.ok(!runner.jobs.get(id)!.spec.allowedHosts.includes("wallio.test"));
+  for (const id of jobs.runner_job_ids) assert.equal(runner.jobs.get(id)!.state, "cleaned");
+
+  // With an eval origin configured, the page is served only on that host.
+  const evalApp = createApp({ config: { ...cfg, evalOrigin: "https://eval.wallio.test" }, db, runs: worker });
+  assert.equal((await evalApp.request(`/eval/${tokens[0]}`, { headers: { host: "wallio.test" } })).status, 404, "not on the main host");
+  assert.equal((await evalApp.request(`/eval/${tokens[0]}`, { headers: { host: "eval.wallio.test" } })).status, 200);
 
   assert.equal((await app.request(`/eval/${"A".repeat(43)}`)).status, 404, "unknown token");
   await asAdmin("UPDATE eval_sessions SET expires_at = now() - interval '1 second' WHERE run_id = $1", [runId]);

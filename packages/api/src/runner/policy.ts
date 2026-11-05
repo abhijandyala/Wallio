@@ -95,3 +95,22 @@ export function observationInPolicy(spec: PolicySpec, obs: rc.Observation): Deci
   }
   return { ok: true };
 }
+
+/**
+ * Hosts a page loads its styles and scripts from. The runner's proxy needs them in a
+ * job's allowedHosts or screenshots render unstyled. They are NOT navigation targets:
+ * the API policy above never allows navigating to them. Measured by Adhvik on 5 Nov 2026.
+ */
+export const RUNNER_ASSET_HOSTS: Record<string, string[]> = {
+  "github.com": ["github.githubassets.com"],
+};
+
+/** A runner job's allowlist: the policy's navigation hosts plus their measured asset hosts. */
+export function jobHosts(allowed: Record<string, string[]>): string[] {
+  const hosts = new Set<string>();
+  for (const h of Object.keys(allowed)) {
+    hosts.add(h);
+    for (const a of RUNNER_ASSET_HOSTS[h] ?? []) hosts.add(a);
+  }
+  return [...hosts].slice(0, 20);
+}

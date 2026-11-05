@@ -86,7 +86,8 @@ export interface CleanupReport {
 }
 
 export interface Cleaner {
-  cleanup(args: { tenantId: string; runId: string; runnerJobId: string | null }): Promise<CleanupReport>;
+  /** Every runner job the run recorded (one per purpose); empty when no browser was started. */
+  cleanup(args: { tenantId: string; runId: string; runnerJobIds: string[] }): Promise<CleanupReport>;
 }
 
 /** What the HTTP layer needs from the orchestrator. */
@@ -368,7 +369,7 @@ export class Worker implements Orchestrator {
   async finalize(tenantId: string, runId: string): Promise<void> {
     const { db, config } = this.deps;
     const run = await db.withTenant(tenantId, async (q) => {
-      const r = (await q<{ status: RunStatus; mode: RunMode; runner_job_id: string | null }>("SELECT status, mode, runner_job_id FROM runs WHERE id = $1 AND tenant_id = $2 FOR UPDATE", [runId, tenantId])).rows[0];
+      const r = (await q<{ status: RunStatus; mode: RunMode; runner_job_ids: string[] }>("SELECT status, mode, runner_job_ids FROM runs WHERE id = $1 AND tenant_id = $2 FOR UPDATE", [runId, tenantId])).rows[0];
       if (!r || !ENDED_UNCLEANED.has(r.status)) return null;
       await transition(q, tenantId, runId, "CLEANING", { cleanup: "pending" });
       return r;
@@ -378,7 +379,7 @@ export class Worker implements Orchestrator {
     let report: CleanupReport;
     try {
       report = await Promise.race([
-        this.deps.cleaners[run.mode].cleanup({ tenantId, runId, runnerJobId: run.runner_job_id }),
+        this.deps.cleaners[run.mode].cleanup({ tenantId, runId, runnerJobIds: run.runner_job_ids }),
         new Promise<never>((_, rej) => setTimeout(() => rej(new Error("cleanup timed out")), config.worker.cleanupMaxSecs * 1000)),
       ]);
     } catch (e) {

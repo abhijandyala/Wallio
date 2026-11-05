@@ -7,6 +7,7 @@
  *   carries an approval token (an external effect) is never retried automatically: an
  *   uncertain outcome is reported as such (PRD §15).
  */
+import { createHash } from "node:crypto";
 import { runner as rc } from "@wallio/contracts";
 import type { z } from "zod";
 
@@ -104,6 +105,9 @@ export class RunnerClient {
     const buf = Buffer.from(await res.arrayBuffer());
     if (buf.length > MAX_ARTIFACT_BYTES) throw new RunnerError("invalid_response", "artifact is larger than 5 MB");
     if (buf.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a") throw new RunnerError("invalid_response", "artifact is not a PNG");
+    // The runner states the hash it stored; the caller also checks it against the observation.
+    const stated = res.headers.get("x-content-sha256")?.replace(/^sha256:/, "");
+    if (stated && stated !== createHash("sha256").update(buf).digest("hex")) throw new RunnerError("invalid_response", "artifact doesn't match the runner's stated hash");
     return buf;
   }
 

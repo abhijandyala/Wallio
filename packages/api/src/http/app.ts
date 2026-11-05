@@ -64,6 +64,8 @@ export function createApp({ config, db, runs }: AppDeps) {
   // token in the URL is the only credential; it expires in minutes and only its hash is stored.
   app.get("/eval/:token", async (c) => {
     const token = c.req.param("token");
+    // Served only on the eval subdomain (Caddy enforces this too).
+    if (config.evalOrigin && c.req.header("host") !== new URL(config.evalOrigin).host) throw notFound("Evaluation");
     if (!/^[A-Za-z0-9_-]{43}$/.test(token)) throw notFound("Evaluation");
     const row = (await db.pool.query("SELECT * FROM wallio_eval_page($1)", [tokenHash(token)])).rows[0];
     if (!row) throw notFound("Evaluation");

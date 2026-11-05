@@ -36,8 +36,15 @@ export interface AppConfig {
   /** Delay between mock run steps. */
   mockStepMs: number;
   worker: WorkerConfig;
-  /** Adhvik's runner daemon on the private network. Live mode needs both. */
-  runner: { url: string | null; token: string | null; timeoutMs: number };
+  /**
+   * Adhvik's runner daemon on the private network. Live mode needs url and token.
+   * approvalKey signs approval tokens the runner verifies before any submit click.
+   * caFile is the runner's self-signed certificate; Node trusts it through
+   * NODE_EXTRA_CA_CERTS (set in deploy/wallio-api.service).
+   */
+  runner: { url: string | null; token: string | null; timeoutMs: number; approvalKey: string | null; caFile: string | null };
+  /** https origin of the owned eval page, a separate subdomain so the eval job can't reach the API. */
+  evalOrigin: string | null;
 }
 
 export function loadAppConfig(env: Record<string, string | undefined> = process.env): AppConfig {
@@ -67,6 +74,21 @@ export function loadAppConfig(env: Record<string, string | undefined> = process.
       concurrency: { mock: n(env.MOCK_CONCURRENCY, 4), live: n(env.LIVE_CONCURRENCY, 1) },
       pollMs: n(env.WORKER_POLL_MS, 500),
     },
-    runner: { url: env.RUNNER_URL?.trim() || null, token: env.RUNNER_SHARED_TOKEN?.trim() || null, timeoutMs: n(env.RUNNER_TIMEOUT_MS, 30_000) },
+    runner: {
+      url: env.RUNNER_URL?.trim() || null,
+      token: env.RUNNER_SHARED_TOKEN?.trim() || null,
+      // navigate may take 30 s in the browser + 5 s runner watchdog; the runner asks for >= 50 s.
+      timeoutMs: Math.max(50_000, n(env.RUNNER_TIMEOUT_MS, 60_000)),
+      approvalKey: env.RUNNER_APPROVAL_KEY?.trim() || null,
+      caFile: env.RUNNER_CA_FILE?.trim() || null,
+    },
+    evalOrigin: env.EVAL_ORIGIN?.trim() || derivedEvalOrigin(env.APP_ORIGIN?.trim()),
   };
+}
+
+/** https://example.com → https://eval.example.com. Only for https origins. */
+function derivedEvalOrigin(appOrigin: string | undefined): string | null {
+  if (!appOrigin?.startsWith("https://")) return null;
+  const u = new URL(appOrigin);
+  return `https://eval.${u.hostname}`;
 }

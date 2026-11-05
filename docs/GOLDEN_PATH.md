@@ -57,7 +57,7 @@ Two layers: Adhvik's egress proxy allows **hosts**; Anish's API policy further r
 |---|---|---|
 | Incumbent research | `github.com` | `/features/copilot` |
 | Candidate research | `zed.dev` | `/pricing` |
-| Owned eval page | `eval.<our-domain>` | `/` |
+| Owned eval page | `eval.<our-domain>` | `/eval/` |
 | Owned trial form | `forms.<our-domain>` | `/` |
 | Hostile fixture | `hostile.<our-domain>` | `/` |
 

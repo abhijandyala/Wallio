@@ -25,6 +25,11 @@ set -a; . /etc/wallio/api.env; set +a
 cd packages/api && sudo -u postgres --preserve-env=DATABASE_URL,DATABASE_ADMIN_URL node scripts/db-setup.ts
 echo "== switch and restart"
 ln -sfn "$REL" /opt/wallio/current
+if ! cmp -s "$REL/deploy/wallio-api.service" /etc/systemd/system/wallio-api.service; then
+  install -m 644 "$REL/deploy/wallio-api.service" /etc/systemd/system/wallio-api.service
+  systemctl daemon-reload
+  echo "service unit updated"
+fi
 systemctl restart wallio-api
 for i in \$(seq 1 20); do
   if curl -fsS http://127.0.0.1:8787/api/health >/dev/null; then echo "API healthy"; break; fi

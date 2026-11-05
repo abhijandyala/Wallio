@@ -15,9 +15,9 @@ __WALLIO_DOMAIN__ {
 		-Server
 	}
 
-	# Owned evaluation page, opened by the runner's isolated browser.
+	# The owned evaluation page lives only on eval.<domain> (below).
 	handle /eval/* {
-		reverse_proxy 127.0.0.1:8787
+		respond 404
 	}
 
 	handle /api/* {
@@ -31,5 +31,23 @@ __WALLIO_DOMAIN__ {
 		root * /opt/wallio/current/deploy/web
 		try_files {path} /index.html
 		file_server
+	}
+}
+
+# Owned evaluation page, opened by the runner's isolated browser in its own job.
+# A separate host so that job's allowlist never includes the API. Only /eval/<token>
+# is served; everything else is 404.
+eval.__WALLIO_DOMAIN__ {
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Robots-Tag "noindex, nofollow"
+		Cache-Control "no-store"
+		-Server
+	}
+	handle /eval/* {
+		reverse_proxy 127.0.0.1:8787
+	}
+	handle {
+		respond 404
 	}
 }

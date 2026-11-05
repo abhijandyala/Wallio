@@ -14,8 +14,11 @@ const db = createDb(config.databaseUrl);
 let live: { executor: RunExecutor; cleaner: Cleaner } = { executor: new LiveExecutorUnavailable(), cleaner: new NoRunnerCleaner() };
 if (config.runner.url && config.runner.token) {
   const runner = new RunnerClient({ baseUrl: config.runner.url, token: config.runner.token, timeoutMs: config.runner.timeoutMs });
-  // The owned test page is served from the public https origin (Caddy routes /eval/* here).
-  const evalBaseUrl = config.appOrigin?.startsWith("https://") ? config.appOrigin : null;
+  // The owned test page is served from its own https subdomain (Caddy routes eval.<domain>/eval/* here).
+  const evalBaseUrl = config.evalOrigin;
+  if (config.runner.url.startsWith("https://") && config.runner.caFile && process.env.NODE_EXTRA_CA_CERTS !== config.runner.caFile) {
+    console.log(JSON.stringify({ level: "warn", msg: "RUNNER_CA_FILE is set but NODE_EXTRA_CA_CERTS points elsewhere; the runner's certificate may not be trusted", caFile: config.runner.caFile }));
+  }
   live = { executor: new LiveExecutor({ runner, gateway: (onUsage) => createInferenceGateway({ onUsage }), evalBaseUrl }), cleaner: new LiveCleaner(runner) };
 }
 const worker = new Worker({

@@ -3,16 +3,19 @@
  * runner → stored evidence (text hash + screenshot) → grounded findings →
  * per-tool knowledge (known / missing / needs testing).
  *
- * Scoring and the recommendation are P6; the owned task test and approvals are
- * later phases. This executor never fills forms or clicks anything with an
- * external effect.
+ * Runner jobs: one per purpose, one at a time (the runner runs a single job).
+ * Each tool's research gets its own job whose allowlist is only that tool's hosts
+ * (plus measured asset hosts), and the owned test gets its own job on the eval
+ * host. Each job is finished and verified cleaned before the next one starts.
+ *
+ * This executor never fills forms or clicks anything with an external effect.
  */
 import { createHash } from "node:crypto";
 import type { runner as rc } from "@wallio/contracts";
 import type { InferenceGateway, UsageRecord } from "../inference/index.ts";
 import { InferenceError } from "../inference/index.ts";
 import { RunnerClient, RunnerError } from "../runner/client.ts";
-import { checkAction, observationInPolicy, type PolicySpec, type PolicyState } from "../runner/policy.ts";
+import { checkAction, jobHosts, observationInPolicy, type PolicySpec, type PolicyState } from "../runner/policy.ts";
 import { extractFindings, type Finding } from "../research/extract.ts";
 import { baselineQuestions, defaultPages, planResearch, policyFor, type PlanOutcome, type ProfileForPlan, type ToolForPlan } from "../research/planner.ts";
 import { writeRecommendation } from "./recommend-step.ts";
@@ -52,8 +55,8 @@ export class LiveExecutor implements RunExecutor {
     this.deps = deps;
   }
 
-  private runHarness(ctx: RunContext, gw: InferenceGateway, infer: <T>(fn: () => Promise<T>) => Promise<T>, act: Act) {
-    return runHarnessStage({ runner: this.deps.runner, evalBaseUrl: this.deps.evalBaseUrl! }, ctx, gw, infer, act);
+  private runHarness(ctx: RunContext, gw: InferenceGateway, infer: <T>(fn: () => Promise<T>) => Promise<T>, act: Act, openJob: () => Promise<void>) {
+    return runHarnessStage({ runner: this.deps.runner, evalBaseUrl: this.deps.evalBaseUrl!, openJob }, ctx, gw, infer, act);
   }
 
   async execute(ctx: RunContext): Promise<ExecResult> {
@@ -110,21 +113,33 @@ export class LiveExecutor implements RunExecutor {
       await ctx.emit({ type: "policy_denied", message: "Skipped a proposed page outside the allowed sites", data: { attemptedAction: "navigate", target: r.url.slice(0, 200), reason: r.reason } });
     }
 
-    // ── runner job ──
-    const allowedHosts = Object.keys(policy.allowed);
-    const deadlineMs = Math.max(10_000, Math.min(180_000, ctx.deadlineAt.getTime() - Date.now() - 5_000));
-    let job: rc.RunnerJobStatus;
-    try {
-      job = await runner.createJob({
-        jobId: `job_${ctx.runId}`, runId: ctx.runId, correlationId: ctx.runId,
-        purpose: `Research official pages for ${tools.map((t) => t.name).join(" and ")}`.slice(0, 200),
-        allowedHosts, limits: { deadlineMs, maxActions: policy.maxActions, maxScreenshots: policy.maxScreenshots },
-      });
-    } catch (e) {
-      throw new RunFailure("runner_unavailable", "The browser runner isn't reachable right now. Try again in a minute.");
-    }
-    // Persist the resource id before doing anything else, so cleanup can always find it (PRD §15).
-    await ctx.q((q) => q("UPDATE runs SET runner_job_id = $3 WHERE id = $1 AND tenant_id = $2", [ctx.runId, ctx.tenantId, job.jobId]));
+    // ── runner jobs ──
+    let job: rc.RunnerJobStatus | null = null;
+    const openJob = async (key: string, purpose: string, hosts: string[]) => {
+      const jobId = `job_${ctx.runId}_${key}`.slice(0, 128);
+      // Recorded before the job exists, so cleanup can always find it (PRD §15).
+      await ctx.q((q) => q("UPDATE runs SET runner_job_id = $3, runner_job_ids = array_append(runner_job_ids, $3) WHERE id = $1 AND tenant_id = $2", [ctx.runId, ctx.tenantId, jobId]));
+      const deadlineMs = Math.max(10_000, Math.min(180_000, ctx.deadlineAt.getTime() - Date.now() - 5_000));
+      state.elements = null;
+      try {
+        job = await runner.createJob({
+          jobId, runId: ctx.runId, correlationId: ctx.runId, purpose: purpose.slice(0, 200), allowedHosts: hosts,
+          limits: { deadlineMs, maxActions: Math.max(1, policy.maxActions - state.actionsUsed), maxScreenshots: Math.max(0, policy.maxScreenshots - state.screenshotsUsed) },
+        });
+      } catch {
+        throw new RunFailure("runner_unavailable", "The browser runner isn't reachable right now. Try again in a minute.");
+      }
+    };
+    /** Finishes the open job and waits for its verified cleanup before anything else runs. */
+    const closeJob = async () => {
+      if (!job) return;
+      const id = job.jobId;
+      job = null;
+      const rep = await verifiedCleanup(runner, id).catch(() => null);
+      if (rep?.status !== "cleaned") {
+        throw new RunFailure("runner_unavailable", "A browser session couldn't be verified as removed, so the comparison stopped before starting another.");
+      }
+    };
     await ctx.stage("researching", "Researching official pages in an isolated browser");
 
     // ── browse ──
@@ -152,8 +167,10 @@ export class LiveExecutor implements RunExecutor {
       for (let attempt = 0; ; attempt++) {
         let res: rc.RunnerActionResult;
         try {
+          if (!job) throw new Error("no open runner job");
           res = await runner.act(job.jobId, { actionId: `a_${ctx.runId.slice(0, 8)}_${stepIndex}_${attempt}`, stepIndex, action });
         } catch (e) {
+          if (e instanceof RunFailure) throw e;
           if (e instanceof RunnerError && e.code === "deadline_exceeded") throw new RunFailure("runner_timeout", "The browser hit its time limit.");
           throw new RunFailure("runner_unavailable", "The browser runner stopped responding during research.");
         }
@@ -164,8 +181,11 @@ export class LiveExecutor implements RunExecutor {
       }
     };
 
-    for (const page of plan.pages) {
-      const tool = tools.find((t) => t.id === page.toolId)!;
+    for (const tool of tools) {
+      const pages = plan.pages.filter((p) => p.toolId === tool.id);
+      if (!pages.length) continue;
+      await openJob(`research_${tool.id}`, `Research ${tool.name}'s official pages`, jobHosts(policyFor([tool], {}, { maxActions: policy.maxActions, maxScreenshots: policy.maxScreenshots, deadlineAt: policy.deadlineAt }).allowed));
+      for (const page of pages) {
       const tk = knowledge.tools[tool.id]!;
       const nav = await act({ type: "navigate", url: page.url }, tool.id);
       if (!nav) { tk.blocked.push({ url: page.url, reason: "refused by policy" }); continue; }
@@ -229,6 +249,8 @@ export class LiveExecutor implements RunExecutor {
         if (!(e instanceof InferenceError)) throw e;
         await ctx.emit({ type: "warning", message: `Couldn't read ${tool.name}'s page with the AI service; the capture is kept`, data: { detail: e.code } });
       }
+      }
+      await closeJob();
     }
 
     // ── knowledge ──
@@ -247,7 +269,11 @@ export class LiveExecutor implements RunExecutor {
     const everyToolHasEvidence = tools.every((t) => knowledge.tools[t.id]!.blocked.length < plan.pages.filter((p) => p.toolId === t.id).length);
 
     // ── owned test (harness on Vultr, run inside the runner's browser) ──
-    if (this.deps.evalBaseUrl) knowledge.harness = await this.runHarness(ctx, gw, infer, act);
+    if (this.deps.evalBaseUrl) {
+      const evalHost = new URL(this.deps.evalBaseUrl).hostname;
+      knowledge.harness = await this.runHarness(ctx, gw, infer, act, () => openJob("eval", "Run Wallio's owned test page", [evalHost]));
+      await closeJob();
+    }
     if (knowledge.harness !== undefined) await ctx.q((q) => q("UPDATE runs SET knowledge = $3 WHERE id = $1 AND tenant_id = $2", [ctx.runId, ctx.tenantId, knowledge]));
 
     // ── score and recommend (P6) ──
@@ -261,7 +287,12 @@ export class LiveExecutor implements RunExecutor {
 
 type Act = (action: rc.RunnerAction, toolId: string | null, displayUrl?: string) => Promise<rc.RunnerActionResult | null>;
 
-export interface HarnessDeps { runner: RunnerClient; evalBaseUrl: string }
+export interface HarnessDeps {
+  runner: RunnerClient;
+  evalBaseUrl: string;
+  /** Opens the eval job (eval host only), after the fix is generated so the job's clock isn't spent waiting on inference. */
+  openJob: () => Promise<void>;
+}
 
 /** Generates a fix on Vultr, opens the owned test page in the runner, records the result as evidence. */
 export async function runHarnessStage(deps: HarnessDeps, ctx: RunContext, gw: InferenceGateway, infer: <T>(fn: () => Promise<T>) => Promise<T>, act: Act): Promise<HarnessResult | null> {
@@ -284,6 +315,7 @@ export async function runHarnessStage(deps: HarnessDeps, ctx: RunContext, gw: In
       [ctx.tenantId, ctx.runId, hash, task.id, fix.code, fix.model])).rows[0]!.id);
   const base = deps.evalBaseUrl.replace(/\/+$/, "");
   const shownUrl = `${base}/eval/session-${sessionId}`; // the token never appears in events or evidence
+  await deps.openJob();
 
   const nav = await act({ type: "navigate", url: `${base}/eval/${token}` }, null, shownUrl);
   const result = parseResult(nav?.observation?.textExcerpt ?? null);
@@ -323,7 +355,36 @@ export function canonical(raw: string): string {
   return u.toString();
 }
 
-/** Tears down the runner job and waits for its verified report (PRD §15). */
+/**
+ * Finishes a runner job (or cancels it if finish fails) and polls until cleanup is
+ * verified or reported failed. A job that is already finished just returns its report.
+ */
+export async function verifiedCleanup(runner: RunnerClient, jobId: string, pollMs = 500, maxMs = 20_000): Promise<rc.CleanupReport | null> {
+  let rep: rc.CleanupReport;
+  try {
+    rep = await runner.cleanup(jobId);
+  } catch (e) {
+    // Recorded but never created on the runner (create failed): nothing exists to remove.
+    if (e instanceof RunnerError && e.code === "job_not_found") return null;
+    throw e;
+  }
+  if (rep.status === "pending") {
+    try {
+      rep = await runner.finish(jobId);
+    } catch {
+      await runner.cancel(jobId, "shutdown").catch(() => {});
+      rep = await runner.cleanup(jobId);
+    }
+  }
+  const until = Date.now() + maxMs;
+  while (rep.status === "pending" && Date.now() < until) {
+    await new Promise((r) => setTimeout(r, pollMs));
+    rep = await runner.cleanup(jobId);
+  }
+  return rep;
+}
+
+/** Verifies every runner job the run created was torn down (PRD §15). */
 export class LiveCleaner implements Cleaner {
   private readonly runner: RunnerClient;
   private readonly pollMs: number;
@@ -331,23 +392,29 @@ export class LiveCleaner implements Cleaner {
     this.runner = runner;
     this.pollMs = pollMs;
   }
-  async cleanup(args: { runnerJobId: string | null }): Promise<CleanupReport> {
-    if (!args.runnerJobId) return { result: "cleaned", containerRemoved: true, volumeRemoved: true, detail: "No browser was started for this comparison" };
-    let rep: rc.CleanupReport;
-    try {
-      rep = await this.runner.finish(args.runnerJobId);
-    } catch {
-      await this.runner.cancel(args.runnerJobId, "shutdown").catch(() => {});
-      rep = await this.runner.cleanup(args.runnerJobId);
+  async cleanup(args: { runnerJobIds: string[] }): Promise<CleanupReport> {
+    const ids = [...new Set(args.runnerJobIds)];
+    let started = 0, containerRemoved = true, volumeRemoved = true;
+    const problems: string[] = [];
+    for (const id of ids) {
+      let rep: rc.CleanupReport | null;
+      try {
+        rep = await verifiedCleanup(this.runner, id, this.pollMs);
+      } catch (e) {
+        containerRemoved = volumeRemoved = false;
+        problems.push((e as Error).message.slice(0, 120));
+        continue;
+      }
+      if (!rep) continue;
+      started++;
+      containerRemoved &&= rep.containerRemoved;
+      volumeRemoved &&= rep.volumeRemoved;
+      if (rep.status !== "cleaned") problems.push(rep.detail ?? (rep.status === "pending" ? "still pending" : "not verified"));
     }
-    const until = Date.now() + 20_000;
-    while (rep.status === "pending" && Date.now() < until) {
-      await new Promise((r) => setTimeout(r, this.pollMs));
-      rep = await this.runner.cleanup(args.runnerJobId);
+    if (!started && !problems.length) return { result: "cleaned", containerRemoved: true, volumeRemoved: true, detail: "No browser was started for this comparison" };
+    if (!problems.length) {
+      return { result: "cleaned", containerRemoved, volumeRemoved, detail: `${started === 1 ? "Browser container" : `All ${started} browser containers`} and storage removed and verified` };
     }
-    if (rep.status === "cleaned") {
-      return { result: "cleaned", containerRemoved: rep.containerRemoved, volumeRemoved: rep.volumeRemoved, detail: "Browser container and its storage removed and verified" };
-    }
-    return { result: "failed", containerRemoved: rep.containerRemoved, volumeRemoved: rep.volumeRemoved, detail: rep.detail ? `Browser cleanup not verified: ${rep.detail}` : "Browser cleanup was not verified" };
+    return { result: "failed", containerRemoved, volumeRemoved, detail: `Browser cleanup not verified: ${problems.join("; ")}`.slice(0, 300) };
   }
 }

@@ -49,6 +49,15 @@ deploy/deploy.sh <ip>                  # ships the committed HEAD, migrates, res
 
 Only Caddy is public (443). The API listens on 127.0.0.1:8787 as the unprivileged `wallio` user; Postgres is localhost-only; SSH is key-only; the Vultr firewall group `wallio-control` limits it to the admin IP (update that rule when your IP changes). Secrets live only in root-readable `/etc/wallio/api.env` on the server.
 
+**Browser runner (Adhvik's daemon).** The control VM's private address is 10.5.96.3. The runner VM joins `wallio-vpc`, and `deploy/runner/push-runner-secrets.sh` writes `RUNNER_URL` (`https://<runner-private-ip>:8443`), `RUNNER_SHARED_TOKEN`, `RUNNER_APPROVAL_KEY` and `RUNNER_CA_FILE` into `api.env`. The runner's self-signed certificate is trusted through `NODE_EXTRA_CA_CERTS` in `wallio-api.service`. Each comparison uses one runner job per purpose, run one at a time, each with only its own hosts:
+
+| Job | Allowed hosts |
+|---|---|
+| Research, per tool | that tool's hosts, plus measured asset hosts (`github.githubassets.com` for github.com) |
+| Owned eval test | `eval.<domain>` only (served at `/eval/<token>`; the main domain returns 404 there) |
+
+Every job id is recorded before the job is created. Each job is finished and its cleanup verified before the next one starts, and the final cleanup step verifies all of them again.
+
 ## License
 
 MIT

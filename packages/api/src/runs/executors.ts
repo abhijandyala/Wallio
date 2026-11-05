@@ -156,8 +156,8 @@ export class LiveExecutorUnavailable implements RunExecutor {
 
 /** Until the runner client exists (P5), a live run never starts a browser, so there is nothing to remove. */
 export class NoRunnerCleaner implements Cleaner {
-  async cleanup(args: { runnerJobId: string | null }): Promise<CleanupReport> {
-    if (args.runnerJobId) return { result: "failed", containerRemoved: false, volumeRemoved: false, detail: "A runner job exists but no runner client is configured to remove it." };
+  async cleanup(args: { runnerJobIds: string[] }): Promise<CleanupReport> {
+    if (args.runnerJobIds.length) return { result: "failed", containerRemoved: false, volumeRemoved: false, detail: "A runner job exists but no runner client is configured to remove it." };
     return { result: "cleaned", containerRemoved: true, volumeRemoved: true, detail: "No browser was started for this comparison" };
   }
 }

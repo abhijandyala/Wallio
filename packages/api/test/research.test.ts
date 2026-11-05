@@ -103,7 +103,7 @@ test("runner client: auth, contract validation, and no retry of approved actions
 
 // ───────────────────────── live research loop ─────────────────────────
 
-const cfg = testConfig({ runMode: "live", runner: { url: "http://runner.test", token: RUNNER_TOKEN, timeoutMs: 5000 } });
+const cfg = testConfig({ runMode: "live", runner: { url: "http://runner.test", token: RUNNER_TOKEN, timeoutMs: 5000, approvalKey: null, caFile: null } });
 let db: Db;
 let worker: Worker;
 let app: ReturnType<typeof createApp>;
@@ -156,14 +156,20 @@ test("live run: plans on Vultr, browses both pricing pages, stores hashed eviden
   assert.equal(events.filter((e) => e.type === "evidence_captured").length, 2);
   assert.match(events.find((e) => e.type === "cleanup").message, /removed and verified/);
 
-  const [row] = await asAdmin("SELECT runner_job_id, knowledge, actual_micro_usd FROM runs WHERE id = $1", [runId]);
-  assert.equal(row.runner_job_id, `job_${runId}`);
+  const [row] = await asAdmin("SELECT runner_job_ids, knowledge, actual_micro_usd FROM runs WHERE id = $1", [runId]);
+  // One job per purpose, each with only its own tool's hosts (plus measured asset hosts).
+  const copilotJob = `job_${runId}_research_tool_copilot`, zedJob = `job_${runId}_research_tool_zed`;
+  assert.deepEqual(row.runner_job_ids, [copilotJob, zedJob]);
+  assert.deepEqual(runner.jobs.get(copilotJob)!.spec.allowedHosts.sort(), ["github.com", "github.githubassets.com"]);
+  assert.deepEqual(runner.jobs.get(zedJob)!.spec.allowedHosts, ["zed.dev"]);
+  assert.ok(runner.log.filter((l) => l.jobId === zedJob).every((l) => !l.url || l.url.startsWith("https://zed.dev/")));
   assert.ok(Number(row.actual_micro_usd) > 0, "model spend recorded");
   const zedKnown = row.knowledge.tools.tool_zed.known;
   assert.equal(zedKnown.length, 1);
   assert.match(zedKnown[0].quote, /\$10 per month/);
   assert.ok(row.knowledge.tools.tool_zed.missing.includes("Does Zed include edit predictions?"));
-  assert.equal(runner.jobs.get(`job_${runId}`)!.state, "cleaned");
+  assert.equal(runner.jobs.get(copilotJob)!.state, "cleaned");
+  assert.equal(runner.jobs.get(zedJob)!.state, "cleaned");
 
   const ev = await asAdmin("SELECT id, content_hash, excerpt, canonical_url FROM evidence WHERE run_id = $1 ORDER BY created_at", [runId]);
   const zedEv = ev.find((e) => e.canonical_url === ZED);
@@ -319,12 +325,13 @@ test("unusable AI plan falls back to the official pricing pages", async () => {
   assert.equal(row.knowledge.plannedBy, "default");
 });
 
-test("runner cleanup failure is reported as CLEANUP_FAILED", async () => {
+test("runner cleanup failure stops the run before another browser starts, and is reported as CLEANUP_FAILED", async () => {
   runner.failCleanup = true;
   const v = new Visitor(app);
   const { runId } = (await v.startRun()).body;
   const done = await v.waitFinished(runId, 30_000);
   assert.equal(done.status, "CLEANUP_FAILED");
-  assert.equal(done.outcome, "succeeded");
+  assert.equal(done.error.code, "runner_unavailable");
+  assert.ok(!runner.jobs.has(`job_${runId}_research_tool_zed`), "no second browser after an unverified cleanup");
   worker.resume("live");
 });

@@ -55,6 +55,8 @@ export class FakeRunner {
     app.post("/jobs", async (c) => {
       if (this.failCreate) return c.json({ code: "busy", message: "no capacity" }, 503);
       const spec = rc.RunnerJobCreate.parse(await c.req.json());
+      // Like the real daemon: one active job per runner.
+      if ([...this.jobs.values()].some((j) => j.state === "ready")) return c.json({ code: "busy", message: "a job is already active" }, 409);
       this.jobs.set(spec.jobId, { spec, results: new Map(), actionsUsed: 0, screenshotsUsed: 0, current: null, state: "ready" });
       return c.json(this.status(spec.jobId), 201);
     });
@@ -74,14 +76,15 @@ export class FakeRunner {
     app.post("/jobs/:id/finish", (c) => {
       const job = this.jobs.get(c.req.param("id"));
       if (!job) return c.json({ code: "job_not_found", message: "no job" }, 404);
+      if (job.state !== "ready") return c.json({ code: "job_not_ready", message: "already finished" }, 409);
       job.state = this.failCleanup ? "finished" : "cleaned";
       return c.json(this.cleanup(c.req.param("id")));
     });
     app.post("/jobs/:id/cancel", (c) => c.json({}, 202));
-    app.get("/jobs/:id/cleanup", (c) => c.json(this.cleanup(c.req.param("id"))));
+    app.get("/jobs/:id/cleanup", (c) => (this.jobs.has(c.req.param("id")) ? c.json(this.cleanup(c.req.param("id"))) : c.json({ code: "job_not_found", message: "no job" }, 404)));
     app.get("/artifacts/:id", (c) => {
       const a = this.artifacts.get(c.req.param("id"));
-      return a ? c.body(new Uint8Array(a), 200, { "content-type": "image/png" }) : c.json({ code: "job_not_found", message: "no artifact" }, 404);
+      return a ? c.body(new Uint8Array(a), 200, { "content-type": "image/png", "x-content-sha256": sha(a) }) : c.json({ code: "job_not_found", message: "no artifact" }, 404);
     });
   }
 
@@ -96,6 +99,7 @@ export class FakeRunner {
   private cleanup(jobId: string): rc.CleanupReport {
     const j = this.jobs.get(jobId);
     const ok = j?.state === "cleaned";
+    if (j?.state === "ready") return { jobId, status: "pending", containerId: "c0ffee", containerRemoved: false, volumeRemoved: false, verifiedAt: null, actionsExecuted: j.actionsUsed, screenshotsTaken: j.screenshotsUsed, deniedRequests: [], detail: null };
     return { jobId, status: ok ? "cleaned" : "cleanup_failed", containerId: "c0ffee", containerRemoved: ok, volumeRemoved: ok, verifiedAt: ok ? new Date().toISOString() : null, actionsExecuted: j?.actionsUsed ?? 0, screenshotsTaken: j?.screenshotsUsed ?? 0, deniedRequests: [], detail: ok ? null : "container still present" };
   }
 

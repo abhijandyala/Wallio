@@ -71,10 +71,12 @@ h1{font:600 1.2rem system-ui,sans-serif}pre{background:#f4f4f6;padding:.75rem;ov
 <p>${esc(p.description)}</p>
 <p>This page tests a fix proposed by a model on Vultr. It does not test any commercial product.</p>
 <h2>Proposed fix</h2><pre id="code"></pre>
-<div id="result">WALLIO-EVAL RUNNING</div><ol id="cases"></ol>
+<div id="result" data-testid="eval-result" aria-busy="true" aria-live="polite">WALLIO-EVAL RUNNING</div><ol id="cases"></ol>
 <script type="application/json" id="data">${data}</script>
 <script nonce="${nonce}">
 (function () {
+  var r = document.getElementById("result");
+  try {
   var d = JSON.parse(document.getElementById("data").textContent);
   document.getElementById("code").textContent = d.code;
   var list = document.getElementById("cases"), passed = 0, fn = null;
@@ -87,9 +89,14 @@ h1{font:600 1.2rem system-ui,sans-serif}pre{background:#f4f4f6;padding:.75rem;ov
     li.textContent = (ok ? "PASS " : "FAIL ") + d.entrypoint + "(" + JSON.stringify(t.args).slice(1, -1) + ") expected " + JSON.stringify(t.expected) + ", got " + (typeof got === "string" ? got : JSON.stringify(got));
     list.appendChild(li);
   });
-  var r = document.getElementById("result"), all = passed === d.tests.length;
+  var all = passed === d.tests.length;
   r.textContent = "WALLIO-EVAL RESULT: " + (all ? "PASS " : "FAIL ") + passed + "/" + d.tests.length;
   r.className = all ? "pass" : "fail";
+  } catch (e) {
+    r.textContent = "WALLIO-EVAL ERROR";
+  } finally {
+    r.setAttribute("aria-busy", "false"); // the runner waits while this is "true" (max 15 s)
+  }
 })();
 </script></body></html>`;
   const csp = [
