@@ -29,7 +29,9 @@ export function StepList({ steps }: { steps: RunStep[] }) {
           </span>
           <span className="tnum shrink-0 text-[13px] text-text-3">
             {s.status === "active"
-              ? "Working"
+              ? s.approval
+                ? "Needs you"
+                : "Working"
               : s.atSeconds !== null
                 ? `${s.atSeconds}s`
                 : ""}

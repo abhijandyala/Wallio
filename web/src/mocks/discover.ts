@@ -19,7 +19,7 @@ const parts = (
 ];
 
 /** Adds the capture details the evidence drawer shows. Sample hashes, deterministic per id. */
-const cap = (e: Evidence): Evidence => {
+export const cap = (e: Evidence): Evidence => {
   let h = 0x811c9dc5;
   for (const c of e.id) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
   const hex = (h.toString(16) + (h * 7).toString(16)).padEnd(12, "0").slice(0, 12);

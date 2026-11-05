@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Check, LockSimple } from "@phosphor-icons/react";
 import type { ApprovalIntent } from "@/lib/types";
@@ -31,10 +31,13 @@ const time = (iso: string) =>
 export function ApprovalPanel({
   intent,
   onSettled,
+  onResolved,
 }: {
   intent: ApprovalIntent;
   /** Tells the page whether this approval still needs the user. */
   onSettled?: (settled: boolean) => void;
+  /** Fires once the server has confirmed the submit, or when the user declines. */
+  onResolved?: (result: "approved" | "declined") => void;
 }) {
   const reduce = useReducedMotion();
   const [state, setState] = useState<State>("waiting");
@@ -52,6 +55,15 @@ export function ApprovalPanel({
   const shown: State =
     state === "checking" && passed >= CHECKS.length ? "confirmed" : state;
 
+  // Report the confirmed submit once, after the last server check.
+  const reported = useRef(false);
+  useEffect(() => {
+    if (shown === "confirmed" && !reported.current) {
+      reported.current = true;
+      onResolved?.("approved");
+    }
+  }, [shown, onResolved]);
+
   const approve = () => {
     setPassed(0);
     setState("checking");
@@ -60,6 +72,7 @@ export function ApprovalPanel({
   const decline = () => {
     setState("declined");
     onSettled?.(true);
+    onResolved?.("declined");
   };
   const undo = () => {
     setState("waiting");

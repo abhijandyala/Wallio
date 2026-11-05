@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowRight, Check, X } from "@phosphor-icons/react";
+import { ArrowRight, Check, ShieldCheck, X } from "@phosphor-icons/react";
 import type { CompareSetupData } from "@/lib/types";
 import { Panel } from "@/components/kit/panel";
 import { Segmented } from "@/components/kit/segmented";
@@ -40,12 +40,19 @@ export function CompareSetup({
   data,
   choice,
   onChange,
+  capCents,
+  onCap,
   onStart,
+  onContainment,
 }: {
   data: CompareSetupData;
   choice: SetupChoice;
   onChange: (c: SetupChoice) => void;
+  /** Spend cap for the run (inference + runner). The server also enforces its own ceiling. */
+  capCents: number;
+  onCap: (c: number) => void;
   onStart: () => void;
+  onContainment: () => void;
 }) {
   const tasks = data.tasks.filter((t) => t.workflowId === choice.workflowId);
   const tools = data.tools.filter((t) =>
@@ -87,7 +94,7 @@ export function CompareSetup({
         </Row>
 
         <div className="border-t border-line">
-          <p className="px-6 pt-4 text-[13px] text-text-3">Task</p>
+          <p className="px-6 pt-4 text-[13px] text-text-3">Task · runs on sample data</p>
           <ChoiceList
             name="task"
             type="radio"
@@ -95,7 +102,6 @@ export function CompareSetup({
             options={tasks.map((t) => ({
               id: t.id,
               label: t.title,
-              meta: "Sample data",
             }))}
             value={[choice.taskId]}
             onChange={([id]) => onChange({ ...choice, taskId: id })}
@@ -153,9 +159,22 @@ export function CompareSetup({
           </div>
         </div>
 
+        <Row label="Spend cap">
+          <Segmented
+            label="Spend cap"
+            value={String(capCents)}
+            onChange={(v) => onCap(Number(v))}
+            options={[
+              { id: "25", label: "$0.25" },
+              { id: "50", label: "$0.50" },
+              { id: "100", label: "$1.00" },
+            ]}
+          />
+        </Row>
+
         <footer className="mt-auto flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-line px-6 py-5">
           <span className="tnum text-[13px] text-text-3">
-            3 runs each · about 2 minutes · est. $0.13
+            3 runs each · about 2 minutes · est. $0.13, reserved when it starts
           </span>
           <Button
             variant="primary"
@@ -181,6 +200,12 @@ export function CompareSetup({
             </KeyValueRow>
             <KeyValueRow label="Afterwards">Sandbox destroyed</KeyValueRow>
           </KeyValue>
+          <div className="flex flex-wrap items-center gap-3 border-t border-line px-6 py-4">
+            <Button variant="secondary" size="sm" onClick={onContainment}>
+              <ShieldCheck size={14} /> Run the containment test
+            </Button>
+            <span className="text-[12px] text-text-3">Our hostile page, about 15 seconds</span>
+          </div>
         </Panel>
       </div>
 
@@ -192,7 +217,7 @@ export function CompareSetup({
                 key={r.id}
                 title={r.title}
                 meta={`${r.outcome} · ${r.finishedOn}`}
-                href="/compare?view=results"
+                href={r.href}
               />
             ))}
           </List>

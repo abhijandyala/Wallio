@@ -295,12 +295,37 @@ export interface RunStep {
   /** Short note shown only for blocked/failed steps. */
   note?: string;
   /** What the step is doing, so the live view can show the right thing. */
-  kind?: "plan" | "research" | "test" | "verify" | "report" | "cleanup";
+  kind?: "plan" | "research" | "test" | "verify" | "report" | "form" | "cleanup";
   /** The page or place the sandbox is working in, e.g. "cursor.com/pricing". */
   host?: string;
   /** For test steps: which tool is being run. */
   toolName?: string;
+  /** Timeline stage (contracts RunStage). */
+  stage?: RunStage;
+  /** Browser actions the agent proposed in this step, each checked by policy. */
+  actions?: RunAction[];
+  /** Vultr inference calls made in this step. */
+  inference?: InferenceCall[];
+  /** This step pauses the run until the user approves or declines. */
+  approval?: boolean;
 }
+
+export type RunStage = "planning" | "researching" | "testing" | "verifying" | "reporting";
+
+export interface RunAction {
+  action: string; // navigate, inspect, click, fill, screenshot
+  target: string;
+  verdict: "allowed" | "denied";
+  reason?: string;
+}
+
+export interface InferenceCall {
+  purpose: "plan" | "extract" | "verify" | "explain";
+  model: string;
+  ms: number;
+}
+
+export type RunOutcome = "succeeded" | "partial" | "failed" | "timed_out" | "cancelled";
 
 export interface Evidence {
   id: string;
@@ -323,6 +348,8 @@ export interface AttemptResult {
   /** null when the attempt timed out. */
   seconds: number | null;
   note?: string;
+  /** What the test printed for this attempt. */
+  output?: string;
 }
 
 export interface CandidateResult {
@@ -351,9 +378,21 @@ export interface RunResult {
   /** What this result does not show. Always displayed with the verdict. */
   limitations: string[];
   /** Policy checks on every browser action the agent proposed. */
-  policy: { allowed: number; stopped: number };
+  policy: { allowed: number; stopped: number; denied: RunAction[] };
   /** Lifecycle cleanup, stored apart from the outcome (PRD section 15). */
   cleanup: { status: "cleaned" | "cleanup_failed" | "pending"; at: string | null };
+  outcome: RunOutcome;
+  /** Run spend (inference + runner) against the cap the user set. */
+  spend: { actualCents: number; capCents: number };
+  confidence: "low" | "medium" | "high";
+  savings: SavingsScenario | null;
+  statements: Statement[];
+  /** The deterministic check that decides pass or fail. */
+  test: { name: string; assertion: string };
+  /** For failed runs: a safe message and the id support can look up. */
+  error?: { message: string; correlationId: string };
+  /** For partial runs: what didn't finish. */
+  partialNote?: string;
 }
 
 export interface CompareSetupData {
@@ -366,7 +405,7 @@ export interface CompareSetupData {
     /** Workflows this tool can be tested on. */
     workflowIds: string[];
   }[];
-  recent: { id: string; title: string; finishedOn: string; outcome: string }[];
+  recent: { id: string; title: string; finishedOn: string; outcome: string; href: string }[];
 }
 
 // ─── Decisions ────────────────────────────────────────────────────
