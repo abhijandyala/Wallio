@@ -19,6 +19,7 @@ export const testConfig = (over: Partial<AppConfig> = {}, worker: Partial<AppCon
   runEstimateMinor: 5,
   dailySpendCapMinor: 100_000,
   mockStepMs: 5,
+  runner: { url: null, token: null, timeoutMs: 5000 },
   ...over,
   worker: {
     leaseSecs: 3,

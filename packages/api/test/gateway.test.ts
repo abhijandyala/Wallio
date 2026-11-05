@@ -170,6 +170,14 @@ test("a throwing usage sink never breaks the call", async () => {
   assert.equal((await g.chat({ purpose: "plan", messages: msg, correlationId: "c" })).text, "fine");
 });
 
+test("pinned per-model params are sent, but can't override model or messages", async () => {
+  const { g, calls } = gw([{ content: "ok" }], { modelParams: { "text-model": { chat_template_kwargs: { enable_thinking: false }, model: "evil-model", messages: [] } } });
+  await g.chat({ purpose: "plan", messages: msg, correlationId: "c" });
+  assert.deepEqual(calls[0]!.body.chat_template_kwargs, { enable_thinking: false });
+  assert.equal(calls[0]!.body.model, "text-model");
+  assert.equal(calls[0]!.body.messages.length, 1);
+});
+
 test("extractJson handles prose, fences and arrays", () => {
   assert.equal(extractJson('sure: {"a":1} thanks'), '{"a":1}');
   assert.equal(extractJson("```\n[1,2]\n```"), "[1,2]");

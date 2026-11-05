@@ -388,5 +388,20 @@ export function createApp({ config, db, runs }: AppDeps) {
     return send(c, api.Evidence, evidenceToContract(row));
   });
 
+  // Screenshot bytes, after the same ownership check. Never a public bucket URL.
+  app.get("/api/evidence/:id/screenshot", async (c) => {
+    const id = c.req.param("id");
+    if (!UUID.test(id)) throw notFound("Screenshot");
+    const row = await tenant(c, async (q, t) => (await q<{ bytes: Buffer; sha256: string }>("SELECT bytes, sha256 FROM evidence_screenshots WHERE evidence_id = $1 AND tenant_id = $2", [id, t])).rows[0]);
+    if (!row) throw notFound("Screenshot");
+    return c.body(new Uint8Array(row.bytes), 200, {
+      "content-type": "image/png",
+      "cache-control": "private, max-age=3600",
+      "x-content-type-options": "nosniff",
+      "content-security-policy": "default-src 'none'",
+      "x-content-sha256": row.sha256,
+    });
+  });
+
   return app;
 }

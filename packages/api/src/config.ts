@@ -36,6 +36,8 @@ export interface AppConfig {
   /** Delay between mock run steps. */
   mockStepMs: number;
   worker: WorkerConfig;
+  /** Adhvik's runner daemon on the private network. Live mode needs both. */
+  runner: { url: string | null; token: string | null; timeoutMs: number };
 }
 
 export function loadAppConfig(env: Record<string, string | undefined> = process.env): AppConfig {
@@ -65,5 +67,6 @@ export function loadAppConfig(env: Record<string, string | undefined> = process.
       concurrency: { mock: n(env.MOCK_CONCURRENCY, 4), live: n(env.LIVE_CONCURRENCY, 1) },
       pollMs: n(env.WORKER_POLL_MS, 500),
     },
+    runner: { url: env.RUNNER_URL?.trim() || null, token: env.RUNNER_SHARED_TOKEN?.trim() || null, timeoutMs: n(env.RUNNER_TIMEOUT_MS, 30_000) },
   };
 }

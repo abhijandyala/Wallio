@@ -20,5 +20,13 @@
     },
     "policy": "Gateway retries 429/5xx at most twice with backoff. Runner jobs are serialized (1 active job), so a comparison stays far below observed capacity."
   },
+  "modelParams": {
+    "qwen3.8-flash-next": {
+      "chat_template_kwargs": {
+        "enable_thinking": false
+      }
+    }
+  },
+  "modelParamsNote": "Tested 2026-11-05: with thinking on, a research plan used the full 3000-token budget on reasoning and returned no answer; with enable_thinking=false the same request returned valid JSON in ~0.8 s using ~1/3 of the tokens.",
   "notes": "Filled after the capability gate passes (npm run smoke:inference -w @wallio/api). Prices are USD per 1M tokens from Vultr's current price sheet."
 }

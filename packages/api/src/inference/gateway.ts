@@ -191,6 +191,7 @@ export class InferenceGateway {
   private async complete(req: ChatRequest, model: string, jsonMode: boolean, onAttempts: (n: number) => void): Promise<ChatResult> {
     const cap = this.cfg.maxOutputTokens[req.purpose];
     const body: Record<string, unknown> = {
+      ...(this.cfg.modelParams?.[model] ?? {}),
       model,
       messages: req.messages,
       max_tokens: Math.min(req.maxTokens ?? cap, cap),

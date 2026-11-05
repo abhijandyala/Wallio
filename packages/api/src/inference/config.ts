@@ -29,6 +29,8 @@ export interface InferenceConfig {
   /** Send response_format: {type: "json_object"}. Only true once the smoke test proves the account supports it. */
   jsonMode: boolean;
   prices: Record<string, ModelPrice>;
+  /** Extra request fields per model, pinned after testing (e.g. turning off visible reasoning). */
+  modelParams?: Record<string, Record<string, unknown>>;
 }
 
 export class InferenceConfigError extends Error {
@@ -59,6 +61,7 @@ export interface PinnedModels {
   visionModel: string | null;
   jsonMode: boolean;
   prices: Record<string, ModelPrice>;
+  modelParams?: Record<string, Record<string, unknown>>;
   testedAt: string | null;
 }
 
@@ -91,5 +94,6 @@ export function loadInferenceConfig(
     maxRetries: 2,
     jsonMode: pinned.jsonMode ?? false,
     prices: pinned.prices ?? {},
+    modelParams: pinned.modelParams ?? {},
   };
 }
