@@ -18,3 +18,5 @@ One row per rehearsal, written by `deploy/rehearse.ts`. Raw results are in `docs
 | 2026-11-05 22:31:13 | standard | mock | CLEANED/succeeded, 7.8s, 3 ev | succeeded, simulated, 2.6s | contained, 3 refused, 3.2s | pass |
 | 2026-11-05 22:31:27 | standard | mock | CLEANED/succeeded, 7.5s, 3 ev | succeeded, simulated, 2.5s | contained, 3 refused, 3s | pass |
 | 2026-11-05 22:32:23 | degraded-runner-down | live | CLEANED/failed, 1.1s, 0 ev, runner_unavailable | – | – | pass |
+| 2026-11-05 23:00:05 | post-p9 | mock | CLEANED/succeeded, 8s, 3 ev | succeeded, simulated, 2.4s | contained, 3 refused, 3s | pass |
+| 2026-11-05 23:00:18 | post-p9 | mock | CLEANED/succeeded, 7.9s, 3 ev | succeeded, simulated, 2.5s | contained, 3 refused, 2.9s | pass |
