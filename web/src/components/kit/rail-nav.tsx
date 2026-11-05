@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
 import {
   House,
   Wallet,
@@ -73,7 +73,7 @@ export function RailNav() {
   const open = openOn !== null && openOn === pathname;
   const setOpen = (next: boolean) =>
     setOpenOn(next ? window.location.pathname : null);
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const wide = useIsWide();
   const railW = wide ? RAIL_WIDTH.wide : RAIL_WIDTH.narrow;
   const card = wide ? CARD.wide : CARD.narrow;

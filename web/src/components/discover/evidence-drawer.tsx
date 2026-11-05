@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
 import { LockSimple, X } from "@phosphor-icons/react";
 import type { Evidence } from "@/lib/types";
 import { Tag } from "@/components/kit/tag";
@@ -26,7 +26,7 @@ export function EvidenceDrawer({
   evidence: Evidence | null;
   onClose: () => void;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
 
   useEffect(() => {
     if (!evidence) return;

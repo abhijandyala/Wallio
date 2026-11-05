@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotionConfig } from "motion/react";
 import { formatMoney } from "@/lib/format";
 import { ToolMark } from "./tool-mark";
 import { cn } from "@/lib/utils";
@@ -50,7 +50,7 @@ export function BlockBarChart({
   data: { label: string; cents: number }[];
   height?: number;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const [hover, setHover] = useState<number | null>(null);
   const [ref, width] = useWidth<HTMLDivElement>();
 

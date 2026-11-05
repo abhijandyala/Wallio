@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
 import { CaretRight, Check, Prohibit, X } from "@phosphor-icons/react";
 import type { CandidateResult, Evidence, RunOutcome, RunResult, Statement } from "@/lib/types";
 import { Panel } from "@/components/kit/panel";
@@ -223,7 +223,7 @@ function NoVerdict({ result }: { result: RunResult }) {
 }
 
 function ThisRun({ result }: { result: RunResult }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const [open, setOpen] = useState(false);
   return (
     <Panel title="This run" flush>

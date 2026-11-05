@@ -1,11 +1,11 @@
 import { homeSample } from "@/mocks/home";
+import { DisplayName, LiveSpendPanel } from "@/components/home/settings-bits";
 import { ButtonLink } from "@/components/kit/button-link";
 import { Stat, StatStrip } from "@/components/kit/stat";
 import { Money } from "@/components/kit/money";
 import { NumberTicker } from "@/components/kit/number-ticker";
 import { Sparkbars } from "@/components/kit/charts";
 import { DecisionHero } from "@/components/home/decision-hero";
-import { SpendPanel } from "@/components/home/spend-panel";
 import { StackPanel } from "@/components/home/stack-panel";
 import { InboxPanel } from "@/components/home/inbox-panel";
 import { SpendChartPanel } from "@/components/home/spend-chart-panel";
@@ -31,7 +31,7 @@ export default function HomePage() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="display text-[40px] leading-[44px] font-medium text-text-1 sm:text-[52px] sm:leading-[56px]">
-            Welcome back, {data.userFirstName}
+            Welcome back, <DisplayName />
           </h1>
           <p className="mt-2 text-[15px] text-text-2">
             {needsYou > 0
@@ -47,7 +47,7 @@ export default function HomePage() {
       <div className="grid grid-cols-12 gap-gutter">
         {/* Row 1: summary left, the one decision right */}
         <div className="col-span-12 grid xl:col-span-4">
-          <SpendPanel totals={totals} budgetCents={data.monthlyBudgetCents} />
+          <LiveSpendPanel totals={totals} />
         </div>
         <div className="order-first col-span-12 grid xl:order-none xl:col-span-8">
           <DecisionHero decision={data.nextDecision} />

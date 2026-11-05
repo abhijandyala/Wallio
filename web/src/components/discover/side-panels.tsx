@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
 import { ArrowsClockwise, X } from "@phosphor-icons/react";
 import type { DiscoverData, FitComponentKey, Match } from "@/lib/types";
 import { Panel } from "@/components/kit/panel";
@@ -31,7 +31,7 @@ export function ShortlistPanel({
   /** e.g. "Re-ranked with profile version 4. Copilot moved to 1." */
   note: string | null;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   return (
     <Panel title="Shortlist" flush>
       {matches.length === 0 ? (
@@ -155,7 +155,7 @@ export function WeightsPanel({
   onSave: () => void;
   onReset: () => void;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const pct = weightPct(weights);
   return (
     <section className="flex flex-col rounded-[20px] border border-line bg-surface-1">

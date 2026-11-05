@@ -1,13 +1,14 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import { animate, useReducedMotion } from "motion/react";
+import { animate, useReducedMotionConfig } from "motion/react";
 import { CaretDown, CaretUp } from "@phosphor-icons/react";
 import type { Subscription, Workflow } from "@/lib/types";
 import { ToolMark } from "@/components/kit/tool-mark";
 import { Money } from "@/components/kit/money";
 import { daysUntil, formatShortDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useSettings } from "@/lib/settings";
 import { AddToolCard } from "./tool-card";
 
 export type ToolsView = "cards" | "table";
@@ -40,10 +41,11 @@ const SURFACE_CLEAR = "rgba(12,12,16,0)";
 type Rect = { x: number; y: number; w: number; h: number };
 type Snapshot = { rects: Map<string, Rect>; height: number };
 
-const isSoon = (s: Subscription, today: string) => {
+/** Inside the user's renewal reminder window (Settings → Spending). */
+const isSoon = (s: Subscription, today: string, lead: number) => {
   if (!s.renewsOn) return false;
   const d = daysUntil(s.renewsOn, today);
-  return d >= 0 && d <= 14;
+  return d >= 0 && d <= lead;
 };
 
 function boxLook(view: ToolsView, soon: boolean, first: boolean) {
@@ -100,7 +102,8 @@ export function ToolsCollection({
   onOpen: (s: Subscription) => void;
   onAdd: () => void;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
+  const { renewalLeadDays: lead } = useSettings();
   const cards = view === "cards";
 
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -189,7 +192,7 @@ export function ToolsCollection({
           width: `${r.w}px`,
           height: `${r.h}px`,
         });
-        const look = boxLook(from, isSoon(s, today), s.id === fromFirst);
+        const look = boxLook(from, isSoon(s, today, lead), s.id === fromFirst);
         Object.assign(g.style, { ...look, borderRadius: `${look.borderRadius}px` });
       });
     }
@@ -219,7 +222,7 @@ export function ToolsCollection({
               top: r.y,
               width: r.w,
               height: r.h,
-              ...boxLook(view, isSoon(s, today), i === 0),
+              ...boxLook(view, isSoon(s, today, lead), i === 0),
             },
             { duration: MOVE, ease: EASE, delay: i * STAGGER },
           ),
@@ -371,7 +374,8 @@ function ToolItem({
   onOpen: () => void;
 }) {
   const days = sub.renewsOn ? daysUntil(sub.renewsOn, today) : null;
-  const soon = isSoon(sub, today);
+  const { renewalLeadDays } = useSettings();
+  const soon = isSoon(sub, today, renewalLeadDays);
   const paused = sub.status !== "active";
 
   return (
@@ -416,6 +420,9 @@ function CardContent({
   days: number | null;
   paused: boolean;
 }) {
+  // Settings → Spending → "Show yearly plans as".
+  const { annualDisplay } = useSettings();
+  const yearly = annualDisplay === "actual" && sub.cadence === "annual" && sub.renewalCents !== null;
   return (
     <span className="flex h-full flex-col justify-between p-5">
       <span className="flex items-start justify-between gap-3">
@@ -452,6 +459,13 @@ function CardContent({
             <span className="text-[18px] tracking-normal text-text-3">
               Price unknown
             </span>
+          ) : yearly ? (
+            <>
+              <Money cents={sub.renewalCents} />
+              <span className="ml-1 text-[14px] font-normal tracking-normal text-text-3">
+                /yr
+              </span>
+            </>
           ) : (
             <>
               <Money cents={sub.monthlyCents} />
@@ -466,8 +480,17 @@ function CardContent({
           {sub.cadence === "annual" && sub.renewalCents !== null && (
             <>
               {" · "}
-              <Money cents={sub.renewalCents} dropCents />
-              /yr
+              {yearly ? (
+                <>
+                  <Money cents={sub.monthlyCents} dropCents />
+                  /mo
+                </>
+              ) : (
+                <>
+                  <Money cents={sub.renewalCents} dropCents />
+                  /yr
+                </>
+              )}
             </>
           )}
         </span>

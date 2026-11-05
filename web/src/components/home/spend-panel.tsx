@@ -15,7 +15,7 @@ export function SpendPanel({
   const budget = formatMoney(budgetCents).replace(".00", "");
 
   return (
-    <Panel title="Monthly spend" action={{ label: "Budget", href: "/my-ai" }}>
+    <Panel title="Monthly spend" action={{ label: "Budget", href: "/settings#spending" }}>
       <div className="flex h-full flex-col justify-end gap-5">
         <p className="display text-[44px] leading-[48px] font-medium text-text-1">
           <NumberTicker value={totals.monthlyCents} kind="money" />

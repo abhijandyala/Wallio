@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
 import { ArrowRight, CaretRight, Check, Question, X } from "@phosphor-icons/react";
 import type {
   AccessMode,
@@ -165,7 +165,7 @@ export function MatchDetail({
 /* ── Savings: what switching changes, with its assumptions ─────────────── */
 
 function Savings({ savings, replaces }: { savings: SavingsScenario; replaces: string }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const [open, setOpen] = useState(false);
   const d = savings.monthlyDeltaCents;
   const cheaper = d !== null && d < 0;
@@ -342,7 +342,7 @@ function WhyPanel({
 
 /** The five weighted parts of the score. Unknown parts are hatched, never filled in. */
 function ScoreBreakdown({ components }: { components: FitComponent[] }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   return (
     <ul className="flex flex-col justify-center gap-3">
       {components.map((c, i) => (

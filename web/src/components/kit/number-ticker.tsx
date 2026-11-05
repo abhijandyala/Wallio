@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { animate, useInView, useReducedMotion } from "motion/react";
+import { animate, useInView, useReducedMotionConfig } from "motion/react";
 
 type Kind = "money" | "integer";
 
@@ -31,7 +31,7 @@ export function NumberTicker({
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true });
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
 
   useEffect(() => {
     const key = `${kind}:${value}`;

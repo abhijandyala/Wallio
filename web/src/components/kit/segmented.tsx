@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotionConfig } from "motion/react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -20,7 +20,7 @@ export function Segmented<T extends string>({
   label: string;
 }) {
   const group = useId();
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
 
   return (
     <div

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
 import { LockSimple, Prohibit } from "@phosphor-icons/react";
 import type { RunStep } from "@/lib/types";
 import { StepList } from "@/components/kit/step-list";
@@ -29,7 +29,7 @@ export function ResearchRun({
   onDone: () => void;
   onStop: () => void;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const plan = useMemo<RunStep[]>(
     () => [
       { id: "p", label: "Planning on Vultr Serverless Inference", status: "pending", atSeconds: null, host: "Vultr Serverless Inference" },

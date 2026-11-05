@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useReducedMotion } from "motion/react";
+import { useReducedMotionConfig } from "motion/react";
 
 const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$%&*@#+=?!";
 const TINTS = ["var(--w-lime)", "var(--w-lavender)", "var(--w-text-3)"];
@@ -28,7 +28,7 @@ export function ScrambleText({
   /** Skip the decode and show `text` immediately (e.g. returning to a label set in a proportional font). */
   instant?: boolean;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const [cells, setCells] = useState<Cell[]>(() =>
     animateOnMount ? blank(text) : final(text),
   );

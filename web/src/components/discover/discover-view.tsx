@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
 import type { DiscoverData, Evidence, FitComponentKey, Match } from "@/lib/types";
 import { hostFor } from "@/mocks/compare";
 import { PageHeader } from "@/components/kit/page-header";
@@ -72,7 +72,7 @@ const rank = (list: Match[], w: Weights) =>
  * changes, and collects choices.
  */
 export function DiscoverView({ data }: { data: DiscoverData }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const workflows = [...data.workflows].sort((a, b) => a.priority - b.priority);
   const [workflowId, setWorkflowId] = useState(workflows[0]?.id ?? "");
   const [picked, setPicked] = useState<Record<string, string>>({});

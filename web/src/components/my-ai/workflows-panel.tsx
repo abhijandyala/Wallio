@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
 import { ArrowDown, ArrowUp, Plus, X } from "@phosphor-icons/react";
 import type { Workflow } from "@/lib/types";
 import { ToolMark } from "@/components/kit/tool-mark";
@@ -23,7 +23,7 @@ export function WorkflowsPanel({
   tools: string[];
   onSave: (next: Workflow[]) => void;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const sorted = [...workflows].sort((a, b) => a.priority - b.priority);
   const [draft, setDraft] = useState<Workflow[] | null>(null);
   const editing = draft !== null;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
 import { Check, X } from "@phosphor-icons/react";
 import type {
   DecisionLogEntry,
@@ -43,7 +43,7 @@ type RecState = "open" | "later" | "dismissed";
  * TODO(api): GET /api/decisions, POST /api/recommendations/{id}/{defer|dismiss}, POST /api/decisions/{id}/outcome.
  */
 export function DecisionsView({ data }: { data: DecisionsData }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const [recs, setRecs] = useState<Record<string, RecState>>({});
   const [outcomes, setOutcomes] = useState<Record<string, DecisionLogEntry["result"]>>({});
 

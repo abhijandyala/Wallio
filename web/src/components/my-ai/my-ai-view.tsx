@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
 import { Plus } from "@phosphor-icons/react";
 import type { Connection, Profile, ProfileField, Subscription, Workflow } from "@/lib/types";
 import { PageHeader } from "@/components/kit/page-header";
@@ -9,6 +9,7 @@ import { Segmented } from "@/components/kit/segmented";
 import { Money } from "@/components/kit/money";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { updateSettings, useSettings } from "@/lib/settings";
 import { ToolsCollection, type ToolsSort, type ToolsView } from "./tools-collection";
 import { ToolsEmpty } from "./tools-empty";
 import { ToolDrawer } from "./tool-drawer";
@@ -38,9 +39,12 @@ export function MyAiView({
   connections: Connection[];
   today: string;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const [subs, setSubs] = useState(initial);
-  const [view, setView] = useState<ToolsView>("cards");
+  const settings = useSettings();
+  // null = use the default from Settings -> Display; a click here overrides it for this visit.
+  const [viewPick, setView] = useState<ToolsView | null>(null);
+  const view = viewPick ?? settings.myAiView;
   const [sort, setSort] = useState<ToolsSort>("default");
   const [editing, setEditing] = useState<Subscription | null>(null);
   const [preset, setPreset] = useState<string | undefined>();
@@ -50,7 +54,7 @@ export function MyAiView({
   const [fields, setFields] = useState<ProfileField[]>(profile.fields);
   const [version, setVersion] = useState(profile.version);
   const [savedNote, setSavedNote] = useState<string | null>(null);
-  const [disconnected, setDisconnected] = useState<string[]>([]);
+  const disconnected = settings.githubConnected ? [] : ["con_github"];
 
   const shown = subs.filter((s) => s.status !== "archived");
   const ordered = sortTools(shown, sort);
@@ -59,10 +63,16 @@ export function MyAiView({
     .filter((s) => s.status === "active")
     .reduce((n, s) => n + (s.monthlyCents ?? 0), 0);
   const unknown = shown.filter((s) => s.monthlyCents === null);
-  const budget = dollarsToCents(fields.find((f) => f.id === "pf_budget")?.value ?? "");
-  const visibleFields = disconnected.includes("con_github")
-    ? fields.filter((f) => !(f.status === "pending" && fromGitHub(f)))
-    : fields;
+  // The budget lives in Settings; the profile fact shows the same number.
+  const budget = settings.budgetCents;
+  const visibleFields = fields
+    .filter(
+      (f) =>
+        !(f.status === "pending" && fromGitHub(f) && (!settings.githubConnected || !settings.allowGuesses)),
+    )
+    .map((f) =>
+      f.id === "pf_budget" ? { ...f, value: "$" + (budget / 100).toLocaleString("en-US") } : f,
+    );
 
   const openTool = (s: Subscription | null, name?: string) => {
     setEditing(s);
@@ -96,7 +106,7 @@ export function MyAiView({
               <span>{shown.length} tools ·</span>
               <Money cents={total} className="text-text-1" />
               <span>a month</span>
-              {budget !== null && <BudgetMeter spent={total} budget={budget} />}
+              <BudgetMeter spent={total} budget={budget} warnAtPct={settings.warnAtPct} />
               {unknown.length > 0 && (
                 <button
                   type="button"
@@ -160,9 +170,9 @@ export function MyAiView({
           <ConnectionsPanel
             connections={connections}
             disconnected={disconnected}
-            onToggle={(id) =>
-              setDisconnected((d) => (d.includes(id) ? d.filter((x) => x !== id) : [...d, id]))
-            }
+            onToggle={(id) => {
+              if (id === "con_github") updateSettings({ githubConnected: !settings.githubConnected });
+            }}
           />
         </div>
         <div className="col-span-12 xl:col-span-8">
@@ -179,6 +189,10 @@ export function MyAiView({
               bump();
             }}
             onEdit={(id, value) => {
+              if (id === "pf_budget") {
+                const cents = dollarsToCents(value);
+                if (cents !== null && cents > 0) updateSettings({ budgetCents: cents });
+              }
               setFields((p) =>
                 p.map((f) => (f.id === id ? { ...f, value, source: "stated", status: "confirmed" } : f)),
               );
@@ -253,9 +267,10 @@ function sortTools(list: Subscription[], sort: ToolsSort) {
   return copy;
 }
 
-function BudgetMeter({ spent, budget }: { spent: number; budget: number }) {
+function BudgetMeter({ spent, budget, warnAtPct }: { spent: number; budget: number; warnAtPct: number }) {
   const pct = Math.min(100, (spent / Math.max(budget, 1)) * 100);
-  const over = spent > budget;
+  // Lavender from the warning line set in Settings -> Spending. Never red: it isn't an error.
+  const over = pct >= warnAtPct;
   return (
     <span className="flex items-center gap-2">
       <span>of</span>

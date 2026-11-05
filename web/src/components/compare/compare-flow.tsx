@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
 import type { ApprovalIntent, RunOutcome, RunStep } from "@/lib/types";
 import {
   APPROVAL_STEP,
@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { CompareSetup, defaultChoice, type SetupChoice } from "./compare-setup";
 import { RunLive, attemptStates } from "./run-live";
 import { RunResults } from "./run-results";
+import { useSettings } from "@/lib/settings";
 
 type Phase = "setup" | "running" | "cancelled" | "done" | "containment";
 /** Front-end only: lets a demo or review show the run's other outcomes (?simulate=…). */
@@ -72,14 +73,18 @@ export function CompareFlow() {
 }
 
 function Flow({ params }: { params: URLSearchParams }) {
-  const reduce = useReducedMotion();
-  const sim = (params.get("simulate") ?? "none") as Sim;
+  const reduce = useReducedMotionConfig();
+  const settings = useSettings();
+  // ?simulate= wins; otherwise Settings -> Demo -> "Next comparison ends as".
+  const sim = (params.get("simulate") ?? settings.simulate) as Sim;
   const [rawPhase, setPhase] = useState<Phase>(params.get("view") === "results" ? "done" : "setup");
   const [savedRun, setSavedRun] = useState<string | null>(
     params.get("view") === "results" ? (params.get("run") ?? "r_cursor_ws") : null,
   );
   const [choice, setChoice] = useState<SetupChoice>(() => choiceFromParams(params));
-  const [capCents, setCapCents] = useState(50);
+  // null = use the default from Settings -> Agent and runs.
+  const [capPick, setCapCents] = useState<number | null>(null);
+  const capCents = capPick ?? settings.runCapCents;
   const [wall, setWall] = useState(0);
   const [approval, setApproval] = useState<"pending" | "approved" | "declined">("pending");
 

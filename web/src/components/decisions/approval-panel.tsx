@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
 import { Check, LockSimple } from "@phosphor-icons/react";
 import type { ApprovalIntent } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useSettings } from "@/lib/settings";
 
 type State = "waiting" | "checking" | "confirmed" | "declined";
 
@@ -19,8 +20,9 @@ const CHECKS = [
 ];
 const CHECK_MS = 380;
 
-const time = (iso: string) =>
-  new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+const validFor = (mins: number) =>
+  mins >= 1440 ? "24 hours" : mins >= 60 ? `${mins / 60} hour${mins === 60 ? "" : "s"}` : `${mins} min`;
+
 
 /**
  * Exactly what the agent will do, with the screenshot it will act on.
@@ -39,7 +41,8 @@ export function ApprovalPanel({
   /** Fires once the server has confirmed the submit, or when the user declines. */
   onResolved?: (result: "approved" | "declined") => void;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
+  const { approvalValidMins } = useSettings();
   const [state, setState] = useState<State>("waiting");
   const [passed, setPassed] = useState(0);
 
@@ -95,8 +98,8 @@ export function ApprovalPanel({
         <span className="tnum shrink-0 text-[13px] text-text-3">
           {shown === "waiting" ? (
             <>
-              <span className="hidden sm:inline">Expires </span>
-              {time(intent.expiresAt)}
+              <span className="hidden sm:inline">Valid for </span>
+              {validFor(approvalValidMins)}
             </>
           ) : (
             "Approval used"
@@ -217,7 +220,7 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
  * TODO(api): replace with the runner's real screenshot for this intent.
  */
 function FormShot({ intent, state }: { intent: ApprovalIntent; state: State }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const done = state === "confirmed";
   return (
     <figure className="flex flex-col gap-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
 import { ArrowRight, Check, ShieldCheck, X } from "@phosphor-icons/react";
 import type { CompareSetupData } from "@/lib/types";
 import { Panel } from "@/components/kit/panel";
@@ -244,7 +244,7 @@ function Slot({
   tool: Tool | undefined;
   onRemove: (name: string) => void;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   return (
     <div className="relative h-[120px] sm:h-[136px]">
       <AnimatePresence mode="popLayout" initial={false}>

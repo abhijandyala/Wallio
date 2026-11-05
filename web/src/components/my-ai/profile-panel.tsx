@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
 import { GithubLogo, PencilSimple } from "@phosphor-icons/react";
 import type { ProfileField } from "@/lib/types";
 import { Panel } from "@/components/kit/panel";
@@ -29,7 +29,7 @@ export function ProfilePanel({
   onRemove: (id: string) => void;
   onEdit: (id: string, value: string) => void;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const pending = fields.filter((f) => f.source === "inferred" && f.status === "pending");
   const known = fields.filter((f) => !(f.source === "inferred" && f.status === "pending"));
 

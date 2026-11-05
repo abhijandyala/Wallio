@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotionConfig } from "motion/react";
 import type { DiscoverData } from "@/lib/types";
 import { ToolMark } from "@/components/kit/tool-mark";
 import { ButtonLink } from "@/components/kit/button-link";
@@ -16,7 +16,7 @@ export function NoMatchPanel({
   workflowName: string;
   checked: number | undefined;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const rows = [
     { toolName: result.currentTool, score: result.currentScore, reason: "In your stack", current: true },
     ...result.closest.map((c) => ({ ...c, current: false })),

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
 import { Check, LockSimple, Prohibit, X } from "@phosphor-icons/react";
 import type { ApprovalIntent, AttemptResult, RunStage, RunStep } from "@/lib/types";
 import { Panel } from "@/components/kit/panel";
@@ -190,7 +190,7 @@ function LimitRow({ label, value, pct }: { label: string; value: string; pct: nu
 /* ── Five-stage timeline ──────────────────────────────────────────────── */
 
 function Timeline({ steps, elapsed }: { steps: RunStep[]; elapsed: number }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const stageState = (id: RunStage) => {
     const mine = steps.filter((s) => s.stage === id);
     if (mine.length && mine.every(isDone)) return "done";
@@ -368,7 +368,7 @@ function Sandbox({
   tools: [string, string];
   stopped: boolean;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionConfig();
   const kind = stopped ? "stopped" : (step?.kind ?? "plan");
   const blocked = !!step?.note && step.status !== "pending";
   const cleaned = kind === "cleanup" && step?.status === "done";
