@@ -37,6 +37,18 @@ npm run api:test              # needs the wallio_test database (see .env.example
 
 **For the UI:** proxy `/api` to `http://localhost:8787` from your dev server so the session cookie is same-origin. Each new browser gets its own guest workspace with demo data. Run events stream over SSE from `GET /api/runs/:id/events`: events have no `event:` name, so use `EventSource.onmessage` and read `type` from the JSON.
 
+## Deployment (Vultr)
+
+Live control plane: **https://149-28-76-16.sslip.io** (`/api/health`). Vultr Cloud Compute vc2-2c-4gb, Los Angeles, Ubuntu 24.04, in VPC `wallio-vpc` (10.5.96.0/20).
+
+```bash
+deploy/setup-server.sh <ip> [domain]   # one-time: packages, firewall, Postgres, Caddy, systemd
+deploy/push-secrets.sh <ip>            # copies VULTR_INFERENCE_API_KEY from .env over SSH
+deploy/deploy.sh <ip>                  # ships the committed HEAD, migrates, restarts, health-checks
+```
+
+Only Caddy is public (443). The API listens on 127.0.0.1:8787 as the unprivileged `wallio` user; Postgres is localhost-only; SSH is key-only and limited to the admin IP by both the Vultr firewall group and ufw. Secrets live only in root-readable `/etc/wallio/api.env` on the server.
+
 ## License
 
 MIT
