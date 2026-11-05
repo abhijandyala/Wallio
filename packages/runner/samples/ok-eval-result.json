@@ -1,0 +1,22 @@
+{
+  "actionId": "a2",
+  "stepIndex": 2,
+  "status": "ok",
+  "observation": {
+    "url": "https://fixtures.wallio.test/eval",
+    "title": "Owned evaluation",
+    "httpStatus": 200,
+    "redirectChain": [],
+    "pageFingerprint": "sha256:45c774a8c7b66d6b023e41131e1858dab85097017d8f097752d879012c1d3871",
+    "textExcerpt": "Run test\n\nResult: PASS (1/1 assertions)",
+    "textSha256": "sha256:c9db07f5b908d65b05d0a463db64b0ec3a6e8e37d57c03968d168f5a22d16272",
+    "elements": null,
+    "screenshot": null,
+    "blocked": null,
+    "deniedRequests": [],
+    "capturedAt": "2026-11-05T18:55:32.836Z"
+  },
+  "error": null,
+  "durationMs": 4108,
+  "actionsRemaining": 17
+}

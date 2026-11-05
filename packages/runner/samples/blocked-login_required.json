@@ -1,0 +1,25 @@
+{
+  "actionId": "a1",
+  "stepIndex": 1,
+  "status": "ok",
+  "observation": {
+    "url": "https://fixtures.wallio.test/login",
+    "title": "Sign in",
+    "httpStatus": 200,
+    "redirectChain": [],
+    "pageFingerprint": "sha256:bf84fd52b6d41eac1ba54b6760854c6c41d48a9d0dc2eb8ece8850afa1acb0f4",
+    "textExcerpt": "Sign in",
+    "textSha256": "sha256:bfd402b2f6f3812529b55596136d3a11c51616317e3b1cd999928e2d4eae7d3f",
+    "elements": null,
+    "screenshot": null,
+    "blocked": {
+      "reason": "login_required",
+      "detail": "The page asks for a password. The runner never signs in."
+    },
+    "deniedRequests": [],
+    "capturedAt": "2026-11-05T18:55:23.841Z"
+  },
+  "error": null,
+  "durationMs": 538,
+  "actionsRemaining": 18
+}

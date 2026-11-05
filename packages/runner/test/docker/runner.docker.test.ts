@@ -9,7 +9,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdtempSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { runner as C } from "@wallio/contracts";
@@ -43,6 +43,14 @@ const call = async (method: string, path: string, body?: unknown) => {
   const res = await app.request(path, { method, headers: { authorization: `Bearer ${TOKEN}`, "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
   const ct = res.headers.get("content-type") ?? "";
   return { status: res.status, body: ct.includes("json") ? await res.json() : Buffer.from(await res.arrayBuffer()) };
+};
+/** RUNNER_SAMPLES_DIR=… writes real outputs for the UI owner (fixture pages only, nothing third-party). */
+const SAMPLES = process.env.RUNNER_SAMPLES_DIR;
+const sample = (name: string, data: unknown) => {
+  if (!SAMPLES) return;
+  mkdirSync(SAMPLES, { recursive: true });
+  if (Buffer.isBuffer(data)) writeFileSync(join(SAMPLES, name), data);
+  else writeFileSync(join(SAMPLES, name), JSON.stringify(data, null, 2) + "\n");
 };
 const sentinelHits = async () => (await (await fetch("http://127.0.0.1:19099/count")).json()).hits as number;
 
@@ -132,6 +140,10 @@ test("research path on a fixture: navigate, redirect chain, inspect, screenshot,
   assert.ok(inspectPng(art.body as Buffer));
   const report = await j.finish();
   assert.equal(report.status, "cleaned");
+  sample("ok-navigate-with-redirect.json", nav);
+  sample("ok-inspect.json", ins);
+  sample("ok-screenshot.json", shot);
+  sample("cleanup-cleaned.json", report);
   assert.deepEqual(leftovers(j.jobId), { containers: "", volumes: "" });
 });
 
@@ -184,6 +196,8 @@ test("egress: off-list redirect and redirect to metadata are denied and recorded
   assert.ok(off.observation!.deniedRequests.some((d) => d.url === "https://other.wallio.test/" && d.reason === "host_not_allowed"));
   const priv = await j.act({ type: "navigate", url: `https://${FX}/redirect-private` });
   assert.equal(priv.status, "denied");
+  sample("denied-redirect-off-allowlist.json", off);
+  sample("denied-redirect-to-metadata.json", priv);
   assert.ok(priv.observation!.deniedRequests.some((d) => d.reason === "private_range"));
   const report = await j.finish();
   assert.ok(report.deniedRequests.length >= 2);
@@ -195,6 +209,7 @@ test("blocked pages are reported, not bypassed: captcha, login, 403, download", 
   for (const [path, reason] of expect) {
     const r = await j.act({ type: "navigate", url: `https://${FX}${path}` });
     assert.equal(r.observation?.blocked?.reason, reason, `${path}: ${JSON.stringify(r.error ?? r.observation?.blocked)}`);
+    sample(`blocked-${reason}.json`, r);
   }
   await j.finish();
 });
@@ -210,11 +225,14 @@ test("approval-gated form in a real browser: no token denied, password refused, 
   assert.equal((await j.act({ type: "fill", elementRef: pw, value: "secret" })).error!.code, "invalid_action");
   const filled = await j.act({ type: "fill", elementRef: email, value: "demo-dev@wallio.example" });
   const fp = filled.observation!.pageFingerprint;
-  assert.equal((await j.act({ type: "click", elementRef: submit.ref })).error!.code, "approval_token_invalid");
+  const noToken = await j.act({ type: "click", elementRef: submit.ref });
+  assert.equal(noToken.error!.code, "approval_token_invalid");
+  sample("denied-submit-without-approval.json", noToken);
   const token = signApprovalToken(KEY, { jobId: j.jobId, actionId: "submit_1", elementRef: submit.ref, pageFingerprint: fp });
   const ok = await j.act({ type: "click", elementRef: submit.ref, approvalToken: token }, "submit_1");
   assert.equal(ok.status, "ok", JSON.stringify(ok.error));
   assert.match(ok.observation!.textExcerpt!, /Request received for demo-dev@wallio\.example/);
+  sample("ok-approved-submit.json", ok);
   await j.finish();
 });
 
@@ -225,7 +243,9 @@ test("owned eval page: click Run test and read the result", { skip: !RUN }, asyn
   const clicked = await j.act({ type: "click", elementRef: run.ref });
   assert.equal(clicked.status, "ok");
   assert.match(clicked.observation!.textExcerpt!, /PASS/);
-  await j.act({ type: "screenshot" });
+  const evalShot = await j.act({ type: "screenshot" });
+  sample("ok-eval-result.json", clicked);
+  sample("eval-result.png", (await call("GET", `/artifacts/${evalShot.observation!.screenshot!.artifactId}`)).body);
   await j.finish();
 });
 
@@ -243,10 +263,15 @@ test("CONTAINMENT: hostile page is denied at every layer, sentinel unchanged, ru
   // Layer: runner wants an approval token for any submit.
   assert.equal((await j.act({ type: "click", elementRef: claim.ref })).error!.code, "approval_token_invalid");
   // Layer: a plain button that navigates to cloud metadata is refused by the proxy.
+  const hostileShot = await j.act({ type: "screenshot" });
   const v = await j.act({ type: "click", elementRef: verify.ref });
   assert.equal(v.status, "denied");
   assert.equal(v.error!.code, "egress_denied");
+  sample("containment-page.png", (await call("GET", `/artifacts/${hostileShot.observation!.screenshot!.artifactId}`)).body);
+  sample("containment-navigate.json", nav);
+  sample("containment-denied-click.json", v);
   const report = await j.finish();
+  sample("containment-cleanup.json", report);
   assert.equal(report.status, "cleaned");
   const reasons = new Set(report.deniedRequests.map((d) => d.reason));
   for (const r of ["private_range", "non_https", "host_not_allowed", "bad_port"]) assert.ok(reasons.has(r), `expected a ${r} denial, got ${[...reasons]}`);
@@ -264,6 +289,7 @@ test("cancel during a hanging navigation: action reports cancelled, cleanup veri
   assert.equal((await call("POST", `/jobs/${j.jobId}/cancel`, { reason: "user_cancelled" })).status, 202);
   const r = await pending;
   assert.equal(r.error!.code, "cancelled");
+  sample("failed-cancelled.json", r);
   const report = await j.cleaned();
   assert.equal(report.status, "cleaned");
   assert.deepEqual(leftovers(j.jobId), { containers: "", volumes: "" });
@@ -274,6 +300,7 @@ test("hard deadline: runner kills the container itself", { skip: !RUN }, async (
   const r = await j.act({ type: "navigate", url: `https://${FX}/slow` });
   assert.equal(r.status, "timeout");
   assert.equal(r.error!.code, "deadline_exceeded");
+  sample("timeout-deadline.json", r);
   const report = await j.cleaned();
   assert.equal(report.status, "cleaned");
   assert.match(report.detail ?? "", /deadline/i);

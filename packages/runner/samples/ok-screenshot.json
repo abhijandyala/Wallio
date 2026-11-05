@@ -1,0 +1,32 @@
+{
+  "actionId": "a2",
+  "stepIndex": 2,
+  "status": "ok",
+  "observation": {
+    "url": "https://fixtures.wallio.test/pricing?from=redirect",
+    "title": "Fixture pricing",
+    "httpStatus": 200,
+    "redirectChain": [
+      "https://fixtures.wallio.test/redirect-ok",
+      "https://fixtures.wallio.test/pricing?from=redirect"
+    ],
+    "pageFingerprint": "sha256:a91d93deabf5f438cc5c1724377745adb47941c7132fd639b883b85744a5c334",
+    "textExcerpt": "Plans\n\nPro: $10 per month (fixture)\n\nCompareToggle yearly",
+    "textSha256": "sha256:a8ebf796c7bdead77d39ee9f8c97aafcd46e06de74f9d68addbe1f1adb177847",
+    "elements": null,
+    "screenshot": {
+      "artifactId": "art_28e9f49787b5cb51d909fa58",
+      "sha256": "sha256:ca0fcb453701127774ca03bce52115b60743e03dbeb56cd4593874ad49797ac6",
+      "width": 1280,
+      "height": 800,
+      "bytes": 11804,
+      "mimeType": "image/png"
+    },
+    "blocked": null,
+    "deniedRequests": [],
+    "capturedAt": "2026-11-05T18:55:15.186Z"
+  },
+  "error": null,
+  "durationMs": 51,
+  "actionsRemaining": 17
+}
