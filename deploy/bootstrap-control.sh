@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # One-time setup of the Wallio control VM (Ubuntu 24.04). Run as root:
-#   WALLIO_DOMAIN=1-2-3-4.sslip.io ADMIN_IP=203.0.113.7 bash bootstrap-control.sh
+#   WALLIO_DOMAIN=1-2-3-4.sslip.io bash bootstrap-control.sh
 # Safe to re-run. Never writes provider secrets: push-secrets.sh does that.
 set -euo pipefail
 : "${WALLIO_DOMAIN:?set WALLIO_DOMAIN}"
-: "${ADMIN_IP:?set ADMIN_IP (your IP, for SSH)}"
 export DEBIAN_FRONTEND=noninteractive
 
 echo "== packages"
@@ -23,11 +22,14 @@ if ! command -v caddy >/dev/null; then
 fi
 dpkg-reconfigure -fnoninteractive unattended-upgrades
 
-echo "== firewall (host): SSH from admin IP, HTTPS from anywhere, nothing else"
+echo "== firewall (host): SSH + HTTPS only. The Vultr firewall group limits SSH to the admin IP"
+# SSH is key-only. Restricting it by IP here as well locked us out whenever the
+# admin's IP changed, and the host firewall can only be fixed from the web console.
+# The Vultr firewall group (edited in the console) is the IP restriction.
 ufw --force reset >/dev/null
 ufw default deny incoming
 ufw default allow outgoing
-ufw allow from "$ADMIN_IP" to any port 22 proto tcp comment "admin ssh"
+ufw allow 22/tcp comment "ssh (keys only; IP-limited by Vultr firewall group)"
 ufw allow 443/tcp comment "https"
 ufw allow 443/udp comment "http3"
 ufw --force enable

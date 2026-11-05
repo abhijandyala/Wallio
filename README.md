@@ -47,7 +47,7 @@ deploy/push-secrets.sh <ip>            # copies VULTR_INFERENCE_API_KEY from .en
 deploy/deploy.sh <ip>                  # ships the committed HEAD, migrates, restarts, health-checks
 ```
 
-Only Caddy is public (443). The API listens on 127.0.0.1:8787 as the unprivileged `wallio` user; Postgres is localhost-only; SSH is key-only and limited to the admin IP by both the Vultr firewall group and ufw. Secrets live only in root-readable `/etc/wallio/api.env` on the server.
+Only Caddy is public (443). The API listens on 127.0.0.1:8787 as the unprivileged `wallio` user; Postgres is localhost-only; SSH is key-only; the Vultr firewall group `wallio-control` limits it to the admin IP (update that rule when your IP changes). Secrets live only in root-readable `/etc/wallio/api.env` on the server.
 
 ## License
 
