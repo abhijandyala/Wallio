@@ -72,13 +72,34 @@ export const EXPLORE = {
 
 export const LIMITS = {
   eyebrow: "Limits",
-  title: "Wallio in numbers",
-  body: "The same hard limits apply to every comparison Wallio runs. You can lower them in Settings.",
+  title: "Hard limits on every run",
+  body: "Every comparison runs inside the same limits. The API and the browser runner enforce them, not just this page. You can lower them in Settings.",
+  // Every number here is a real limit from packages/contracts and the live run screen.
   cards: [
-    { label: ["Spend cap", "per run"], value: "$0.50" },
-    { label: ["Longest", "run"], value: "180s" },
-    { label: ["Sent", "without you"], value: "0" },
-    { label: ["Success", "checks"], value: "7" },
+    {
+      label: ["Spend cap", "per run"],
+      value: "$0.50",
+      by: "Enforced by the API",
+      body: "Each comparison gets a hard budget for model calls and the browser. The run stops before it goes over, and the spend is shown on the result.",
+    },
+    {
+      label: ["Longest", "run"],
+      value: "180s",
+      by: "Enforced by the runner",
+      body: "The browser gets 3 minutes and 20 actions, can only reach each tool's official sites, and is destroyed when the run ends.",
+    },
+    {
+      label: ["Sent", "without you"],
+      value: "0",
+      by: "Enforced by the API",
+      body: "Forms are filled, never submitted, until you approve the exact fields. An approval works once; a replay is refused.",
+    },
+    {
+      label: ["Success", "checks"],
+      value: "7",
+      by: "Shown on every run",
+      body: "Inference, evidence, traceability, honesty, approval, containment and timing, each passed or explained.",
+    },
   ],
 };
 
