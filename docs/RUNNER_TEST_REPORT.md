@@ -21,4 +21,27 @@ Failures found and fixed while testing:
 - A click on a page that updates later returned before the result appeared. Added a settle step that honors `aria-busy`.
 - One denied asset host produced 150 identical denial entries. These are now collapsed to one per URL and reason.
 
-Not yet tested: anything on Vultr (x86 VM, VPC, ufw, TLS pinning from the control VM, deployed hostile page + sentinel), and the 10 deployed rehearsals.
+## Vultr runner VM, 6 Nov 2026 (UTC)
+
+Commit `1ff5620`. VM `wallio-runner` (vc2-2c-4gb, Ubuntu 24.04, Los Angeles), public 45.32.80.4, private 10.5.96.4 on `wallio-vpc`. Docker 29.9.3, Node 24.22.2.
+
+| Check | Result | Notes |
+|---|---|---|
+| Bootstrap (`setup-runner.sh`) | pass | ufw allows SSH from 2 admin IPs only, and 8443 from 10.5.96.3 only. The certificate's SAN is `IP:10.5.96.4`. Secrets were generated on the VM |
+| Deploy (`deploy-runner.sh`) | pass | Images were built from pinned digests, and the daemon became healthy within about 3 s |
+| Preflight on the VM | 11/11 pass | Includes both escape probes (direct internet, cloud metadata) and the image digest match |
+| 8443 from the public internet | no answer | `curl` timed out from outside |
+| Live smoke + containment | 21/21 pass | Real Copilot + Zed pages, and the deployed `hostile.149-28-76-16.sslip.io`. 9 denials, sentinel `10.5.96.3:9099` stayed at 0 and was reachable from the runner host. Cancel and deadline paths cleaned up and verified |
+
+Measured on the VM (x86):
+- Container start: 1.9–3.2 s.
+- Navigate: Copilot 5.7 s, Zed 1.7 s.
+- Peak memory: Copilot 566 MiB, Zed 245 MiB, hostile page 173 MiB.
+- Peak processes: 75–80.
+
+The 1536 MiB and 192-process limits leave room on every page.
+
+Not yet tested:
+- The control VM calling the runner over the VPC with the pinned certificate. This needs Anish to run `push-runner-secrets.sh`.
+- The eval page: `eval.149-28-76-16.sslip.io` returned 404, because it isn't deployed yet.
+- The 10 deployed rehearsals (R7).

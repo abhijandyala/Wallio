@@ -10,3 +10,4 @@ dist/
 packages/runner/.runner-state/
 packages/runner/smoke-out/
 .env.runner
+deploy/.runner

@@ -40,6 +40,7 @@ ufw --force reset >/dev/null
 ufw default deny incoming
 ufw default allow outgoing
 ufw allow from "$ADMIN_IP" to any port 22 proto tcp comment "admin ssh"
+for ip in ${EXTRA_ADMIN_IPS//,/ }; do ufw allow from "$ip" to any port 22 proto tcp comment "admin ssh (extra)"; done
 ufw allow in from "$CONTROL_PRIVATE_IP" to "$RUNNER_PRIVATE_IP" port 8443 proto tcp comment "control VM -> runner"
 ufw --force enable
 install -m 755 "$SRC/firewall.sh" /usr/local/sbin/wallio-runner-firewall
