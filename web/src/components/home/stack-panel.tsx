@@ -78,7 +78,7 @@ export function StackPanel({
                 </Td>
                 <Td
                   align="right"
-                  className={cn(soon ? "text-lavender" : "text-text-2")}
+                  className={cn(soon ? "text-aurora" : "text-text-2")}
                 >
                   {s.renewsOn ? (
                     formatShortDate(s.renewsOn)

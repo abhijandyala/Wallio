@@ -53,7 +53,7 @@ export function NoMatchPanel({
               <motion.span
                 className={cn(
                   "absolute inset-y-0 left-0 rounded-[4px]",
-                  r.current ? "bg-lavender" : "bg-[#4b4167]",
+                  r.current ? "bg-aurora" : "bg-[#255b56]",
                 )}
                 initial={{ width: reduce ? `${r.score}%` : 0 }}
                 animate={{ width: `${r.score}%` }}

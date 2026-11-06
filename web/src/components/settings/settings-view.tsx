@@ -142,7 +142,7 @@ export function SettingsView() {
                 >
                   <span
                     aria-hidden="true"
-                    className={cn("size-1.5 rounded-[1px] transition-colors", active === n.id ? "bg-lavender" : "bg-transparent")}
+                    className={cn("size-1.5 rounded-[1px] transition-colors", active === n.id ? "bg-aurora" : "bg-transparent")}
                   />
                   {n.label}
                 </button>
@@ -220,7 +220,7 @@ function SpendingSection({ s, set }: P) {
       <div className="flex flex-col gap-2 border-t border-line px-6 py-4">
         <div className="flex items-center justify-between text-[13px]">
           <span className="text-text-3">This month</span>
-          <span className={cn("tnum", pct >= s.warnAtPct ? "text-lavender" : "text-text-1")}>
+          <span className={cn("tnum", pct >= s.warnAtPct ? "text-aurora" : "text-text-1")}>
             {money0(spent)} of {money0(s.budgetCents)} · {pct}%
             {pct >= s.warnAtPct && " · over your warning line"}
           </span>
@@ -246,7 +246,7 @@ function SpendingSection({ s, set }: P) {
       {next && nextDays !== null && (
         <p className="border-t border-line px-6 py-3 text-[13px] text-text-3">
           Next: {next.toolName} renews in {nextDays} days.{" "}
-          <span className={nextDays <= s.renewalLeadDays ? "text-lavender" : ""}>
+          <span className={nextDays <= s.renewalLeadDays ? "text-aurora" : ""}>
             {nextDays <= s.renewalLeadDays ? "Inside your reminder window." : "Outside your reminder window."}
           </span>
         </p>

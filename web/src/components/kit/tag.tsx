@@ -7,8 +7,8 @@ const KIND: Record<TagKind, { label: string; mark: string; text: string }> = {
   tested: { label: "Tested", mark: "bg-lime", text: "text-lime" },
   researched: {
     label: "Researched",
-    mark: "bg-lavender",
-    text: "text-lavender",
+    mark: "bg-aurora",
+    text: "text-aurora",
   },
   user_input: { label: "Your input", mark: "bg-text-2", text: "text-text-2" },
   sample: {
@@ -19,7 +19,7 @@ const KIND: Record<TagKind, { label: string; mark: string; text: string }> = {
   unknown: { label: "Unknown", mark: "bg-text-disabled", text: "text-text-3" },
   inferred: {
     label: "Inferred",
-    mark: "border border-lavender bg-transparent",
+    mark: "border border-aurora bg-transparent",
     text: "text-text-2",
   },
 };

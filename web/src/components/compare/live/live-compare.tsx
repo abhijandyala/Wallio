@@ -455,7 +455,7 @@ function RunCardInline({ job }: { job: Job }) {
         <span className="text-danger">{job.error}</span>
       ) : (
         <>
-          <span className="size-1.5 animate-pulse rounded-[1px] bg-lavender" />
+          <span className="size-1.5 animate-pulse rounded-[1px] bg-aurora" />
           {job.events.at(-1)?.message ?? "Preparing the trial request"}
         </>
       )}

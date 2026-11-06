@@ -15,9 +15,9 @@ const buttonVariants = cva(
           "border border-line-strong bg-surface-2 text-text-1 hover:bg-surface-3",
         /** Text-only. */
         ghost: "text-text-2 hover:text-text-1",
-        /** Black button used on lavender surfaces. */
+        /** Black button used on aurora surfaces. */
         inverse: "bg-ink text-text-1 hover:bg-ink/85",
-        /** Text-only on lavender surfaces. */
+        /** Text-only on aurora surfaces. */
         "inverse-ghost": "text-ink/70 hover:text-ink",
       },
       size: {

@@ -204,7 +204,7 @@ function NoVerdict({ result }: { result: RunResult }) {
   return (
     <section className="flex flex-col justify-between gap-8 rounded-[20px] border border-line bg-surface-1 p-8">
       <div>
-        <p className={cn("text-[13px]", failed ? "text-danger" : "text-lavender")}>{OUTCOME[result.outcome]}</p>
+        <p className={cn("text-[13px]", failed ? "text-danger" : "text-aurora")}>{OUTCOME[result.outcome]}</p>
         <h2 className="display mt-2 text-[28px] leading-[34px] font-medium text-text-1">
           {failed ? "No verdict. The run didn't finish." : "No verdict. The run hit its time limit."}
         </h2>
@@ -231,7 +231,7 @@ function ThisRun({ result }: { result: RunResult }) {
         <KeyValueRow label="Outcome">
           <span
             className={cn(
-              result.outcome === "succeeded" ? "text-text-1" : result.outcome === "failed" ? "text-danger" : "text-lavender",
+              result.outcome === "succeeded" ? "text-text-1" : result.outcome === "failed" ? "text-danger" : "text-aurora",
             )}
           >
             {OUTCOME[result.outcome]} · {time(result.finishedAt)}
@@ -249,7 +249,7 @@ function ThisRun({ result }: { result: RunResult }) {
           >
             {result.policy.allowed} allowed
             <span className="text-text-3">·</span>
-            <span className="text-lavender">{result.policy.stopped} stopped</span>
+            <span className="text-aurora">{result.policy.stopped} stopped</span>
             <CaretRight size={11} className={cn("text-text-3 transition-transform", open && "rotate-90")} />
           </button>
         </KeyValueRow>
@@ -266,7 +266,7 @@ function ThisRun({ result }: { result: RunResult }) {
             {result.policy.denied.map((d) => (
               <li key={d.target} className="flex flex-col gap-0.5 px-6 py-3 text-[13px]">
                 <span className="flex items-center gap-2">
-                  <Prohibit size={13} className="shrink-0 text-lavender" />
+                  <Prohibit size={13} className="shrink-0 text-aurora" />
                   <span className="font-mono text-[12px] text-text-2">{d.action}</span>
                   <span className="min-w-0 truncate font-mono text-[12px] text-text-1">{d.target}</span>
                 </span>
@@ -362,8 +362,8 @@ function EveryRun({ attempts }: { attempts: RunResult["attempts"] }) {
 const GROUPS: { role: Statement["role"]; label: string; mark: string }[] = [
   { role: "supporting", label: "For it", mark: "bg-lime" },
   { role: "counter", label: "Against it", mark: "bg-text-2" },
-  { role: "uncertainty", label: "Not sure yet", mark: "border border-lavender" },
-  { role: "next_step", label: "Next step", mark: "bg-lavender" },
+  { role: "uncertainty", label: "Not sure yet", mark: "border border-aurora" },
+  { role: "next_step", label: "Next step", mark: "bg-aurora" },
 ];
 
 function WhyPanel({

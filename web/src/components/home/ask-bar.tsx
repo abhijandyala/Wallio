@@ -40,7 +40,7 @@ export function AskBar() {
         <Sparkle
           size={16}
           weight="fill"
-          className="text-lavender"
+          className="text-aurora"
           aria-hidden="true"
         />
         What would you like to know about your AI?

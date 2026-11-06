@@ -4,7 +4,7 @@ import { Panel } from "@/components/kit/panel";
 import { ButtonLink } from "@/components/kit/button-link";
 import { Button } from "@/components/ui/button";
 
-/** The single most important thing on Home. Lavender surface, a title, one sentence, actions. */
+/** The single most important thing on Home. Aurora surface, a title, one sentence, actions. */
 export function DecisionHero({ decision }: { decision: DecisionCard | null }) {
   if (!decision) {
     return (

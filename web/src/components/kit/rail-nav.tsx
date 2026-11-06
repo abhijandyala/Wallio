@@ -34,7 +34,7 @@ const CARD = {
   narrow: { w: 54, overlap: 8 },
 };
 
-// Graded darks, lightest on top of the stack, so every card edge reads. Current page is lavender.
+// Graded darks, lightest on top of the stack, so every card edge reads. Current page is aurora.
 const TONES = [
   "#1a3a2e",
   "#16332a",
@@ -219,7 +219,7 @@ export function RailNav() {
                       className={cn(
                         "flex h-full w-full flex-col items-center justify-between group rounded-r-[18px] shadow-[6px_0_18px_rgba(0,0,0,0.35)]",
                         wide ? "py-6 pl-4" : "py-4 pl-2",
-                        active ? "bg-lavender text-ink" : "text-text-1",
+                        active ? "bg-aurora text-ink" : "text-text-1",
                       )}
                     >
                       <I
@@ -298,7 +298,7 @@ export function RailNav() {
             Wallio
           </span>
           <span
-            className="tnum h-5 text-[13px] font-medium text-lavender"
+            className="tnum h-5 text-[13px] font-medium text-aurora"
             aria-hidden="true"
           >
             {waiting > 0 && !open ? waiting : ""}

@@ -252,9 +252,9 @@ type GroupRole = Statement["role"] | "test";
 const GROUPS: { role: GroupRole; label: string; mark: string }[] = [
   { role: "supporting", label: "For it", mark: "bg-lime" },
   { role: "counter", label: "Against it", mark: "bg-text-2" },
-  { role: "uncertainty", label: "Not sure yet", mark: "border border-lavender" },
+  { role: "uncertainty", label: "Not sure yet", mark: "border border-aurora" },
   { role: "test", label: "Needs a test", mark: "border border-text-3" },
-  { role: "next_step", label: "Next step", mark: "bg-lavender" },
+  { role: "next_step", label: "Next step", mark: "bg-aurora" },
 ];
 
 function WhyPanel({
@@ -357,11 +357,11 @@ function ScoreBreakdown({ components }: { components: FitComponent[] }) {
             {c.score === null ? (
               <span
                 className="absolute inset-0"
-                style={{ backgroundImage: hatch("rgba(173,150,241,0.35)", 6) }}
+                style={{ backgroundImage: hatch("rgba(132,216,207,0.35)", 6) }}
               />
             ) : (
               <motion.span
-                className="absolute inset-y-0 left-0 rounded-[3px] bg-lavender"
+                className="absolute inset-y-0 left-0 rounded-[3px] bg-aurora"
                 initial={{ width: reduce ? `${c.score}%` : 0 }}
                 animate={{ width: `${c.score}%` }}
                 transition={
@@ -412,7 +412,7 @@ function SourceRow({ ev, onOpen }: { ev: Evidence; onOpen: () => void }) {
       >
         <span
           aria-hidden="true"
-          className={cn("size-1.5 shrink-0 rounded-[1px]", ev.kind === "tested" ? "bg-lime" : "bg-lavender")}
+          className={cn("size-1.5 shrink-0 rounded-[1px]", ev.kind === "tested" ? "bg-lime" : "bg-aurora")}
         />
         <span className="min-w-0 flex-1">
           <span className="text-text-1">{ev.title}</span>

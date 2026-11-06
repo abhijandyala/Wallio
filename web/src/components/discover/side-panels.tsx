@@ -14,7 +14,7 @@ import { LABEL, formatScore } from "./match-detail";
 const SPRING = { type: "spring", stiffness: 480, damping: 38 } as const;
 
 /**
- * The ranked shortlist. The selected rank gets the lavender square, which slides between rows,
+ * The ranked shortlist. The selected rank gets the aurora square, which slides between rows,
  * and rows glide when the ranking changes. "Not for me" lives on the row it applies to.
  */
 export function ShortlistPanel({
@@ -57,7 +57,7 @@ export function ShortlistPanel({
                     {active && (
                       <motion.span
                         layoutId="discover-rank"
-                        className="absolute inset-0 rounded-[8px] bg-lavender"
+                        className="absolute inset-0 rounded-[8px] bg-aurora"
                         transition={reduce ? { duration: 0 } : SPRING}
                       />
                     )}
@@ -162,7 +162,7 @@ export function WeightsPanel({
       <header className="flex h-14 items-center justify-between gap-4 px-6">
         <h2 className="flex items-center gap-2 text-[15px] font-medium text-text-1">
           What matters most
-          {dirty && <span className="text-[13px] font-normal text-lavender">Preview</span>}
+          {dirty && <span className="text-[13px] font-normal text-aurora">Preview</span>}
         </h2>
         <button
           type="button"
@@ -193,7 +193,7 @@ export function WeightsPanel({
                     step={1}
                     value={weights[k]}
                     onChange={(e) => onChange({ ...weights, [k]: Number(e.target.value) })}
-                    className="h-1.5 w-full cursor-pointer accent-lavender"
+                    className="h-1.5 w-full cursor-pointer accent-aurora"
                   />
                   <span className="tnum text-right text-text-1">{pct[k]}%</span>
                 </label>

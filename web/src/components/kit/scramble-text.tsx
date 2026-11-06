@@ -4,13 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { useReducedMotionConfig } from "motion/react";
 
 const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$%&*@#+=?!";
-const TINTS = ["var(--w-lime)", "var(--w-lavender)", "var(--w-text-3)"];
+const TINTS = ["var(--w-lime)", "var(--w-aurora)", "var(--w-text-3)"];
 
 type Cell = { ch: string; color: string; opacity: number };
 
 /**
  * Decode effect: characters appear at random positions as flickering glyphs
- * (lime / lavender), then lock into the real text. Re-runs whenever `text` changes.
+ * (lime / aurora), then lock into the real text. Re-runs whenever `text` changes.
  * Mono font so the line never shifts while it resolves.
  */
 export function ScrambleText({

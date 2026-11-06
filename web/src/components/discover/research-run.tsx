@@ -82,7 +82,7 @@ export function ResearchRun({
           Researching {workflowName}
         </h2>
         <span className="flex shrink-0 items-center gap-2 text-[13px] text-text-3">
-          <span className={cn("size-1.5 rounded-[1px]", finished ? "bg-text-disabled" : "animate-pulse bg-lavender")} />
+          <span className={cn("size-1.5 rounded-[1px]", finished ? "bg-text-disabled" : "animate-pulse bg-aurora")} />
           {finished ? "Sandbox destroyed" : "Live"}
         </span>
         {!finished && (
@@ -123,7 +123,7 @@ export function ResearchRun({
                         {[0, 1, 2].map((i) => (
                           <span
                             key={i}
-                            className={cn("rounded-[6px] border", i === 1 ? "border-lavender/40" : "border-line")}
+                            className={cn("rounded-[6px] border", i === 1 ? "border-aurora/40" : "border-line")}
                             style={{ backgroundImage: hatch("rgba(255,255,255,0.04)", 6) }}
                           />
                         ))}
@@ -137,7 +137,7 @@ export function ResearchRun({
                   {blocked && (
                     <span className="absolute inset-0 grid place-items-center">
                       <span className="flex items-center gap-2 rounded-[10px] border border-line-strong bg-surface-3 px-4 py-2 text-[13px] text-text-1">
-                        <Prohibit size={14} className="text-lavender" />
+                        <Prohibit size={14} className="text-aurora" />
                         Login wall. Skipped, not bypassed.
                       </span>
                     </span>

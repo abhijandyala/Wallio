@@ -58,10 +58,10 @@ function StepIcon({ status }: { status: RunStep["status"] }) {
     case "active":
       return (
         <span
-          className={cn(base, "border border-lavender")}
+          className={cn(base, "border border-aurora")}
           aria-label="In progress"
         >
-          <span className="size-1.5 animate-pulse rounded-[1px] bg-lavender" />
+          <span className="size-1.5 animate-pulse rounded-[1px] bg-aurora" />
         </span>
       );
     case "blocked":

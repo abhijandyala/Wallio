@@ -147,7 +147,7 @@ export function CompareSetup({
                     className={cn(
                       "grid size-[18px] shrink-0 place-items-center rounded-[4px] border transition-colors duration-200",
                       on
-                        ? "border-lavender bg-lavender text-ink"
+                        ? "border-aurora bg-aurora text-ink"
                         : "border-line-strong",
                     )}
                   >

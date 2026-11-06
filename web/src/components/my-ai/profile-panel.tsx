@@ -58,7 +58,7 @@ export function ProfilePanel({
                     key={f.id}
                     layout={!reduce}
                     exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.15 } }}
-                    className="flex flex-col gap-3 rounded-[16px] border border-lavender/30 bg-lavender-tint px-5 py-4"
+                    className="flex flex-col gap-3 rounded-[16px] border border-aurora/30 bg-aurora-tint px-5 py-4"
                   >
                     <div className="flex items-center justify-between gap-3 text-[13px]">
                       <span className="text-text-2">{f.label}</span>
@@ -144,7 +144,7 @@ function Fact({
           aria-hidden="true"
           className={cn(
             "size-1.5 rounded-[1px]",
-            stated ? "bg-text-2" : "border border-lavender bg-transparent",
+            stated ? "bg-text-2" : "border border-aurora bg-transparent",
           )}
         />
         <span title={stated ? "You said" : "A guess you confirmed"}>{field.label}</span>
@@ -160,7 +160,7 @@ function Fact({
               if (e.key === "Escape") setDraft(null);
             }}
             aria-label={field.label}
-            className="h-9 min-w-0 flex-1 rounded-[8px] border border-line-strong bg-bg px-3 text-[14px] text-text-1 outline-none focus:border-lavender/60"
+            className="h-9 min-w-0 flex-1 rounded-[8px] border border-line-strong bg-bg px-3 text-[14px] text-text-1 outline-none focus:border-aurora/60"
           />
           <Button variant="secondary" size="sm" onClick={commit}>
             Save

@@ -98,7 +98,7 @@ export function WorkflowsPanel({
                 <span
                   className={cn(
                     "display grid size-9 shrink-0 place-items-center rounded-[10px] text-[15px] font-medium",
-                    i === 0 ? "bg-lavender text-ink" : "bg-surface-2 text-text-2",
+                    i === 0 ? "bg-aurora text-ink" : "bg-surface-2 text-text-2",
                   )}
                 >
                   {i + 1}
@@ -110,7 +110,7 @@ export function WorkflowsPanel({
                       onChange={(e) => patch(i, { name: e.target.value })}
                       aria-label={`Workflow ${i + 1} name`}
                       placeholder="Name this workflow"
-                      className="h-9 min-w-0 flex-1 rounded-[8px] border border-line-strong bg-bg px-3 text-[14px] text-text-1 outline-none placeholder:text-text-3 focus:border-lavender/60"
+                      className="h-9 min-w-0 flex-1 rounded-[8px] border border-line-strong bg-bg px-3 text-[14px] text-text-1 outline-none placeholder:text-text-3 focus:border-aurora/60"
                     />
                     <span className="flex shrink-0 items-center">
                       <IconButton label="Move up" onClick={() => move(i, -1)} disabled={i === 0}>

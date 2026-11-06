@@ -130,7 +130,7 @@ export function Toggle({
       onClick={() => onChange(!checked)}
       className={cn(
         "relative flex h-6 w-10 shrink-0 items-center rounded-[7px] border p-[3px] transition-colors duration-200 disabled:opacity-40",
-        checked ? "justify-end border-lavender bg-lavender" : "justify-start border-line-strong bg-surface-2",
+        checked ? "justify-end border-aurora bg-aurora" : "justify-start border-line-strong bg-surface-2",
       )}
     >
       <motion.span
@@ -162,7 +162,7 @@ export function Select<T extends string>({
         aria-label={label}
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
-        className="h-9 max-w-[16rem] appearance-none truncate rounded-md border border-line-strong bg-bg py-0 pr-9 pl-3 text-[14px] text-text-1 outline-none [color-scheme:dark] focus:border-lavender/60"
+        className="h-9 max-w-[16rem] appearance-none truncate rounded-md border border-line-strong bg-bg py-0 pr-9 pl-3 text-[14px] text-text-1 outline-none [color-scheme:dark] focus:border-aurora/60"
       >
         {options.map((o) => (
           <option key={o.id} value={o.id} disabled={o.disabled}>
@@ -176,7 +176,7 @@ export function Select<T extends string>({
 }
 
 const field =
-  "h-9 rounded-md border border-line-strong bg-bg px-3 text-[14px] text-text-1 outline-none placeholder:text-text-3 focus:border-lavender/60";
+  "h-9 rounded-md border border-line-strong bg-bg px-3 text-[14px] text-text-1 outline-none placeholder:text-text-3 focus:border-aurora/60";
 
 /** Text that saves when you leave the field or press Enter. Shows an error instead of saving bad input. */
 export function TextField({
@@ -342,7 +342,7 @@ export function MultiPick({
             onClick={() => onChange(on ? value.filter((x) => x !== o) : [...value, o])}
             className={cn(
               "h-8 rounded-[8px] border px-3 text-[13px] transition-colors",
-              on ? "border-lavender/60 text-text-1" : "border-line text-text-3 hover:text-text-1",
+              on ? "border-aurora/60 text-text-1" : "border-line text-text-3 hover:text-text-1",
             )}
           >
             {o}

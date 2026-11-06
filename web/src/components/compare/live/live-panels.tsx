@@ -90,7 +90,7 @@ export function StageBar({ events }: { events: RunEvent[] }) {
           <span
             className={cn(
               "h-1 rounded-[1px] transition-colors duration-300",
-              i < idx ? "bg-lime" : i === idx && last ? "bg-lavender" : "bg-surface-3",
+              i < idx ? "bg-lime" : i === idx && last ? "bg-aurora" : "bg-surface-3",
             )}
           />
           <span className={cn("truncate text-[12px]", i === idx && last ? "text-text-1" : "text-text-3")}>
@@ -114,13 +114,13 @@ function EventIcon({ e }: { e: RunEvent }) {
         <span className={cn(box, "bg-surface-3 text-danger")}><X size={12} weight="bold" /></span>
       );
     case "inference_call":
-      return <span className={cn(box, "bg-surface-3 text-lavender")}><Cpu size={12} /></span>;
+      return <span className={cn(box, "bg-surface-3 text-aurora")}><Cpu size={12} /></span>;
     case "evidence_captured":
       return <span className={cn(box, "bg-surface-3 text-text-2")}><Camera size={12} /></span>;
     case "step":
       return <span className={cn(box, "bg-surface-3 text-text-2")}><Globe size={12} /></span>;
     case "approval_required":
-      return <span className={cn(box, "border border-lavender")}><span className="size-1.5 rounded-[1px] bg-lavender" /></span>;
+      return <span className={cn(box, "border border-aurora")}><span className="size-1.5 rounded-[1px] bg-aurora" /></span>;
     case "containment_result":
       return <span className={cn(box, "bg-lime-tint text-lime")}><ShieldCheck size={12} /></span>;
     case "result_ready":
@@ -206,7 +206,7 @@ export function RunCard({
       <StageBar events={events} />
       {events.length === 0 && !error && (
         <p className="flex min-h-12 items-center gap-3 border-t border-line px-6 text-text-3">
-          <span className="size-1.5 animate-pulse rounded-[1px] bg-lavender" /> Starting the run
+          <span className="size-1.5 animate-pulse rounded-[1px] bg-aurora" /> Starting the run
         </p>
       )}
       <Timeline events={events} open={open} />
@@ -257,7 +257,7 @@ export function VultrPanel({
         "Recorded from the API"
       ) : demo ? (
         <span className="flex items-center gap-2">
-          <span className="size-1.5 rounded-[1px] bg-lavender" /> Demo playback
+          <span className="size-1.5 rounded-[1px] bg-aurora" /> Demo playback
         </span>
       ) : (
         "Live runs"
@@ -295,7 +295,7 @@ export function VultrPanel({
         <ul className="border-t border-line">
           {calls.map((c) => (
             <li key={`${c.runId}-${c.seq}`} className="flex min-h-10 items-center gap-3 px-6 text-[13px]">
-              <Cpu size={12} className="shrink-0 text-lavender" />
+              <Cpu size={12} className="shrink-0 text-aurora" />
               <span className="min-w-0 flex-1 truncate text-text-2">
                 {c.data.purpose} · <span className="font-mono">{c.data.model}</span>
               </span>
@@ -525,7 +525,7 @@ export function ApprovalCard({
     <div className="border-t border-line">
       <div className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-1 px-6 py-3">
         <h3 className="flex items-center gap-3 text-[15px] font-medium text-text-1">
-          {decided === null && <span className="size-1.5 rounded-[1px] bg-lavender" aria-hidden="true" />}
+          {decided === null && <span className="size-1.5 rounded-[1px] bg-aurora" aria-hidden="true" />}
           {decided === null ? `Ask ${candidate} for a trial?` : decided === "approved" ? "Approved and used once" : "Declined. Nothing was sent."}
         </h3>
         <span className="text-[13px] text-text-3">{decided === null ? `Valid until ${expires}` : intent.status}</span>

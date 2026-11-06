@@ -33,7 +33,7 @@ const FADE = 0.22;
 
 // Box looks, as rgba so every value interpolates cleanly.
 const LINE = "rgba(170,240,210,0.09)";
-const LAV = "rgba(173,150,241,0.4)";
+const AURORA = "rgba(132,216,207,0.4)";
 const CLEAR = "rgba(255,255,255,0)";
 const SURFACE = "rgba(7,24,16,1)";
 const SURFACE_CLEAR = "rgba(7,24,16,0)";
@@ -50,7 +50,7 @@ const isSoon = (s: Subscription, today: string, lead: number) => {
 
 function boxLook(view: ToolsView, soon: boolean, first: boolean) {
   if (view === "cards") {
-    const c = soon ? LAV : LINE;
+    const c = soon ? AURORA : LINE;
     return {
       borderRadius: 20,
       backgroundColor: SURFACE,
@@ -389,7 +389,7 @@ function ToolItem({
         cards
           ? cn(
               "h-[148px] rounded-[20px] bg-surface-1 sm:h-[188px]",
-              soon ? "border-lavender/40" : "border-line",
+              soon ? "border-aurora/40" : "border-line",
             )
           : cn("h-16 border-transparent", !first && "border-t-line"),
         "group-data-[morph]/tools:border-transparent group-data-[morph]/tools:bg-transparent",
@@ -440,7 +440,7 @@ function CardContent({
         <span
           className={cn(
             "text-[13px] whitespace-nowrap",
-            soon && !paused ? "text-lavender" : "text-text-3",
+            soon && !paused ? "text-aurora" : "text-text-3",
           )}
         >
           {paused
@@ -540,7 +540,7 @@ function RowContent({
       <span
         className={cn(
           "tnum text-right whitespace-nowrap",
-          soon ? "text-lavender" : "text-text-2",
+          soon ? "text-aurora" : "text-text-2",
         )}
       >
         {sub.renewsOn ? (
@@ -587,7 +587,7 @@ function UsageLine({ usage, className }: { usage: Usage; className?: string }) {
     <span className={cn("truncate text-text-2", className)}>
       {usage.names.join(", ")}
       {usage.overlaps.length > 0 && (
-        <span className="text-lavender">
+        <span className="text-aurora">
           {" · overlaps "}
           {usage.overlaps.map(shortName).join(", ")}
         </span>
