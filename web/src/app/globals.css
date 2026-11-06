@@ -1,0 +1,167 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* Wallio is dark-first. Tokens follow docs/DESIGN.md. */
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-geist-sans);
+  --font-brand: var(--font-poppins);
+
+  /* Wallio tokens */
+  --color-bg: var(--w-bg);
+  --color-surface-1: var(--w-surface-1);
+  --color-surface-2: var(--w-surface-2);
+  --color-surface-3: var(--w-surface-3);
+  --color-line: var(--w-border);
+  --color-line-strong: var(--w-border-strong);
+  --color-text-1: var(--w-text-1);
+  --color-text-2: var(--w-text-2);
+  --color-text-3: var(--w-text-3);
+  --color-text-disabled: var(--w-text-disabled);
+  --color-lavender: var(--w-lavender);
+  --color-lavender-tint: var(--w-lavender-tint);
+  --color-lime: var(--w-lime);
+  --color-lime-tint: var(--w-lime-tint);
+  --color-lavender-strong: var(--w-lavender-strong);
+  --color-lime-strong: var(--w-lime-strong);
+  --color-ink: var(--w-ink);
+  --color-danger: var(--w-danger);
+
+  /* shadcn mapping */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Layout rhythm. gutter = space between panels; section = header to content. */
+  --spacing-gutter: 12px;
+  --spacing-section: 16px;
+
+  /* Radius: controls 8, cards 12, modals 16 */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-4xl: 9999px;
+}
+
+:root {
+  color-scheme: dark;
+
+  --w-bg: #010102;
+  --w-surface-1: #0c0c10;
+  --w-surface-2: #131318;
+  --w-surface-3: #1a1a21;
+  --w-border: rgba(255, 255, 255, 0.08);
+  --w-border-strong: rgba(255, 255, 255, 0.14);
+  --w-text-1: #f4f4f6;
+  --w-text-2: #a3a3ae;
+  --w-text-3: #82828e;
+  --w-text-disabled: #4a4a55;
+  --w-lavender: #ad96f1;
+  --w-lavender-tint: rgba(173, 150, 241, 0.12);
+  --w-lime: #58f6b1;
+  --w-lime-tint: rgba(88, 246, 177, 0.1);
+  --w-lavender-strong: #9b80ec; /* hover on lavender surfaces */
+  --w-lime-strong: #3fe89c; /* hover on lime buttons */
+  --w-ink: #010102; /* text on lavender or lime */
+  --w-danger: #ff6b6b; /* reserved: errors and destructive confirmations only */
+
+  --background: var(--w-bg);
+  --foreground: var(--w-text-1);
+  --card: var(--w-surface-1);
+  --card-foreground: var(--w-text-1);
+  --popover: var(--w-surface-3);
+  --popover-foreground: var(--w-text-1);
+  --primary: var(--w-lime);
+  --primary-foreground: #010102;
+  --secondary: var(--w-surface-2);
+  --secondary-foreground: var(--w-text-1);
+  --muted: var(--w-surface-2);
+  --muted-foreground: var(--w-text-2);
+  --accent: var(--w-surface-2);
+  --accent-foreground: var(--w-text-1);
+  --destructive: var(--w-danger);
+  --border: var(--w-border);
+  --input: var(--w-border-strong);
+  --ring: var(--w-lavender);
+  --chart-1: var(--w-lavender);
+  --chart-2: var(--w-lime);
+  --chart-3: #7f7f8c;
+  --chart-4: #55555f;
+  --chart-5: #34343c;
+  --radius: 12px;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply bg-bg font-sans;
+  }
+  body {
+    @apply bg-bg text-text-1;
+    font-size: 14px;
+    line-height: 20px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  ::selection {
+    background: var(--w-lavender-tint);
+  }
+  /* No focus rings or tap highlights anywhere (product decision). */
+  *:focus,
+  *:focus-visible {
+    outline: none !important;
+    box-shadow: none;
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer utilities {
+  /* Money and counts: even-width digits so columns align */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+  .display {
+    letter-spacing: -0.02em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

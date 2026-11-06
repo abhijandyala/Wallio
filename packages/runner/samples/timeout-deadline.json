@@ -1,0 +1,13 @@
+{
+  "actionId": "a0",
+  "stepIndex": 0,
+  "status": "timeout",
+  "observation": null,
+  "error": {
+    "code": "deadline_exceeded",
+    "message": "The job reached its hard deadline during this action.",
+    "retryable": false
+  },
+  "durationMs": 5656,
+  "actionsRemaining": 19
+}

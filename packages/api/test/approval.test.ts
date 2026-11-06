@@ -1,6 +1,6 @@
 /**
  * Approval tokens the runner verifies (format agreed with Adhvik, 5 Nov 2026).
- * The HMAC is recomputed here from the documented string, independently of the signer.
+ * The HMAC is recomputed here from the documented string, and checked with the runner's own verifier.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -29,4 +29,15 @@ test("each token is unique, capped at the runner's maximum life, and needs a rea
   assert.equal(Number(signApprovalToken(KEY, B, 3600, now).split(".")[1]), now / 1000 + MAX_APPROVAL_TTL_S);
   assert.throws(() => signApprovalToken("short", B));
   assert.throws(() => signApprovalToken(KEY, { ...B, pageFingerprint: "sha256:nothex" }));
+});
+
+test("the runner's own verifier accepts our token, and refuses it for another element or job", async () => {
+  const { verifyApprovalToken } = await import("../../runner/src/approval/token.ts");
+  const now = 1_800_000_000_000;
+  const t = signApprovalToken(KEY, B, 120, now);
+  const { pageFingerprint: _fp, ...binding } = B;
+  assert.equal(verifyApprovalToken(KEY, t, binding, now).ok, true);
+  assert.equal(verifyApprovalToken(KEY, t, { ...binding, elementRef: "e13" }, now).ok, false);
+  assert.equal(verifyApprovalToken(KEY, t, { ...binding, jobId: "job_other" }, now).ok, false);
+  assert.equal(verifyApprovalToken(KEY, t, binding, now + 121_000).ok, false, "expired");
 });
