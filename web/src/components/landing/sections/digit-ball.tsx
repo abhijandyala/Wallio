@@ -7,9 +7,9 @@ import { useReducedMotionConfig } from "motion/react";
  * The hero's liquid ball, after the reference's: about 41,000 particles filling a ball, each
  * drawn as a tiny digit in one of four mint shades. The reference runs a real fluid
  * simulation on WebGPU; this is a WebGL stand-in that moves the particles with layered flow
- * so the ball slowly churns and loses its round edge. Near the cursor the digits light up in
- * aurora, fading out over a soft radius, and stay where they are. Works in world units of
- * CSS pixels.
+ * so the ball slowly churns and loses its round edge. Under the cursor the Wallio mark
+ * appears: digits that fall inside the W light up in aurora, the rest of a soft circle around
+ * it dims, and nothing moves. Works in world units of CSS pixels.
  *
  * Placement: the canvas covers the hero and the giant text below it. The ball's centre sits
  * 760px down the canvas and 33px right of centre, and sinks about a fifth as fast as the page
@@ -25,6 +25,9 @@ uniform vec2 uMouse;
 uniform float uForce;
 uniform vec3 uShades[4];
 uniform vec3 uGlow, uGlowHi;
+uniform sampler2D uLogo; // the W mark, white on black
+uniform vec2 uLogoSize;  // its box on screen, CSS pixels
+uniform vec2 uHalf;      // half the canvas, CSS pixels
 varying vec3 vColor;
 varying float vDigit;
 
@@ -56,13 +59,18 @@ void main() {
   // Surface points shiver a little more than the core.
   p += (aInfo.z - 0.5) * smoothstep(0.75, 1.0, length(q)) * uR * 0.03 * vec3(sin(t * 2.0 + aInfo.z * 40.0), cos(t * 1.7 + aInfo.z * 30.0), 0.0);
 
-  // The cursor lights the digits around it in aurora: brightest at the centre, fading out.
-  float d = length((p.xy + uCenter.xy) - uMouse);
-  float glow = uForce * (1.0 - smoothstep(0.0, uR * 0.5, d));
-
   vec3 world = p + uCenter;
   vec4 mv = modelViewMatrix * vec4(world, 1.0);
   gl_Position = projectionMatrix * mv;
+
+  // Where this digit lands on screen, so the mark stays crisp whatever its depth.
+  vec2 screen = gl_Position.xy / gl_Position.w * uHalf;
+  vec2 rel = screen - uMouse;
+  // A soft circle around the cursor, full over the whole mark, fading past it.
+  float glow = uForce * (1.0 - smoothstep(uLogoSize.x * 0.55, uLogoSize.x * 0.95, length(rel)));
+  vec2 luv = rel / uLogoSize + 0.5;
+  float inside = step(0.0, luv.x) * step(luv.x, 1.0) * step(0.0, luv.y) * step(luv.y, 1.0);
+  float mark = inside * smoothstep(0.3, 0.7, texture2D(uLogo, vec2(luv.x, luv.y)).r);
 
   int shade = int(aInfo.y);
   vec3 col = uShades[0];
@@ -73,10 +81,12 @@ void main() {
   vec3 n = normalize(p + 1e-3);
   float lit = clamp(dot(n, normalize(vec3(-0.65, 0.45, 0.6))) * 0.5 + 0.5, 0.0, 1.0);
   col *= 0.6 + 0.8 * lit;
-  vec3 lightCol = mix(uGlow, uGlowHi, smoothstep(0.35, 0.9, glow));
-  vColor = mix(col, lightCol, clamp(glow * 1.3, 0.0, 0.9));
+  // Inside the circle: the mark in bright aurora, everything else sunk to a deep mint.
+  vec3 markCol = mix(uGlow, uGlowHi, 0.55);
+  vec3 sunk = mix(col * 0.32, uGlow * 0.22, 0.4);
+  vColor = mix(col, mix(sunk, markCol, mark), glow);
   vDigit = aInfo.x;
-  gl_PointSize = 5.4 * uPixel * (uDist / -mv.z) * (1.0 + 0.12 * glow);
+  gl_PointSize = 5.4 * uPixel * (uDist / -mv.z) * (1.0 + 0.3 * glow * mark);
 }
 `;
 
@@ -91,6 +101,9 @@ void main() {
   gl_FragColor = vec4(min(vColor, vec3(0.995)), 1.0);
 }
 `;
+
+/** Width over height of /wallio-mark.svg (its viewBox is 1369 x 661). */
+const LOGO_ASPECT = 1369 / 661;
 
 /** Ten white digits in a row on black, one 64px cell each. */
 function digitAtlas() {
@@ -156,6 +169,23 @@ export function DigitBall({ className }: { className?: string }) {
       const atlas = new THREE.CanvasTexture(digitAtlas());
       atlas.minFilter = THREE.LinearFilter;
       atlas.generateMipmaps = false;
+      // The W mark as a mask, drawn once the SVG loads. Until then it's blank and only the
+      // dimmed circle shows.
+      const logoCanvas = document.createElement("canvas");
+      logoCanvas.width = 1024;
+      logoCanvas.height = Math.round(1024 / LOGO_ASPECT);
+      const logo = new THREE.CanvasTexture(logoCanvas);
+      logo.minFilter = THREE.LinearFilter;
+      logo.generateMipmaps = false;
+      const img = new Image();
+      img.onload = () => {
+        const c = logoCanvas.getContext("2d")!;
+        c.fillStyle = "#000";
+        c.fillRect(0, 0, logoCanvas.width, logoCanvas.height);
+        c.drawImage(img, 0, 0, logoCanvas.width, logoCanvas.height);
+        logo.needsUpdate = true;
+      };
+      img.src = "/wallio-mark.svg";
       const shades = ["#1f6b50", "#46b58c", "#9af0cd", "#e2fdf0"].map((h) => new THREE.Color(h));
       const mat = new THREE.ShaderMaterial({
         uniforms: {
@@ -170,6 +200,9 @@ export function DigitBall({ className }: { className?: string }) {
           uGlow: { value: new THREE.Color("#84d8cf") },
           uGlowHi: { value: new THREE.Color("#b4ece5") },
           uDigits: { value: atlas },
+          uLogo: { value: logo },
+          uLogoSize: { value: new THREE.Vector2(1, 1) },
+          uHalf: { value: new THREE.Vector2(1, 1) },
         },
         vertexShader: VERT,
         fragmentShader: FRAG,
@@ -199,6 +232,9 @@ export function DigitBall({ className }: { className?: string }) {
         // Measured on a 1512px wide page; keep the same proportions at other widths.
         scale = phone ? W / 900 : W / 1512;
         mat.uniforms.uR.value = 378 * scale;
+        mat.uniforms.uHalf.value.set(W / 2, H / 2);
+        const lw = 300 * scale;
+        mat.uniforms.uLogoSize.value.set(lw, lw / LOGO_ASPECT);
       };
       resize();
       window.addEventListener("resize", resize);
@@ -262,6 +298,7 @@ export function DigitBall({ className }: { className?: string }) {
         geo.dispose();
         mat.dispose();
         atlas.dispose();
+        logo.dispose();
         renderer.dispose();
         renderer.domElement.remove();
       };
