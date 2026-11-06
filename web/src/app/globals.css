@@ -89,6 +89,10 @@
   --w-lime: #58f6b1;
   --w-lime-tint: rgba(88, 246, 177, 0.1);
   --w-aurora-strong: #62c6bb; /* hover on aurora surfaces */
+  /* The aurora as a gradient: green, white, violet. Pale for buttons and big surfaces;
+     the fill is a touch stronger, for the active nav card, switches, tags and meters. */
+  --w-aurora-pale: linear-gradient(90deg, #c9ffe6 0%, #ffffff 50%, #e2d2ff 100%);
+  --w-aurora-fill: linear-gradient(120deg, #9ef6d0 0%, #eefff8 52%, #cdbaff 100%);
   --w-lime-strong: #3fe89c; /* hover on lime buttons */
   --w-ink: #03140d; /* text on aurora, lime and the pale gradient */
   --w-danger: #ff6b6b; /* reserved: errors and destructive confirmations only */
@@ -148,13 +152,16 @@
 }
 
 @layer components {
-  /* The main action: the landing page's pale aurora-to-mint gradient, which slides
-     across on hover (600ms, as on the reference). Dark ink text. */
+  /* The main action: the pale aurora (violet, cream, white, mint), doubled so it slides
+     across on hover (600ms, as on the reference). Dark ink text, lit top edge, soft bloom. */
   .w-btn-primary {
-    background-image: linear-gradient(90deg, #c2f0ec, #fffdfa, #effff8, #c9ffe6, #c9ffe6, #effff8, #fffdfa, #c2f0ec);
+    background-image: linear-gradient(90deg, #e2d2ff, #fffdfa, #effff8, #c9ffe6, #c9ffe6, #effff8, #fffdfa, #e2d2ff);
     background-size: 200% 100%;
     background-position: 100% 0%;
     color: var(--w-ink);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 0 18px -4px rgba(201, 255, 230, 0.35);
     transition: background-position 600ms ease !important;
   }
   .w-btn-primary:hover {
@@ -170,6 +177,23 @@
   }
   .display {
     letter-spacing: -0.02em;
+  }
+  /* Aurora fills are the gradient, not a flat colour (the flat one stays as a fallback). */
+  .bg-aurora {
+    background-image: var(--w-aurora-fill);
+  }
+  /* Gloss for dark panels: a lit top edge, a soft sheen from above, a faint mint glow. */
+  .w-gloss {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.07),
+      0 18px 48px -24px rgba(34, 176, 124, 0.35);
+  }
+  /* Gloss for pale aurora surfaces. */
+  .w-gloss-pale {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      inset 0 -1px 0 rgba(3, 20, 13, 0.06),
+      0 0 32px -8px rgba(201, 255, 230, 0.3);
   }
 }
 

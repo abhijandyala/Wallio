@@ -23,7 +23,7 @@ export function Section({
   return (
     <section id={id} data-section className="scroll-mt-6">
       <h2 className="mb-3 text-[16px] font-semibold text-text-1">{title}</h2>
-      <div className="overflow-hidden rounded-[12px] border border-line bg-surface-1">{children}</div>
+      <div className="w-gloss overflow-hidden rounded-[12px] border border-line bg-surface-1 bg-[linear-gradient(180deg,rgba(201,255,230,0.04)_0%,transparent_30%)]">{children}</div>
     </section>
   );
 }

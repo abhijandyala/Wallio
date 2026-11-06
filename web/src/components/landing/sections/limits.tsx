@@ -5,8 +5,9 @@ import { LIMITS } from "../content";
 import { cn } from "@/lib/utils";
 
 /**
- * The numbers, in the reference's bento: a tall pale card on the left (aurora to cream to
- * mint) and three deep mint cards on the right, one wide over two. Each card hides a faint
+ * The numbers, in the reference's bento: a tall pale card on the left (violet to cream to
+ * mint, the pale aurora) and three glossy deep mint cards on the right, one wide over two.
+ * Numbers on the dark cards are painted with the aurora. Each card hides a faint
  * dot grid that lights up around the cursor, like the reference's card effect.
  */
 export function Limits() {
@@ -40,8 +41,8 @@ function Card({ card, pale, className }: { card: (typeof LIMITS.cards)[number]; 
       className={cn(
         "group relative flex min-h-[18.125rem] flex-col justify-between overflow-hidden rounded-[1rem] p-[2.25rem]",
         pale
-          ? "bg-[radial-gradient(41288.31%_255.77%_at_-42.4%_-22.13%,var(--wl-aur)_0%,var(--wl-cream)_44.72%,var(--wl-100)_85.38%,var(--wl-mint)_100%)] text-[var(--wl-900)]"
-          : "bg-[var(--wl-800)]",
+          ? "bg-[radial-gradient(41288.31%_255.77%_at_-42.4%_-22.13%,var(--wl-aur)_0%,var(--wl-cream)_44.72%,var(--wl-100)_85.38%,var(--wl-mint)_100%)] text-[var(--wl-900)] wl-gloss-pale"
+          : "bg-[var(--wl-800)] wl-gloss",
         className,
       )}
     >
@@ -49,7 +50,7 @@ function Card({ card, pale, className }: { card: (typeof LIMITS.cards)[number]; 
       <span
         aria-hidden="true"
         className={cn(
-          "pointer-events-none absolute inset-0 bg-[size:1.5rem_1.5rem] opacity-30 transition-opacity duration-300 group-hover:opacity-100",
+          "pointer-events-none absolute inset-0 bg-[size:1.5rem_1.5rem] opacity-45 transition-opacity duration-300 group-hover:opacity-100",
           pale
             ? "bg-[radial-gradient(rgba(13,74,53,0.35)_0.07rem,transparent_0.09rem)]"
             : "bg-[radial-gradient(rgba(201,255,230,0.3)_0.07rem,transparent_0.09rem)]",
@@ -64,10 +65,11 @@ function Card({ card, pale, className }: { card: (typeof LIMITS.cards)[number]; 
       <div
         className={cn(
           "relative mt-8 text-[5.67rem] leading-none font-semibold tracking-[-0.25rem] max-md:text-[4rem]",
-          pale ? "text-[var(--wl-900)]" : "text-[var(--wl-aur-100)]",
+          pale && "text-[var(--wl-900)]",
         )}
       >
-        {card.value}
+        {/* The gradient spans the number itself, so even "0" shows all three colours. */}
+        <span className={pale ? undefined : "wl-aurora-text inline-block"}>{card.value}</span>
       </div>
     </div>
   );

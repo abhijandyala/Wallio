@@ -7,11 +7,11 @@ Code lives in `web/src/app/globals.css` (tokens) and `web/src/components/kit/` (
 
 1. **Use the whole width, lean right.** No sidebar. Content fills the screen on a 12-column grid; navigation lives in the slim Wallio rail on the left edge. Wide panels (tables, the main content) go on the right; narrow ones (inbox, summaries) on the left.
 2. **No pills.** Buttons and inputs are radius 8, panels radius 20. No `rounded-full` anywhere except avatars if we ever add photos.
-3. **Only the palette.** Mint-tinted blacks, Lime (the main colour), Aurora (the quiet hint), and the mint-gray text tiers (shared with the landing page). No purple, amber, blue, or extra greens. Red is reserved for errors and destructive confirmations.
+3. **Only the palette.** Mint-tinted blacks, Lime (the main colour), Aurora (the hint), and the mint-gray text tiers (shared with the landing page). Aurora is a gradient of green, white and violet; violet appears only as the tail of that gradient, never as a flat colour. No amber, blue, or extra greens. Red is reserved for errors and destructive confirmations.
 4. **No tag-title-description-subdescription stacks.** A block gets a **title** and **one** of: a value, a sentence, a list, or a table. Never a colored micro-label above the title, never a second line of fine print below.
 5. **One line per row.** Lists and tables don't wrap a second detail line under each item. If it needs explaining, it goes on the detail page or in a tooltip.
 6. **One loud thing per screen.** Either the pale accent panel or a primary button leads. Not both fighting.
-7. **No decoration beyond the shared light.** The only gradients are the landing page's: the pale aurora-to-mint gradient (primary button, accent panel), a faint mint light at the top of each panel, and the dim drifting mint glow behind the app (`GlowCanvas`, strength 0.5, never under data). No other glows, orbs, sparkles, or mono uppercase eyebrows.
+7. **No decoration beyond the shared light.** The only gradients are the landing page's: the pale aurora (mint, white, violet: primary button, accent panel), the aurora fill on aurora surfaces (`bg-aurora`: active nav card, switches, tags), a faint mint light and a lit top edge on each panel (`w-gloss`), and the dim drifting mint glow behind the app (`GlowCanvas`, strength 0.5, never under data). No other glows, orbs, sparkles, or mono uppercase eyebrows.
 8. **Tight gutters.** Panels sit **12px** apart (`gap-gutter`), horizontally and vertically. Never 24px+ between panels. The page header sits **16px** above the content (`gap-section`). Content starts **24px** from the sidebar and the top.
 9. **No highlight boxes.** Selected nav items, rows and options don't get a background fill on hover or select. State is shown with text color, the aurora icon, or the checkbox. No focus rings or tap highlights anywhere.
 
@@ -23,7 +23,7 @@ Code lives in `web/src/app/globals.css` (tokens) and `web/src/components/kit/` (
 | `surface-1` / `-2` / `-3` | `#071810` / `#0C2219` / `#122D22` | panels / hover & inputs / menus & modals. Keep them opaque: sticky headers and fades rely on it |
 | `line` / `line-strong` | mint `rgba(170,240,210)` at 9% / 16% | hairline borders |
 | `text-1` / `-2` / `-3` | `#F2F7F4` / `#AAB7B1` / `#84918B` | primary / secondary / labels. All at least 4.5:1 on every surface |
-| `aurora` | `#84D8CF` | active nav icon, "needs you" marks, dates that matter, charts |
+| `aurora` | `#84D8CF` flat; gradient `#9EF6D0 → #EEFFF8 → #CDBAFF` on fills, pale `#C9FFE6 → #FFFFFF → #E2D2FF` | flat for icons, text marks, dates that matter and charts; the gradient on surfaces |
 | `lime` | `#58F6B1` | money saved, budget meter, "Tested", the winning bar |
 | pale gradient | `#C2F0EC` → `#FFFDFA` → `#EFFFF8` → `#C9FFE6` | primary button (`.w-btn-primary`, slides on hover over 600ms) and the accent panel |
 | `ink` | `#03140D` | text and buttons on aurora, lime and the pale gradient |

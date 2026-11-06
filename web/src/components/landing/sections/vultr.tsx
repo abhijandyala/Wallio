@@ -60,35 +60,53 @@ export function Vultr() {
       const r = 600 * s;
 
       ctx.clearRect(0, 0, W, H);
-      // Halo around the planet.
-      const halo = ctx.createRadialGradient(cx, cy, r * 0.9, cx, cy, r * 1.35);
-      halo.addColorStop(0, "rgba(201,255,230,0.75)");
-      halo.addColorStop(0.35, "rgba(88,246,177,0.22)");
+      // A wide bloom around the planet, spilling mint into the card.
+      const halo = ctx.createRadialGradient(cx, cy, r * 0.9, cx, cy, r * 1.7);
+      halo.addColorStop(0, "rgba(214,255,238,0.5)");
+      halo.addColorStop(0.2, "rgba(150,248,205,0.32)");
+      halo.addColorStop(0.5, "rgba(88,246,177,0.12)");
       halo.addColorStop(1, "rgba(88,246,177,0)");
       ctx.fillStyle = halo;
       ctx.fillRect(0, 0, W, H);
-      // The planet: near white at the middle, pale mint toward the rim, brightest at the edge.
-      const body = ctx.createRadialGradient(cx - r * 0.1, cy, 0, cx, cy, r);
-      body.addColorStop(0, "#dffcef");
-      body.addColorStop(0.82, "#c6f5e1");
-      body.addColorStop(0.97, "#f1fff8");
-      body.addColorStop(1, "#ffffff");
+      // The planet, glowing: one gradient that runs past the rim and fades out, so the edge
+      // is a soft bloom rather than a hard line. Pale aqua-mint inside, near white at the edge.
+      const R = r * 1.1;
+      const body = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+      const at = (k: number) => k / 1.1;
+      body.addColorStop(0, "#dcfbef");
+      body.addColorStop(at(0.55), "#c8f6e3");
+      body.addColorStop(at(0.84), "#d8faed");
+      body.addColorStop(at(0.95), "rgba(243,255,250,1)");
+      body.addColorStop(at(1.0), "rgba(243,255,250,0.75)");
+      body.addColorStop(at(1.05), "rgba(214,255,238,0.25)");
+      body.addColorStop(1, "rgba(214,255,238,0)");
       ctx.fillStyle = body;
+      ctx.fillRect(cx - R, cy - R, R * 2, R * 2);
+      // A faint violet tint low on the far side, the aurora's third colour.
+      const tint = ctx.createRadialGradient(cx + r * 0.55, cy + r * 0.45, 0, cx + r * 0.55, cy + r * 0.45, r * 0.7);
+      tint.addColorStop(0, "rgba(226,210,255,0.35)");
+      tint.addColorStop(1, "rgba(226,210,255,0)");
+      ctx.save();
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.clip();
+      ctx.fillStyle = tint;
+      ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+      ctx.restore();
 
-      // Land as a grid of small square dots, fading out toward the rim.
+      // Land as a grid of small round dots, fading out well before the rim.
       if (isLand) {
         const step = 9 * s;
-        const dot = 3.6 * s;
+        const dot = 1.55 * s;
         for (let y = Math.max(0, cy - r); y < Math.min(H, cy + r); y += step) {
           for (let x = Math.max(0, cx - r); x < Math.min(W, cx + r); x += step) {
             const g = unproject((x - cx) / r, -(y - cy) / r);
             if (!g || !isLand(g.lon, g.lat)) continue;
-            const fade = Math.min(1, (1 - g.rho) / 0.18);
-            ctx.fillStyle = `rgba(42,102,84,${0.78 * fade})`;
-            ctx.fillRect(x - dot / 2, y - dot / 2, dot, dot);
+            const fade = Math.min(1, (1 - g.rho) / 0.32);
+            ctx.fillStyle = `rgba(74,128,114,${0.5 * fade})`;
+            ctx.beginPath();
+            ctx.arc(x, y, dot, 0, Math.PI * 2);
+            ctx.fill();
           }
         }
       }
@@ -119,7 +137,7 @@ export function Vultr() {
   return (
     <section id="vultr" className="scroll-mt-24">
       <Container>
-        <div className="relative h-[37.625rem] overflow-hidden rounded-[1rem] bg-[radial-gradient(60%_70%_at_0%_100%,rgba(201,255,230,0.55),transparent_70%),linear-gradient(90deg,#062a1e_0%,#0d4a35_45%,#2a8c6a_70%,#58c79a_100%)] max-md:h-auto max-md:pb-[22rem]">
+        <div className="relative h-[37.625rem] overflow-hidden rounded-[1rem] wl-gloss bg-[radial-gradient(55%_65%_at_0%_100%,rgba(201,255,230,0.5),transparent_70%),radial-gradient(45%_55%_at_52%_115%,rgba(88,246,177,0.55),transparent_70%),linear-gradient(90deg,#05271c_0%,#0b4634_38%,#1d8a66_64%,#4fd3a2_88%)] max-md:h-auto max-md:pb-[22rem]">
           <canvas ref={canvas} aria-hidden="true" className="pointer-events-none absolute inset-0 size-full" />
           <div
             ref={pin}

@@ -12,7 +12,7 @@ export function Proof() {
   return (
     <section id="proof" className="scroll-mt-24">
       <Container>
-        <div className="rounded-[1rem] bg-[var(--wl-900)] px-[2.5rem] pt-[7.5rem] pb-[7.5rem] max-md:px-3 max-md:py-16">
+        <div className="wl-gloss rounded-[1rem] bg-[var(--wl-900)] px-[2.5rem] pt-[7.5rem] pb-[7.5rem] max-md:px-3 max-md:py-16">
           <div className="flex flex-col items-center text-center">
             <Eyebrow>{PROOF.eyebrow}</Eyebrow>
             <h2 className="wl-h1 mt-[1.94rem]">{PROOF.title}</h2>

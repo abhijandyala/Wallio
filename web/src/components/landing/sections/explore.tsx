@@ -18,7 +18,7 @@ export function Explore() {
   return (
     <section id="explore" className="scroll-mt-24">
       <Container>
-        <div className="relative flex overflow-hidden rounded-[1rem] bg-[radial-gradient(70%_60%_at_68%_10%,rgba(34,176,124,0.28),transparent_70%),radial-gradient(60%_50%_at_20%_100%,rgba(34,176,124,0.18),transparent_70%),linear-gradient(#04170f,#020c08)] p-[1.75rem] max-md:flex-col max-md:p-3">
+        <div className="wl-gloss relative flex overflow-hidden rounded-[1rem] bg-[radial-gradient(70%_60%_at_68%_10%,rgba(34,176,124,0.28),transparent_70%),radial-gradient(60%_50%_at_20%_100%,rgba(34,176,124,0.18),transparent_70%),linear-gradient(#04170f,#020c08)] p-[1.75rem] max-md:flex-col max-md:p-3">
           <span aria-hidden="true" className="wl-dots pointer-events-none absolute inset-0 [mask-image:linear-gradient(90deg,transparent_45%,#000_75%)]" />
           <div className="relative flex w-1/2 flex-col rounded-[0.75rem] bg-[rgba(3,20,13,0.5)] px-[1.25rem] py-[2.5rem] max-md:w-full">
             <div className="flex flex-col px-[1.5rem]">

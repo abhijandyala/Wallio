@@ -9,7 +9,7 @@ import { useReducedMotionConfig } from "motion/react";
  * simulation on WebGPU; this is a WebGL stand-in that moves the particles with layered flow
  * so the ball slowly churns and loses its round edge. Under the cursor the digits gather into
  * the Wallio mark: each one has a spot inside the W, and the ones near the cursor fly to it,
- * in front of the ball and tinted aurora, then fly home when the cursor leaves. Works in
+ * in front of the ball and painted with the aurora (green, white, violet), then fly home when the cursor leaves. Works in
  * world units of CSS pixels.
  *
  * Placement: the canvas covers the hero and the giant text below it. The ball's centre sits
@@ -26,7 +26,7 @@ uniform vec3 uCenter;
 uniform vec2 uMouse;
 uniform float uForce;
 uniform vec3 uShades[4];
-uniform vec3 uGlow, uGlowHi;
+uniform vec3 uGlow, uGlowHi, uGlowTo; // the aurora: green, white, violet
 uniform vec2 uLogoSize;   // the mark's box on screen, CSS pixels
 uniform vec2 uHalf;       // half the canvas, CSS pixels
 uniform float uLogoReady; // 0 until the mark's spots are sampled
@@ -86,8 +86,11 @@ void main() {
   vec3 n = normalize(p + 1e-3);
   float lit = clamp(dot(n, normalize(vec3(-0.65, 0.45, 0.6))) * 0.5 + 0.5, 0.0, 1.0);
   col *= 0.6 + 0.8 * lit;
-  // Digits in the mark turn aurora, a little lighter or darker each so it keeps texture.
-  vec3 markCol = mix(uGlow, uGlowHi, aInfo.z);
+  // Digits in the mark take the aurora across its width (green, white, violet), each a
+  // little lighter or darker so the mark keeps its texture.
+  float gx = clamp(aLogo.x + 0.5, 0.0, 1.0);
+  vec3 markCol = gx < 0.5 ? mix(uGlow, uGlowHi, gx * 2.0) : mix(uGlowHi, uGlowTo, gx * 2.0 - 1.0);
+  markCol *= 0.86 + 0.14 * aInfo.z;
   vColor = mix(col, markCol, pull);
   vDigit = aInfo.x;
   // Gathered digits shrink a touch so the gaps between the strokes stay clean.
@@ -211,8 +214,9 @@ export function DigitBall({ className }: { className?: string }) {
           uMouse: { value: new THREE.Vector2(9999, 9999) },
           uForce: { value: 0 },
           uShades: { value: shades },
-          uGlow: { value: new THREE.Color("#84d8cf") },
-          uGlowHi: { value: new THREE.Color("#b4ece5") },
+          uGlow: { value: new THREE.Color("#58f6b1") },
+          uGlowHi: { value: new THREE.Color("#eefff7") },
+          uGlowTo: { value: new THREE.Color("#c5afff") },
           uDigits: { value: atlas },
           uLogoSize: { value: new THREE.Vector2(1, 1) },
           uHalf: { value: new THREE.Vector2(1, 1) },

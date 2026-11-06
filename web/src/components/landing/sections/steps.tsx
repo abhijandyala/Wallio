@@ -16,7 +16,7 @@ export function Steps() {
   return (
     <section id="steps" className="scroll-mt-24">
       <Container>
-        <div className="rounded-[1rem] bg-[var(--wl-900)] px-[2.5rem] pt-[7.5rem] pb-[5rem] max-md:px-3 max-md:pt-16">
+        <div className="wl-gloss rounded-[1rem] bg-[var(--wl-900)] px-[2.5rem] pt-[7.5rem] pb-[5rem] max-md:px-3 max-md:pt-16">
           <div className="flex flex-col items-center text-center">
             <Eyebrow>{STEPS.eyebrow}</Eyebrow>
             <h2 className="wl-h1 mt-[1.94rem] max-w-[40rem]">{STEPS.title}</h2>
