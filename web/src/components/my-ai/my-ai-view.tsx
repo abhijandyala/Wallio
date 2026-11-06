@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
 import { Plus } from "@phosphor-icons/react";
-import type { Connection, Profile, ProfileField, Subscription, Workflow } from "@/lib/types";
+import type { Profile, ProfileField, Subscription, Workflow } from "@/lib/types";
 import { PageHeader } from "@/components/kit/page-header";
 import { Segmented } from "@/components/kit/segmented";
 import { Money } from "@/components/kit/money";
@@ -14,7 +14,6 @@ import { ToolsCollection, type ToolsSort, type ToolsView } from "./tools-collect
 import { ToolsEmpty } from "./tools-empty";
 import { ToolDrawer } from "./tool-drawer";
 import { WorkflowsPanel } from "./workflows-panel";
-import { ConnectionsPanel } from "./connections-panel";
 import { ProfilePanel } from "./profile-panel";
 
 const fromGitHub = (f: ProfileField) => f.inferredFrom?.startsWith("GitHub") ?? false;
@@ -31,12 +30,10 @@ const dollarsToCents = (v: string) => {
 export function MyAiView({
   initial,
   profile,
-  connections,
   today,
 }: {
   initial: Subscription[];
   profile: Profile;
-  connections: Connection[];
   today: string;
 }) {
   const reduce = useReducedMotionConfig();
@@ -54,7 +51,6 @@ export function MyAiView({
   const [fields, setFields] = useState<ProfileField[]>(profile.fields);
   const [version, setVersion] = useState(profile.version);
   const [savedNote, setSavedNote] = useState<string | null>(null);
-  const disconnected = settings.githubConnected ? [] : ["con_github"];
 
   const shown = subs.filter((s) => s.status !== "archived");
   const ordered = sortTools(shown, sort);
@@ -157,7 +153,8 @@ export function MyAiView({
           )}
         </div>
 
-        {/* Lean right: workflows and connections narrow on the left, the profile wide on the right. */}
+        {/* Lean right: workflows narrow on the left, the profile wide on the right. (Connections are
+            hidden: the API has no /api/connections yet.) */}
         <div className="col-span-12 flex flex-col gap-gutter xl:col-span-4">
           <WorkflowsPanel
             workflows={workflows}
@@ -165,13 +162,6 @@ export function MyAiView({
             onSave={(next) => {
               setWorkflows(next);
               bump();
-            }}
-          />
-          <ConnectionsPanel
-            connections={connections}
-            disconnected={disconnected}
-            onToggle={(id) => {
-              if (id === "con_github") updateSettings({ githubConnected: !settings.githubConnected });
             }}
           />
         </div>

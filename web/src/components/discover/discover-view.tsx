@@ -164,7 +164,7 @@ export function DiscoverView({ data }: { data: DiscoverData }) {
       <span className="text-text-1">
         {shortlist.length} of {research?.checked ?? all.length} tools
       </span>{" "}
-      fit {name} · ranked by fit, never by who pays
+      fit {name} · ranked by fit, never by who pays · <span className="text-text-3">sample data</span>
     </>
   );
 

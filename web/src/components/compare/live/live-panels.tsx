@@ -327,7 +327,7 @@ export function VultrPanel({
 
 /* ── recommendation ──────────────────────────────────────────────────── */
 
-const ACTION: Record<Recommendation["action"], string> = {
+export const ACTION: Record<Recommendation["action"], string> = {
   keep: "Keep what you have",
   try: "Try it",
   compare_further: "Compare further",
@@ -336,7 +336,7 @@ const ACTION: Record<Recommendation["action"], string> = {
   no_action: "Nothing to do",
 };
 
-const ROLE: Record<Statement["role"], string> = {
+export const ROLE: Record<Statement["role"], string> = {
   supporting: "For it",
   counter: "Against it",
   uncertainty: "Not sure yet",

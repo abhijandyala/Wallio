@@ -9,11 +9,9 @@ import {
   Check,
   DownloadSimple,
   Flask,
-  GithubLogo,
   IdentificationCard,
   MagnifyingGlass,
   Palette,
-  PlugsConnected,
   Robot,
   ShieldCheck,
   UserCircle,
@@ -58,7 +56,6 @@ const NAV: { label: string; items: { id: string; label: string; icon: Icon }[] }
     items: [
       { id: "spending", label: "Spending", icon: Wallet },
       { id: "agent", label: "Agent and runs", icon: Robot },
-      { id: "connections", label: "Connections", icon: PlugsConnected },
     ],
   },
   {
@@ -277,7 +274,6 @@ export function SettingsView() {
         <div ref={body} className="flex min-w-0 flex-col gap-12">
           <SpendingSection s={s} set={set} />
           <AgentSection s={s} set={set} />
-          <ConnectionsSection s={s} set={set} />
           <NotificationsSection s={s} set={set} say={say} />
           <ProfileSection s={s} set={set} />
           <AccountSection s={s} set={set} />
@@ -614,50 +610,6 @@ function inQuiet(from: string, to: string) {
   const a = fh * 60 + fm;
   const b = th * 60 + tm;
   return a <= b ? m >= a && m < b : m >= a || m < b;
-}
-
-/* ── Connections ──────────────────────────────────────────────────────── */
-
-function ConnectionsSection({ s, set }: P) {
-  return (
-    <Section id="connections" title="Connections">
-      <Row
-        inline
-        label={
-          <span className="flex items-center gap-3">
-            <span className="grid size-7 place-items-center rounded-md bg-surface-3">
-              <GithubLogo size={15} />
-            </span>
-            <span>
-              GitHub <span className="text-[12px] text-text-3">· Sample</span>
-              <span className="block text-[12px] text-text-3">
-                {s.githubConnected ? "Reads languages and editor files in wallio-demo" : "Disconnected. Its guesses were removed."}
-              </span>
-            </span>
-          </span>
-        }
-      >
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() =>
-            set({ githubConnected: !s.githubConnected }, s.githubConnected ? "GitHub disconnected" : "GitHub reconnected")
-          }
-        >
-          {s.githubConnected ? "Disconnect" : "Reconnect"}
-        </Button>
-      </Row>
-      <Row inline label="Let Wallio guess from connected accounts">
-        <Toggle
-          label="Allow guesses"
-          checked={s.allowGuesses}
-          onChange={(v) => set({ allowGuesses: v }, v ? "Guesses back on. Each still needs your OK" : "No more guesses")}
-        />
-      </Row>
-      <LaterRow label="Email receipts, to fill in prices" />
-      <LaterRow label="Import billing from a CSV" />
-    </Section>
-  );
 }
 
 /* ── Profile ──────────────────────────────────────────────────────────── */

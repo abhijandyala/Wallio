@@ -104,19 +104,17 @@ export function MatchDetail({
         {match.comparesTo && (
           <footer className="flex flex-wrap items-center gap-3 border-t border-line px-6 py-5">
             <ButtonLink
-              href={
-                tested
-                  ? "/compare?view=results"
-                  : `/compare?workflow=${match.workflowId}&tools=${encodeURIComponent(`${match.comparesTo},${match.toolName}`)}`
-              }
+              // Discover is sample data (there's no research API yet), so every compare goes to
+              // the live comparison on the Wallio API, which runs its golden path today.
+              href="/compare?live=1"
               variant="primary"
             >
-              {tested ? "See the comparison" : `Compare with ${match.comparesTo}`}
+              {tested ? "See a live comparison" : "Run a live comparison"}
               <ArrowRight size={16} weight="bold" />
             </ButtonLink>
             {!tested && (
               <span className="text-[13px] text-text-3">
-                Runs one real task on both, in a sandbox
+                Runs a real task on Vultr. The live API compares GitHub Copilot and Zed for now.
               </span>
             )}
           </footer>

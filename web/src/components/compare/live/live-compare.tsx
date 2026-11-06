@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import recorded from "@/mocks/recorded-runs.json";
 import type { ApprovalIntent, Evidence as ApiEvidence, Recommendation, Run, RunEvent } from "@/lib/api/contract";
-import { api, ApiFailure, useApiStatus } from "@/lib/api/client";
+import { api, ApiFailure, explainFailure, useApiStatus } from "@/lib/api/client";
+import { DecisionBar } from "./decision-bar";
 import { isTerminal, liveSource, recordedSource } from "@/lib/api/run-source";
 import type { Evidence as UiEvidence } from "@/lib/types";
 import { PageHeader } from "@/components/kit/page-header";
@@ -75,7 +76,8 @@ interface Job {
 }
 
 const fresh = (source: Source): Job => ({ source, events: [], run: null, error: null });
-const message = (e: unknown) => (e instanceof ApiFailure ? e.error.message : "The Wallio API can't be reached right now.");
+/** Rate limits and an offline runner get a plain sentence; see explainFailure. */
+const message = (e: unknown) => explainFailure(e);
 
 export function LiveCompare({ focus }: { focus: "comparison" | "containment" }) {
   const status = useApiStatus();
@@ -389,6 +391,7 @@ export function LiveCompare({ focus }: { focus: "comparison" | "containment" }) 
                 />
                 {rec && (
                   <RecommendationCard rec={rec} names={NAMES} demo={demoFor(jobs.comparison)} onEvidence={openEvidence}>
+                    <DecisionBar key={rec.id} recommendationId={rec.id} recorded={jobs.comparison?.source === "recorded"} />
                     {!jobs.trial && (
                       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-6 py-4">
                         <span className="text-text-2">

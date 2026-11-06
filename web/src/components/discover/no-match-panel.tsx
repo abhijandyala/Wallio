@@ -75,8 +75,8 @@ export function NoMatchPanel({
       </ul>
 
       <footer className="mt-auto flex flex-wrap items-center gap-3 border-t border-line px-6 py-5">
-        <ButtonLink href="/compare" variant="secondary">
-          Compare anyway
+        <ButtonLink href="/compare?live=1" variant="secondary">
+          Run a live comparison
         </ButtonLink>
         <span className="ml-auto hidden text-[13px] text-text-3 lg:block">
           We&apos;ll tell you if a new tool or price change moves this

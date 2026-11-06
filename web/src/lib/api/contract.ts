@@ -209,3 +209,52 @@ export interface ApprovalIntent {
   expiresAt: string;
   status: "pending" | "approved" | "declined" | "expired" | "consumed" | "invalidated";
 }
+
+// ───────────────────────── Decisions (v0.3) ─────────────────────────
+
+export type DecisionChoice = "accept" | "dismiss" | "defer" | "disagree";
+
+/** POST /api/decisions body. */
+export interface DecisionRequest {
+  recommendationId: string;
+  choice: DecisionChoice;
+  reason?: string;
+  reviewDate?: string;
+}
+
+/** 201 from POST /api/decisions, /api/recommendations/:id/defer and /dismiss. */
+export interface Decision extends DecisionRequest {
+  id: string;
+  profileVersionId: string;
+  evidenceSnapshotIds: string[];
+  createdAt: string;
+}
+
+/** One line of the decision history: the latest decision on a recommendation. */
+export interface DecisionLogEntry {
+  /** The decision's id (POST /api/decisions/:id/outcome). */
+  id: string;
+  recommendationId: string;
+  runId: string;
+  choice: "accept" | "dismiss" | "disagree";
+  action: RecommendationAction;
+  targetToolId: string | null;
+  targetToolName: string | null;
+  headline: string;
+  decidedAt: string;
+  /** When Wallio asks whether it helped. Accepted decisions only. */
+  checkInOn: string | null;
+  /** `pending` until answered; null when there's nothing to check (dismissed, disagreed). */
+  result: "helped" | "no_change" | "pending" | null;
+  resultAt: string | null;
+  /** The recommendation's own estimate, not a measured saving. Null = unknown: show nothing, never 0. */
+  estimatedAnnualSavingMinor: number | null;
+}
+
+/** GET /api/decisions */
+export interface DecisionsOverview {
+  approvals: ApprovalIntent[];
+  recommendations: Recommendation[];
+  deferred: { recommendationId: string; headline: string; until: string }[];
+  history: DecisionLogEntry[];
+}

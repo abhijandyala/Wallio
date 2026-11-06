@@ -7,6 +7,10 @@ import type {
   ApprovalIntent,
   CatalogTool,
   ComparisonRequest,
+  Decision,
+  DecisionLogEntry,
+  DecisionRequest,
+  DecisionsOverview,
   Evidence,
   Health,
   ProfileVersion,
@@ -72,7 +76,46 @@ export const api = {
   approval: (id: string) => call<ApprovalIntent>(`/api/approvals/${id}`),
   decide: (id: string, decision: "approve" | "decline", intentHash: string) =>
     call<ApprovalIntent>(`/api/approvals/${id}/decision`, { json: { decision, intentHash } }),
+  // Decisions (v0.3)
+  decisions: () => call<DecisionsOverview>("/api/decisions"),
+  recordDecision: (req: DecisionRequest) => call<Decision>("/api/decisions", { json: req }),
+  defer: (recommendationId: string, body: { until?: string; reason?: string } = {}) =>
+    call<Decision>(`/api/recommendations/${recommendationId}/defer`, { json: body }),
+  dismiss: (recommendationId: string, reason?: string) =>
+    call<Decision>(`/api/recommendations/${recommendationId}/dismiss`, { json: reason ? { reason } : {} }),
+  outcome: (decisionId: string, result: "helped" | "no_change") =>
+    call<DecisionLogEntry>(`/api/decisions/${decisionId}/outcome`, { json: { result } }),
 };
+
+/**
+ * A sentence a person can act on, for any failed call. Rate limits say when to try again;
+ * an offline browser runner says so plainly instead of a raw error.
+ */
+export function explainFailure(e: unknown): string {
+  if (e instanceof ApiFailure) {
+    const { code, message, details } = e.error;
+    if (code === "rate_limited" || e.status === 429) {
+      const wait = Number(details?.retryAfterSeconds);
+      return Number.isFinite(wait) && wait > 0
+        ? `Too many runs at once. Try again in ${Math.ceil(wait)} second${Math.ceil(wait) === 1 ? "" : "s"}.`
+        : "Too many runs at once. Try again in a moment.";
+    }
+    if (code === "runner_unavailable") {
+      return "The sandboxed browser on Vultr isn't available right now, so nothing ran. Try again shortly, or play the recorded run.";
+    }
+    return message;
+  }
+  if (e instanceof TypeError) return "Can't reach the Wallio API. Check your connection and try again.";
+  return e instanceof Error ? e.message : "Something went wrong.";
+}
+
+/** Seconds to wait before retrying, when the API said so (429 rate_limited). */
+export function retryAfter(e: unknown): number | null {
+  if (!(e instanceof ApiFailure)) return null;
+  if (e.error.code !== "rate_limited" && e.status !== 429) return null;
+  const wait = Number(e.error.details?.retryAfterSeconds);
+  return Number.isFinite(wait) && wait > 0 ? Math.ceil(wait) : null;
+}
 
 /** Forget this browser's guest workspace. The next API call starts a fresh one. */
 export async function resetGuestSession(): Promise<void> {
