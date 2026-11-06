@@ -52,7 +52,7 @@ void main() {
   if (d > 0.5) discard;
   float a = smoothstep(0.5, 0.15, d);
   vec3 col = mix(uColor, uHot, clamp((vBright - 0.8) * 2.5, 0.0, 1.0)) * vBright;
-  gl_FragColor = vec4(col, a);
+  gl_FragColor = vec4(clamp(col, 0.0, 1.0), a);
 }
 `;
 

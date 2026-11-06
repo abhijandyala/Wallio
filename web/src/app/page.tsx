@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "@/components/site/site.css";
 import { gxFont } from "@/components/site/font";
 import { Stage } from "@/components/site/stage/stage";
+import { SmoothScroll } from "@/components/site/smooth-scroll";
 import { NavSection } from "@/components/site/sections/nav";
 import { HeroSection } from "@/components/site/sections/hero";
 import { LiquiditySection } from "@/components/site/sections/liquidity";
@@ -25,6 +26,7 @@ export const metadata: Metadata = {
 export default function LandingPage() {
   return (
     <div className={`gx-root ${gxFont.variable} relative`}>
+      <SmoothScroll />
       <Stage />
       <NavSection />
       <main id="main" className="relative z-10">

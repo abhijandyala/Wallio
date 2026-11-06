@@ -33,7 +33,7 @@ function rng(seed: number) {
 
 /** Rasterises Natural Earth land (public domain) to an equirectangular mask. */
 async function landMask(w: number, h: number): Promise<(lon: number, lat: number) => boolean> {
-  const topo = (await import("world-atlas/land-110m.json")).default as unknown as Topology<{ land: GeometryCollection }>;
+  const topo = (await import("world-atlas/land-50m.json")).default as unknown as Topology<{ land: GeometryCollection }>;
   const land = feature(topo, topo.objects.land);
   const canvas = document.createElement("canvas");
   canvas.width = w;
@@ -99,23 +99,25 @@ function markPoints(n: number, rand: () => number): Float32Array {
 
 export async function buildStagePoints(opts: { dense: boolean }): Promise<StagePoints> {
   const rand = rng(7);
-  const isLand = await landMask(1440, 720);
+  const isLand = await landMask(2880, 1440);
 
-  // Uniform points on the sphere (Fibonacci), sorted into land and ocean.
-  const sphere = opts.dense ? 95000 : 45000;
+  // Uniform points on the sphere (Fibonacci), sorted into land and ocean. Dense enough that
+  // the land reads as a lit surface with real coastlines, the way the reference's earth does.
+  const sphere = opts.dense ? 160000 : 64000;
   const land: number[] = [];
   const ocean: number[] = [];
   const golden = Math.PI * (3 - Math.sqrt(5));
   for (let i = 0; i < sphere; i++) {
-    const yy = 1 - (i / (sphere - 1)) * 2;
+    // Fibonacci spacing with a little jitter: even like a printed screen, without the spiral.
+    const yy = Math.max(-1, Math.min(1, 1 - (i / (sphere - 1)) * 2 + (rand() - 0.5) * (1.6 / sphere)));
     const r = Math.sqrt(1 - yy * yy);
-    const th = golden * i;
+    const th = golden * i + (rand() - 0.5) * 0.9;
     const px = Math.cos(th) * r;
     const pz = Math.sin(th) * r;
     const lat = (Math.asin(yy) * 180) / Math.PI;
     const lon = (Math.atan2(pz, px) * 180) / Math.PI;
     if (isLand(lon, lat)) land.push(px, yy, pz);
-    else if (rand() < 0.07) ocean.push(px, yy, pz);
+    else if (rand() < 0.26) ocean.push(px, yy, pz);
   }
   const halo = opts.dense ? 16000 : 7000;
   const dust = opts.dense ? 1800 : 900;

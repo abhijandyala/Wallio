@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { GlowBtn } from "./glow-btn";
 
 /**
  * Landing page building blocks. Sizes are rem at the reference's 1512px layout
@@ -53,6 +54,12 @@ export function Btn({
   className?: string;
   children?: React.ReactNode;
 }) {
+  if (variant === "glow")
+    return (
+      <GlowBtn href={href} wide={wide} icon={icon} className={className}>
+        {children}
+      </GlowBtn>
+    );
   return (
     <Link
       href={href}
@@ -113,6 +120,37 @@ export function Heading({
 /** Body copy at the reference's 11.25px, muted. */
 export function Body({ className, children = P }: { className?: string; children?: React.ReactNode }) {
   return <p className={cn("text-[0.703rem] leading-[1.55] text-[var(--gx-muted)] max-md:text-[0.85rem]", className)}>{children}</p>;
+}
+
+/**
+ * The light on a frame's top edge, as the reference draws it: a flat ellipse lying just under
+ * the edge throws a wide coloured glow upward. It sits in a box that ends at the edge, so the
+ * ellipse itself is hidden and only the glow rising off the edge shows. Put it inside the frame's wrapper;
+ * `edge` is how far above the wrapper's top the lit edge is.
+ */
+export function RimGlow({
+  color = "#2fd39a",
+  width = "70%",
+  edge = "0rem",
+  className,
+}: {
+  color?: string;
+  width?: string;
+  edge?: string;
+  className?: string;
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn("pointer-events-none absolute inset-x-0 h-[16rem] overflow-hidden", className)}
+      style={{ bottom: `calc(100% + ${edge})` }}
+    >
+      <span
+        className="absolute top-full left-1/2 h-[1.19rem] -translate-x-1/2 rounded-[50%] bg-black"
+        style={{ width, boxShadow: `inset 0 0.125rem 1.25rem 0 ${color}, 0 -0.625rem 3.125rem 0.0625rem ${color}` }}
+      />
+    </span>
+  );
 }
 
 /**

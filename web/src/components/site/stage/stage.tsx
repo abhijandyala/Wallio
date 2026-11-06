@@ -38,7 +38,7 @@ void main() {
   p = mix(p, aCloud, uCloud);
   p = mix(p, rotY(uShapeTurn) * aShape, uShape);
   // Each particle breathes a little.
-  float loose = 0.004 + 0.02 * (uBurst + uCloud) * (1.0 - uShape);
+  float loose = 0.022 * (uBurst + uCloud) * (1.0 - uShape);
   p += loose * vec3(sin(uTime * 1.3 + r * 41.0), cos(uTime * 1.1 + r * 29.0), sin(uTime * 0.9 + r * 17.0));
   p = p * uScale + uOffset;
   float below = 0.0;
@@ -52,7 +52,7 @@ void main() {
   vec3 n = normalize(g);
   float facing = n.z;
   float rim = pow(1.0 - clamp(abs(facing), 0.0, 1.0), 3.0);
-  float base = kind < 0.5 ? 0.6 : (kind < 1.5 ? 0.22 : (kind < 2.5 ? 0.28 : 0.2));
+  float base = kind < 0.5 ? 1.1 : (kind < 1.5 ? 0.34 : (kind < 2.5 ? 0.32 : 0.22));
   float surface = kind < 1.5 ? 1.0 : 0.25;
   float back = facing < 0.0 ? mix(1.0, 0.1, globeW * surface) : 1.0;
   float lit = base * back + rim * 0.95 * surface * step(0.0, facing) * globeW;
@@ -68,7 +68,8 @@ void main() {
   vBright = mix(lit, scattered, 1.0 - globeW);
   if (uMirror > 0.5) vBright = min(vBright, 0.85);
 
-  float size = uSize * (kind < 0.5 ? 1.0 : 0.78) * (0.65 + r * 0.7);
+  // The globe's dots are one even size, like a printed screen; loose particles vary.
+  float size = uSize * (kind < 0.5 ? 1.25 : 0.9) * mix(1.0, 0.65 + r * 0.7, 1.0 - globeW);
   gl_PointSize = size * uPixel * (4.8 / -mv.z);
   vAlpha = uMirror > 0.5 ? 0.75 * exp(-below * 1.1) : 1.0;
 }
@@ -84,9 +85,9 @@ void main() {
   vec2 c = gl_PointCoord - 0.5;
   float d = length(c);
   if (d > 0.5) discard;
-  float a = smoothstep(0.5, 0.32, d);
+  float a = smoothstep(0.5, 0.4, d);
   vec3 col = mix(uColor, uHot, clamp((vBright - 0.95) * 1.2, 0.0, 0.6)) * vBright;
-  gl_FragColor = vec4(col, a * vAlpha * uOpacity);
+  gl_FragColor = vec4(clamp(col, 0.0, 1.0), a * vAlpha * uOpacity);
 }
 `;
 
@@ -123,7 +124,7 @@ void main() {
   float middle = exp(-x * x * 2.4);
   vec3 surface = uTint * (0.018 + 0.045 * crest) * exp(-below * 2.6) * middle;
   vec3 col = c * (0.95 + crest * 0.9) * fade + surface;
-  gl_FragColor = vec4(col * uOpacity, 1.0);
+  gl_FragColor = vec4(clamp(col * uOpacity, 0.0, 1.0), 1.0);
 }
 `;
 
@@ -158,7 +159,8 @@ function target(scene: Scene | null, t: number, scroll: number): Target {
   switch (scene) {
     case "hero":
       // Opens low behind the hero copy and rises to the centre, growing.
-      return { ...off, opacity: 1, y: -0.9 + ease(t) * 0.88, bars: 1 - ease(Math.min(1, t * 1.25)), scale: 1 + ease(t) * 0.1, water: 0.25 };
+      // The glass stays on through most of the hero, then clears as the stats arrive.
+      return { ...off, opacity: 1, y: -0.9 + ease(t) * 0.88, bars: 1 - ease(Math.max(0, (t - 0.7) / 0.3)), scale: 1 + ease(t) * 0.1, water: 0.25 };
     case "stats":
       return { ...off, opacity: 1, y: -0.02, scale: 1.1 + t * 0.06, water: 0.35 + t * 0.25 };
     case "burst": {
@@ -230,7 +232,7 @@ export function Stage() {
       if (disposed) return;
 
       const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: "high-performance" });
-      const dpr = Math.min(window.devicePixelRatio || 1, phone ? 1.5 : 1.75);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       renderer.setPixelRatio(dpr);
       renderer.setClearColor(0x000000, 0);
       el.appendChild(renderer.domElement);
@@ -256,7 +258,7 @@ export function Stage() {
         uSpin: { value: 0 },
         uTilt: { value: 0.32 },
         uShapeTurn: { value: 0 },
-        uSize: { value: phone ? 2.6 : 3.3 },
+        uSize: { value: phone ? 2.1 : 1.9 },
         uPixel: { value: dpr },
         uMirror: { value: 0 },
         uFloor: { value: -1.12 },
@@ -416,29 +418,15 @@ export function Stage() {
       <div ref={host} className="absolute inset-0" />
       {/*
         Hero glass: four frosted panels over the globe (the reference's hero bars, 184px of
-        1512 with 19px gaps). The globe reads soft behind them; the gaps stay sharp, and a
-        bright particle stream runs down each gap.
+        1512 with 19px gaps). The globe reads soft and a little darker behind them; through
+        the gaps it stays sharp, which is what draws the bright columns.
       */}
       <div ref={bars} className="absolute inset-0 [--bars:0] [&>span]:opacity-(--bars)">
         {[23.74, 37.17, 50.66, 64.09].map((left) => (
           <span
             key={left}
             className="absolute top-0 h-full w-[12.17%]"
-            style={{ left: `${left}%`, backdropFilter: "blur(0.1875rem)", WebkitBackdropFilter: "blur(0.1875rem)" }}
-          />
-        ))}
-        {[36.54, 50, 63.46].map((left) => (
-          <span
-            key={left}
-            className="absolute top-0 h-full w-[0.5rem] -translate-x-1/2"
-            style={{
-              left: `${left}%`,
-              background:
-                "radial-gradient(circle at 50% 50%, color-mix(in srgb, #9dffd2 92%, transparent) 0 1.1px, transparent 1.6px) center top / 100% 6px repeat-y",
-              maskImage: "linear-gradient(180deg, transparent 14%, #000 34%, #000 74%, transparent 94%)",
-              filter:
-                "drop-shadow(0 0 4px color-mix(in srgb, #58f6b1 85%, transparent)) drop-shadow(0 0 12px color-mix(in srgb, #58f6b1 40%, transparent))",
-            }}
+            style={{ left: `${left}%`, backdropFilter: "blur(0.32rem) saturate(1.15)", WebkitBackdropFilter: "blur(0.32rem) saturate(1.15)" }}
           />
         ))}
       </div>

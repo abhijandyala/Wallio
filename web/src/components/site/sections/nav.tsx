@@ -27,14 +27,14 @@ export function NavSection() {
   }, []);
 
   // A soft lime light follows the pointer inside the pill.
+  // The glow rests at the bottom middle of the pill and slides toward the pointer.
   const onMove = (e: React.PointerEvent) => {
     const r = pill.current?.getBoundingClientRect();
     if (!r || !glow.current) return;
-    glow.current.style.transform = `translate(${e.clientX - r.left}px, ${e.clientY - r.top}px) translate(-50%, -50%)`;
-    glow.current.style.opacity = "1";
+    glow.current.style.transform = `translateX(${e.clientX - (r.left + r.width / 2)}px)`;
   };
   const onLeave = () => {
-    if (glow.current) glow.current.style.opacity = "0";
+    if (glow.current) glow.current.style.transform = "translateX(0px)";
   };
 
   const side = "transition-[transform,opacity] duration-[400ms] ease-[cubic-bezier(0.4,0,0.2,1)]";
@@ -57,13 +57,22 @@ export function NavSection() {
           ref={pill}
           onPointerMove={onMove}
           onPointerLeave={onLeave}
-          className="gx-glass absolute top-[1rem] left-1/2 flex h-[2.6875rem] -translate-x-1/2 items-center overflow-hidden rounded-[0.5rem] px-[0.4rem]"
+          className={cn(
+            "gx-glass absolute top-[1rem] left-1/2 flex h-[2.6875rem] -translate-x-1/2 items-center rounded-[0.5rem] px-[0.4rem] transition-[scale] duration-[400ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
+            scrolled && "scale-[0.92]",
+          )}
         >
-          <span
-            ref={glow}
-            aria-hidden="true"
-            className="pointer-events-none absolute top-0 left-0 size-[15.2rem] rounded-full bg-[radial-gradient(closest-side,color-mix(in_srgb,#58f6b1_22%,transparent),transparent)] opacity-0 transition-opacity duration-300"
-          />
+          {/* A breathing lime glow from below, as on the reference; brighter once the bar condenses. */}
+          <span aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]">
+            <span ref={glow} className="absolute inset-0 transition-transform duration-500 ease-out">
+              <span
+                className={cn(
+                  "gx-nav-glow absolute -bottom-[0.803rem] left-1/2 size-[16.06rem] bg-[radial-gradient(6rem_4.2rem_at_50%_50%,color-mix(in_srgb,#58f6b1_36%,#010102)_0%,color-mix(in_srgb,#58f6b1_22%,#010102)_40%,transparent_100%)] blur-[10px]",
+                  scrolled ? "brightness-[2.2]" : "brightness-150",
+                )}
+              />
+            </span>
+          </span>
           {ITEMS.map((it, i) => (
             <a
               key={i}

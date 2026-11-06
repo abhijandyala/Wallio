@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotionConfig } from "motion/react";
 import { Plus, ShieldCheck, Star } from "@phosphor-icons/react";
 import { Btn, Heading } from "../ui";
@@ -13,6 +14,8 @@ import { Edge } from "./top/edge";
  */
 export function AccountsSection() {
   const reduce = useReducedMotionConfig();
+  const grid = useRef<HTMLDivElement>(null);
+  const shown = useShownBelow(grid, 0.85);
   const reveal = (delay = 0) =>
     reduce
       ? {}
@@ -29,9 +32,16 @@ export function AccountsSection() {
         <Heading size="h2" className="mt-[1.19rem] leading-[1.25]">{MODES.title}</Heading>
       </motion.div>
 
-      <div className="group/cards mx-auto mt-[2.4rem] grid w-[74.75rem] grid-cols-3 gap-[1.2rem] py-[1.2rem] max-md:w-[calc(100%-2rem)] max-md:grid-cols-1">
+      <div ref={grid} className="group/cards mx-auto mt-[2.4rem] grid w-[74.75rem] grid-cols-3 gap-[1.2rem] py-[1.2rem] max-md:w-[calc(100%-2rem)] max-md:grid-cols-1">
         {MODES.cards.map((card) => (
-          <motion.div key={card.title} {...reveal(card.tag !== null ? 0 : 0.14)}>
+          // Each card pops up as the row reaches the lower part of the screen: the featured one
+          // first, the other two a beat later. Scrolling back above the row resets them.
+          <motion.div
+            key={card.title}
+            initial={false}
+            animate={reduce || shown ? { opacity: 1, y: 0 } : { opacity: 0, y: "3rem" }}
+            transition={{ duration: 0.68, delay: shown && card.tag === null ? 0.29 : 0, ease: [0.215, 0.61, 0.355, 1] }}
+          >
             <AccountCard featured={card.tag !== null} card={card} />
           </motion.div>
         ))}
@@ -42,6 +52,28 @@ export function AccountsSection() {
       </motion.div>
     </section>
   );
+}
+
+/**
+ * True once an element's top has passed a line partway down the screen, and false again only
+ * when it drops back below that line (scrolling up past it), the way the reference triggers.
+ */
+function useShownBelow(ref: React.RefObject<HTMLElement | null>, line: number) {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) setShown(true);
+        else if (e.boundingClientRect.top > 0) setShown(false);
+      },
+      { rootMargin: `0px 0px -${Math.round((1 - line) * 100)}% 0px` },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [ref, line]);
+  return shown;
 }
 
 /* ── Plan card ────────────────────────────────────────────────────────── */

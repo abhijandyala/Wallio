@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotionConfig } from "motion/react";
 import { ChatCircle, ArrowsOut, Columns, DotsThree, MagnifyingGlass, Plus } from "@phosphor-icons/react";
-import { Heading, MockFrame } from "../ui";
+import { Heading, MockFrame, RimGlow } from "../ui";
 import { VULTR } from "../content";
 
 const C = VULTR.chat;
@@ -29,10 +29,20 @@ export function AiCoachSection() {
             })}
         className="relative h-[18.875rem]"
       >
-        {/* The light: a wide bloom that fills the section, a brighter middle, and a hot core behind the glass. */}
-        <div className="pointer-events-none absolute top-[-17rem] left-1/2 h-[52rem] w-[84rem] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(closest-side,color-mix(in_srgb,#ad96f1_26%,transparent),color-mix(in_srgb,#ad96f1_8%,transparent)_60%,transparent)] blur-[30px] max-md:w-[200%]" />
-        <div className="pointer-events-none absolute top-[-6rem] left-1/2 h-[30rem] w-[42rem] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(closest-side,color-mix(in_srgb,#ad96f1_42%,transparent),transparent)] blur-[30px] max-md:w-full" />
-        <div className="pointer-events-none absolute top-[3.6rem] left-1/2 h-[12rem] w-[20rem] -translate-x-1/2 rounded-[50%] bg-[var(--gx-violet)] opacity-55 blur-[60px]" />
+        {/* The light, drawn the way the reference draws it: a funnel-shaped path, wide above and
+            closing around the orb, blurred far out and added onto the page, plus a small hot core. */}
+        <svg
+          aria-hidden="true"
+          viewBox="306.829 -219 935.5 437.5"
+          preserveAspectRatio="none"
+          className="pointer-events-none absolute top-[-5.94rem] left-1/2 h-[21.96rem] w-[47.36rem] -translate-x-1/2 mix-blend-plus-lighter blur-[100px] max-md:w-full"
+        >
+          <path
+            fill="#8d78d1"
+            d="M419.829 -112C292.229 -110.4 291.329 -182.667 306.829 -219H1242.33C1253.13 -143.4 1173.83 -116.167 1132.83 -112C961.829 -112 991.829 10.5 991.829 47.5C991.829 84.5 970.329 218.5 781.829 218.5C631.029 218.5 576.329 104.5 567.829 47.5C571.663 -6.33333 547.429 -113.6 419.829 -112Z"
+          />
+        </svg>
+        <div className="pointer-events-none absolute top-[5.19rem] left-1/2 h-[8.56rem] w-[15.13rem] -translate-x-1/2 rounded-[50%] bg-[var(--gx-violet)] opacity-40 mix-blend-plus-lighter blur-[30px]" />
         <OrbCanvas className="absolute top-[-3.44rem] left-1/2 size-[25.69rem] -translate-x-1/2 max-md:size-[18rem]" />
       </motion.div>
 
@@ -46,6 +56,7 @@ export function AiCoachSection() {
       </motion.div>
 
       <motion.div {...rise} className="relative mx-auto mt-[2.8rem] h-[28.125rem] w-[56.1875rem] max-md:h-[22rem] max-md:w-[calc(100%-2rem)]">
+        <RimGlow color="#ad96f1" width="86%" edge="0.625rem" />
         <div className="pointer-events-none absolute -inset-x-[0.625rem] -top-[0.625rem] bottom-0 rounded-t-[2.008rem] bg-[linear-gradient(color-mix(in_srgb,#ad96f1_25%,transparent),rgba(0,0,0,0))]" />
         <div className="pointer-events-none absolute -inset-x-[0.625rem] -top-[1.05rem] h-[2.44rem] bg-[radial-gradient(closest-side,var(--gx-violet),transparent)] opacity-80 blur-[6px]" />
         <div className="absolute inset-0">

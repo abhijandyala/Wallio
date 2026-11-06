@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotionConfig } from "motion/react";
-import { Container, Heading, Shot } from "../ui";
+import { Container, Heading, RimGlow, Shot } from "../ui";
 import { DATA } from "../content";
 
 /** Your data: text at left, the real Settings screen running off the right edge. */
@@ -35,6 +35,7 @@ export function VerifiedSection() {
             })}
         className="absolute top-[6.44rem] left-[43.06vw] h-[32.19rem] w-[67.06rem] max-md:relative max-md:top-0 max-md:left-4 max-md:h-[26rem] max-md:w-[40rem]"
       >
+        <RimGlow edge="0.625rem" />
         <div className="pointer-events-none absolute -inset-[0.625rem] rounded-[1.1rem] bg-[linear-gradient(color-mix(in_srgb,#58f6b1_26%,#010102),rgba(0,0,0,0)_55%)]" />
         <div className="pointer-events-none absolute inset-x-[5%] -top-[1rem] h-[2.2rem] bg-[radial-gradient(closest-side,var(--gx-accent),transparent)] opacity-70 blur-[6px]" />
         <div className="absolute inset-0 overflow-hidden rounded-[1.506rem] bg-[#010102] [mask-image:linear-gradient(#000_55%,transparent_92%)]">

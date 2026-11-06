@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useReducedMotionConfig } from "motion/react";
 
 /**
- * The AI orb: a lavender glass sphere with a white ribbon of light flowing around inside it,
+ * The AI orb: a lavender glass sphere with a curl of white light turning around inside it,
  * a thin bright rim and a soft haze at the top left. One WebGL fragment shader; it pauses
  * when off screen, and reduced motion draws a single still frame.
  */
@@ -21,58 +21,58 @@ uniform float uTime;
 
 const vec3 LAV = vec3(0.678, 0.588, 0.945);   // #AD96F1, our lavender
 const vec3 DEEP = vec3(0.47, 0.36, 0.90);     // the same hue, deeper
-const vec3 MIST = vec3(0.86, 0.81, 1.0);      // the same hue, near white
-
-mat3 rotY(float a) { float c = cos(a), s = sin(a); return mat3(c, 0., -s, 0., 1., 0., s, 0., c); }
-mat3 rotX(float a) { float c = cos(a), s = sin(a); return mat3(1., 0., 0., 0., c, s, 0., -s, c); }
-
-// The ribbon: a twisting band through the sphere's volume, sampled at a point inside it.
-float ribbon(vec3 q, float t) {
-  float f = 0.2 * sin(q.x * 2.3 + q.z * 1.4 + t * 0.7) - 0.16 + 0.08 * sin(q.x * 4.1 - t * 0.9);
-  float w = 0.21 + 0.08 * sin(q.x * 2.7 + t * 0.5) * sin(q.z * 1.9 - t * 0.3);
-  float d = (q.y - f) / max(w, 0.02);
-  // Soft falloff with a brighter middle: a broad band of light, not a line.
-  return exp(-d * d * 0.8) * (0.7 + 0.3 * exp(-d * d * 4.0));
-}
+const vec3 MIST = vec3(0.86, 0.81, 0.995);    // the same hue, near white (not 1.0: one GPU compiler mishandles it)
 
 void main() {
   vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / (0.5 * min(uRes.x, uRes.y));
-  float R = 0.56;
+  float R = 0.6;
   vec2 p = uv / R;
   float r = length(p);
 
   // Soft light just outside the glass.
   if (r > 1.0) {
     float halo = exp(-(r - 1.0) * 4.0) * 0.32;
-    gl_FragColor = vec4(LAV * halo, halo);
+    gl_FragColor = vec4(clamp(LAV * halo, 0.0, 1.0), clamp(halo, 0.0, 1.0));
     return;
   }
 
   float z = sqrt(max(0.0, 1.0 - r * r));
   vec3 n = vec3(p, z);
 
-  // Body: deeper at the lower right, lighter toward the top left, like lit glass.
-  float light = clamp(0.55 + 0.45 * dot(n, normalize(vec3(-0.45, 0.55, 0.7))), 0.0, 1.0);
-  vec3 col = mix(DEEP, LAV, light);
+  // Body: lit from above, so the top glows a brighter violet and the bottom sinks deeper.
+  float light = clamp(0.5 + 0.5 * dot(n, normalize(vec3(-0.2, 0.75, 0.6))), 0.0, 1.0);
+  vec3 col = mix(DEEP * 0.62, LAV * 0.92, light * light);
 
-  // The ribbon, sampled on the front and the back of the sphere so it reads as volume.
-  mat3 turn = rotX(0.25) * rotY(uTime * 0.32);
-  float front = ribbon(turn * vec3(p, z * 0.75), uTime);
-  float back = ribbon(turn * vec3(p, -z * 0.75), uTime) * 0.35;
-  float rib = front + back;
-  col = mix(col, MIST, clamp(rib * 0.85, 0.0, 1.0));
-  col += vec3(1.0) * pow(clamp(front, 0.0, 1.0), 2.2) * 0.7;
+  // The light inside: a wavy sheet of light seen edge on, lying across the lower middle of
+  // the glass. Its wave rolls slowly and the thick, bright part travels along it, so it reads
+  // as liquid light turning inside the orb. Below it the glass is lit; above it stays deeper.
+  float t = uTime;
+  float x = p.x;
+  float h = -0.08 + 0.13 * sin(x * 2.1 + t * 0.7) + 0.05 * sin(x * 4.3 - t * 1.1) - 0.06 * x;
+  float swell = 0.5 + 0.5 * sin(x * 1.7 - t * 0.9 + 1.2);
+  float th = mix(0.018, 0.12, swell * swell) * (1.0 - 0.55 * smoothstep(0.2, 0.95, abs(x)));
+  float dy = p.y - h;
+  float sheet = exp(-(dy * dy) / (th * th)) * smoothstep(1.0, 0.55, abs(x) + 0.15 * abs(dy));
+  float spread = exp(-(dy * dy) / (0.09 + th * 1.5)) * smoothstep(1.0, 0.3, abs(x));
+  float under = smoothstep(0.05, -0.45, dy) * (1.0 - smoothstep(0.6, 1.0, r));
+  col = mix(col, LAV * 1.05, under * 0.45);
+  col = mix(col, DEEP * 0.85, smoothstep(0.05, 0.7, dy) * 0.35);
+  col += LAV * spread * 0.5;
+  col = mix(col, MIST, clamp(sheet * 1.1, 0.0, 1.0));
+  col += vec3(0.995) * pow(sheet, 2.2) * 0.6 * (0.6 + 0.4 * swell);
 
   // Haze at the top left.
-  vec2 hz = p - vec2(-0.32, 0.38);
-  col += MIST * exp(-dot(hz, hz) * 5.5) * 0.28;
+  vec2 hz = p - vec2(-0.3, 0.42);
+  col += MIST * exp(-dot(hz, hz) * 6.0) * 0.22;
 
   // A thin bright rim, and a little darkening just inside it.
   float rim = smoothstep(0.88, 0.995, r);
-  col = mix(col, DEEP * 0.8, smoothstep(0.7, 0.93, r) * 0.25);
-  col += MIST * rim * 0.42;
+  col = mix(col, DEEP * 0.8, smoothstep(0.72, 0.94, r) * 0.22);
+  col += MIST * rim * 0.4;
 
-  float a = smoothstep(1.0, 0.985, r);
+  // Clamp before writing: some GPUs wrap values over 1 instead of clamping them.
+  col = clamp(col, 0.0, 1.0);
+  float a = 1.0 - smoothstep(0.985, 1.0, r);
   gl_FragColor = vec4(col * a, a);
 }
 `;
@@ -91,6 +91,7 @@ export function OrbCanvas({ className }: { className?: string }) {
       const sh = gl.createShader(type)!;
       gl.shaderSource(sh, src);
       gl.compileShader(sh);
+      if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(sh));
       return sh;
     };
     const prog = gl.createProgram()!;

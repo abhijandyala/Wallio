@@ -1,10 +1,11 @@
 "use client";
 
 import { motion, useReducedMotionConfig } from "motion/react";
-import { Body, Btn, Container, Heading, MockFrame, Shot } from "../ui";
+import { Body, Btn, Container, Heading, MockFrame, RimGlow, Shot } from "../ui";
 import { RECEIPTS } from "../content";
 import { AiPanelArt, BarsArt, Circuit, DeviceArt, StackArt } from "./bottom/bento-art";
 import { cn } from "@/lib/utils";
+import { Edge } from "./top/edge";
 
 /** Journal: centred intro, a large product frame, then a 2x2 bento of feature cards. */
 export function JournalSection() {
@@ -44,6 +45,7 @@ export function JournalSection() {
       </motion.div>
 
       <motion.div {...reveal(0.1)} className="relative mx-auto mt-[2.875rem] h-[29.6875rem] w-[76rem] max-md:aspect-[1216/475] max-md:h-auto max-md:w-[calc(100%-2rem)]">
+        <RimGlow edge="0.625rem" />
         <div className="pointer-events-none absolute -inset-x-[0.625rem] -top-[0.625rem] bottom-0 rounded-t-[2rem] bg-[linear-gradient(color-mix(in_srgb,#58f6b1_22%,transparent),rgba(0,0,0,0))]" />
         <div className="pointer-events-none absolute inset-x-0 -top-[1.05rem] h-[2.44rem] bg-[radial-gradient(closest-side,var(--gx-accent),transparent)] opacity-75 blur-[6px]" />
         <div className="absolute inset-0">
@@ -55,15 +57,14 @@ export function JournalSection() {
 
       <Container className="mt-[8rem] flex flex-col gap-[1rem] max-md:mt-16">
         <div className="flex gap-[1rem] max-md:flex-col">
-          <BentoCard reveal={reveal(0)} className="w-[31.75rem]" glow="top">
+          <BentoCard reveal={reveal(0)} className="w-[31.75rem]" look={LOOKS[0]}>
             <Circuit className="absolute top-[3rem] left-0 w-full opacity-70" />
             <div className="absolute top-[3.2rem] left-1/2 -translate-x-1/2">
               <DeviceArt />
             </div>
-            <span className="gx-dots absolute top-0 left-0 h-[6rem] w-[9rem] [mask-image:radial-gradient(closest-side,#000,transparent)]" />
             <CardText i={0} className="mt-auto" />
           </BentoCard>
-          <BentoCard reveal={reveal(0.08)} className="flex-1" glow="bottom-left">
+          <BentoCard reveal={reveal(0.08)} className="flex-1" look={LOOKS[1]}>
             <CardText i={1} />
             <div className="absolute top-[7.4rem] right-[5rem] max-md:right-6">
               <AiPanelArt />
@@ -73,18 +74,16 @@ export function JournalSection() {
           </BentoCard>
         </div>
         <div className="flex gap-[1rem] max-md:flex-col">
-          <BentoCard reveal={reveal(0)} className="flex-1" glow="top-right">
+          <BentoCard reveal={reveal(0)} className="flex-1" look={LOOKS[2]}>
             <div className="absolute top-[2.2rem] left-1/2 -translate-x-1/2">
               <BarsArt />
             </div>
-            <span className="gx-dots absolute bottom-0 left-0 h-[7rem] w-[12rem] [mask-image:radial-gradient(closest-side,#000,transparent)]" />
             <CardText i={2} className="mt-auto" />
           </BentoCard>
-          <BentoCard reveal={reveal(0.08)} className="flex-1" glow="top-left">
-            <div className="absolute top-[2rem] left-1/2 -translate-x-1/2">
+          <BentoCard reveal={reveal(0.08)} className="flex-1" look={LOOKS[3]}>
+            <div className="absolute top-[3.6rem] left-1/2 -translate-x-1/2">
               <StackArt />
             </div>
-            <span className="gx-dots absolute right-0 bottom-0 h-[7rem] w-[12rem] [mask-image:radial-gradient(closest-side,#000,transparent)]" />
             <CardText i={3} className="mt-auto" />
           </BentoCard>
         </div>
@@ -93,23 +92,47 @@ export function JournalSection() {
   );
 }
 
-type Glow = "top" | "bottom-left" | "top-right" | "top-left";
-
-const GLOW: Record<Glow, string> = {
-  top: "bg-[radial-gradient(60%_55%_at_50%_0%,color-mix(in_srgb,#58f6b1_34%,transparent),transparent)]",
-  "bottom-left": "bg-[radial-gradient(60%_100%_at_22%_88%,color-mix(in_srgb,#58f6b1_88%,transparent),transparent_72%)]",
-  "top-right": "bg-[radial-gradient(60%_95%_at_92%_8%,color-mix(in_srgb,#58f6b1_82%,transparent),transparent_72%)]",
-  "top-left": "bg-[radial-gradient(60%_95%_at_6%_6%,color-mix(in_srgb,#58f6b1_55%,transparent),transparent_72%)]",
+/**
+ * How each card is lit, measured from the reference's card artwork. Points are percentages of
+ * the card (they may sit outside it); sizes are rem.
+ * - glow: the bright corner light (a wide accent ellipse plus two smaller ones added on top)
+ * - lift: a soft grey light in the opposite corner
+ * - tint: a wide green tint, blended as colour only, over the middle
+ * - dots: a halftone dot grid that fades out from its centre, in one corner
+ */
+type Look = {
+  glow: [number, number];
+  lift: [number, number];
+  tint: [number, number];
+  dots?: { at: [number, number]; size: [number, number]; opacity: number };
 };
+
+const LOOKS: Look[] = [
+  { glow: [138, 102], lift: [23, -15], tint: [57, 53], dots: { at: [2, -10], size: [32.9, 21], opacity: 0.5 } },
+  { glow: [12.7, 116], lift: [84, -36], tint: [74, 53] },
+  { glow: [105, 10], lift: [-5, 132], tint: [64, 53], dots: { at: [11, 109], size: [34.6, 25], opacity: 0.2 } },
+  { glow: [-1.5, 10], lift: [92, 132], tint: [55, 53], dots: { at: [96, 119], size: [31.4, 24.8], opacity: 0.5 } },
+];
+
+/** A blurred ellipse centred on a point of the card. */
+function Light({ at, w, h, blur, className }: { at: [number, number]; w: number; h: number; blur: number; className: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn("pointer-events-none absolute -translate-1/2 rounded-[50%]", className)}
+      style={{ left: `${at[0]}%`, top: `${at[1]}%`, width: `${w}rem`, height: `${h}rem`, filter: `blur(${blur}rem)` }}
+    />
+  );
+}
 
 function BentoCard({
   className,
-  glow,
+  look,
   reveal,
   children,
 }: {
   className?: string;
-  glow: Glow;
+  look: Look;
   reveal: object;
   children: React.ReactNode;
 }) {
@@ -117,11 +140,30 @@ function BentoCard({
     <motion.article
       {...reveal}
       className={cn(
-        "relative flex h-[20.8125rem] flex-col overflow-hidden rounded-[1.3254rem] border border-white/[0.04] bg-white/[0.02] p-[1.6065rem] max-md:h-[22rem] max-md:w-full",
+        "relative isolate flex h-[20.8125rem] flex-col overflow-hidden rounded-[1.65rem] bg-[radial-gradient(90%_85%_at_66%_3%,#08120f_19%,#010101_73%)] p-[1.6065rem] max-md:h-[22rem] max-md:w-full",
         className,
       )}
     >
-      <span aria-hidden="true" className={cn("pointer-events-none absolute inset-0", GLOW[glow])} />
+      <Light at={look.lift} w={30.6} h={18.3} blur={8.2} className="bg-[#2c2c2c]" />
+      <Light at={look.tint} w={31} h={31} blur={8.2} className="bg-[#0b4a36] mix-blend-color" />
+      <Light at={look.glow} w={30.6} h={18.3} blur={8.25} className="bg-[#2fd39a]" />
+      <Light at={look.glow} w={15.4} h={14.3} blur={9} className="bg-[#58f6b1] mix-blend-plus-lighter" />
+      <Light at={look.glow} w={15.4} h={14.3} blur={7.9} className="bg-[#58f6b1] mix-blend-plus-lighter" />
+      {look.dots && (
+        <span
+          aria-hidden="true"
+          className="gx-halftone pointer-events-none absolute -translate-1/2 [mask-image:radial-gradient(closest-side,#000,transparent)]"
+          style={{
+            left: `${look.dots.at[0]}%`,
+            top: `${look.dots.at[1]}%`,
+            width: `${look.dots.size[0]}rem`,
+            height: `${look.dots.size[1]}rem`,
+            opacity: look.dots.opacity,
+          }}
+        />
+      )}
+      {/* Hairline: light grey at the top right, turning green toward the bottom left. */}
+      <Edge from="to bottom left, rgba(164,164,164,0.5) 24%" to="rgba(26,106,76,0.5)" stop="63%" />
       {children}
     </motion.article>
   );

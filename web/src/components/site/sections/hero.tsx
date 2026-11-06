@@ -22,7 +22,7 @@ import {
   Timer,
   Wallet,
 } from "@phosphor-icons/react";
-import { Body, Btn, Heading, MockFrame, Shot } from "../ui";
+import { Body, Btn, Heading, MockFrame, RimGlow, Shot } from "../ui";
 import { GATEWAY, HERO, STATS } from "../content";
 import { cn } from "@/lib/utils";
 import { usePhone } from "./top/use-phone";
@@ -89,9 +89,14 @@ function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1.1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
           >
+            <div className="relative">
+              <RimGlow edge="0.625rem" />
+              <div className="absolute -inset-x-[0.625rem] -top-[0.625rem] bottom-0 rounded-t-[2rem] bg-[linear-gradient(color-mix(in_srgb,#58f6b1_22%,transparent),rgba(0,0,0,0))]" />
+              <div className="absolute inset-x-0 -top-[1.05rem] h-[2.44rem] bg-[radial-gradient(closest-side,var(--gx-accent),transparent)] opacity-75 blur-[6px]" />
             <MockFrame className="h-[39.81rem] w-[76rem] bg-black">
               <Shot src={HERO.image.src} alt={HERO.image.alt} priority />
             </MockFrame>
+            </div>
           </motion.div>
         </motion.div>
       </div>
@@ -110,7 +115,8 @@ function Stats() {
   const phone = usePhone();
   const reduce = useReducedMotionConfig() || phone;
   // 0 when the block starts entering, 1 when it pins (566px → 1000px on the reference).
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.6", "start start"] });
+  // The text and rows arrive as the section pins, as on the reference.
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.3", "start -0.15"] });
   const shown = useTransform(scrollYProgress, [0.45, 1], [0, 1], { clamp: true });
   const x = useMotionTemplate`${useTransform(shown, [0, 1], [-3.75, 0])}rem`;
 
