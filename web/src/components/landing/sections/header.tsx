@@ -19,7 +19,8 @@ export function Header() {
       <div className="relative flex items-center justify-between px-[4rem] py-[0.75rem] before:absolute before:inset-0 before:bg-[rgba(9,52,37,0.85)] before:backdrop-blur-[15px] max-md:px-4">
         <Link href="/" className="relative flex items-center gap-[0.6rem] text-white" aria-label="Wallio home">
           <Mark className="h-[1.1rem] w-auto" />
-          <span className="text-[1.35rem] leading-none font-semibold tracking-[0.08em] uppercase">Wallio</span>
+          {/* The dashboard's wordmark: "Wallio" in Poppins Bold, same proportions to the mark. */}
+          <span className="font-brand text-[1.3rem] leading-none font-bold tracking-[-0.01em]">Wallio</span>
         </Link>
         <nav className="relative flex items-center max-lg:hidden" aria-label="Main">
           {NAV.items.map((item) => (
