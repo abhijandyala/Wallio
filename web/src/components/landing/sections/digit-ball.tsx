@@ -253,20 +253,42 @@ export function DigitBall({ className }: { className?: string }) {
       resize();
       window.addEventListener("resize", resize);
 
-      // The cursor, in world units, eased so the push trails like liquid.
+      // The cursor, in world units, eased so the mark trails like liquid. The pointer is kept
+      // in screen coordinates and turned into canvas coordinates every frame, because scrolling
+      // moves the canvas under a still pointer without sending any pointer event.
+      const pointer = { x: 0, y: 0, seen: false, inPage: true };
       const target = { x: 9999, y: 9999, on: 0 };
       const mouse = { x: 9999, y: 9999, f: 0 };
-      const move = (e: PointerEvent) => {
+      let lastLeft = 0;
+      let lastTop = 0;
+      const track = () => {
+        if (!pointer.seen) return;
         const r = el.getBoundingClientRect();
-        target.x = e.clientX - r.left - W / 2;
-        target.y = H / 2 - (e.clientY - r.top);
-        target.on = e.clientY >= r.top && e.clientY <= r.bottom ? 1 : 0;
+        target.x = pointer.x - r.left - W / 2;
+        target.y = H / 2 - (pointer.y - r.top);
+        target.on = pointer.inPage && pointer.y >= r.top && pointer.y <= r.bottom ? 1 : 0;
         if (mouse.x > 9000) {
           mouse.x = target.x;
           mouse.y = target.y;
+        } else {
+          // The part of the move that came from scrolling applies at once, so the mark stays
+          // under the finger; only the hand's own motion is eased.
+          mouse.x -= r.left - lastLeft;
+          mouse.y += r.top - lastTop;
         }
+        lastLeft = r.left;
+        lastTop = r.top;
       };
-      const leave = () => (target.on = 0);
+      const move = (e: PointerEvent) => {
+        pointer.x = e.clientX;
+        pointer.y = e.clientY;
+        pointer.seen = true;
+        pointer.inPage = true;
+      };
+      const leave = () => {
+        pointer.inPage = false;
+        target.on = 0;
+      };
       if (!reduce) {
         window.addEventListener("pointermove", move, { passive: true });
         document.addEventListener("pointerleave", leave);
@@ -280,6 +302,7 @@ export function DigitBall({ className }: { className?: string }) {
         const dt = Math.min(0.05, (now - last) / 1000);
         last = now;
         if (!reduce) time += dt;
+        track();
         mouse.x += (target.x - mouse.x) * 0.08;
         mouse.y += (target.y - mouse.y) * 0.08;
         mouse.f += (target.on - mouse.f) * 0.05;
