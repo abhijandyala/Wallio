@@ -42,7 +42,12 @@ if [ -n "$PRIVATE_IP" ]; then
   fi
   systemctl enable --now wallio-sentinel >/dev/null 2>&1 || true
   systemctl restart wallio-sentinel
-  ufw status | grep -q "9099/tcp.*10.5.96.0/20" || ufw allow proto tcp from 10.5.96.0/20 to "$PRIVATE_IP" port 9099 comment "sentinel: VPC only" >/dev/null
+  # Only the runner may reach the sentinel once its address is known (from RUNNER_URL);
+  # until then, the whole VPC.
+  RUNNER_IP=\$(sed -nE 's#^RUNNER_URL=https://([0-9.]+):.*#\1#p' /etc/wallio/api.env)
+  SENTINEL_FROM=\${RUNNER_IP:-10.5.96.0/20}
+  ufw status | grep -q "9099/tcp.*\$SENTINEL_FROM " || ufw allow proto tcp from "\$SENTINEL_FROM" to "$PRIVATE_IP" port 9099 comment "sentinel: runner only" >/dev/null
+  if [ -n "\$RUNNER_IP" ]; then ufw delete allow proto tcp from 10.5.96.0/20 to "$PRIVATE_IP" port 9099 >/dev/null 2>&1 || true; fi
   grep -q "^SENTINEL_URL=" /etc/wallio/api.env || echo "SENTINEL_URL=http://$PRIVATE_IP:9099" >> /etc/wallio/api.env
 fi
 # Abuse limits and the daily cost ceiling, explicit in production. Existing values win.
