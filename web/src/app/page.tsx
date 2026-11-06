@@ -37,7 +37,7 @@ export default function LandingPage() {
         <Statement lines={STATEMENTS.intro} className="max-w-[70.5rem]" />
         <Explore />
         <Matchmaking />
-        <Statement lines={STATEMENTS.receipts} className="max-w-[61rem]" />
+        <Statement lines={STATEMENTS.receipts} className="max-w-[75rem]" />
         <Browser />
         <Limits />
         <Vultr />

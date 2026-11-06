@@ -135,7 +135,7 @@ export function Vultr() {
   }, []);
 
   return (
-    <section id="vultr" className="scroll-mt-24">
+    <section id="vultr" className="mt-[10rem] scroll-mt-24 max-md:mt-24">
       <Container>
         <div className="relative h-[37.625rem] overflow-hidden rounded-[1rem] wl-gloss bg-[radial-gradient(55%_65%_at_0%_100%,rgba(201,255,230,0.5),transparent_70%),radial-gradient(45%_55%_at_52%_115%,rgba(88,246,177,0.55),transparent_70%),linear-gradient(90deg,#05271c_0%,#0b4634_38%,#1d8a66_64%,#4fd3a2_88%)] max-md:h-auto max-md:pb-[22rem]">
           <canvas ref={canvas} aria-hidden="true" className="pointer-events-none absolute inset-0 size-full" />
@@ -188,8 +188,8 @@ function Node({ name, detail, vultr }: { name: string; detail: string; vultr?: b
 
 /**
  * How one comparison travels across Vultr: a flow diagram (you, the web app, the API, then a
- * fork to inference and the browser runner, with evidence flowing back), then a card for each
- * Vultr piece, and an honest line about what's live today.
+ * fork to inference and the browser runner, with evidence flowing back), then a spec sheet
+ * row for each Vultr piece, and an honest line about what's live today.
  */
 function VultrMap() {
   const [you, web, api] = VULTR.flow;
@@ -220,16 +220,22 @@ function VultrMap() {
         </div>
       </div>
 
-      <ul className="mt-[1.25rem] grid grid-cols-4 gap-[1.25rem] max-lg:grid-cols-2 max-md:grid-cols-1">
+      {/* One row per Vultr piece, like a spec sheet: product and name, its spec, what it does. */}
+      <dl className="mt-[1.25rem] border-y border-[rgba(201,255,230,0.12)]">
         {VULTR.parts.map((p) => (
-          <li key={p.title} className="wl-gloss flex flex-col rounded-[1rem] bg-[var(--wl-800)] p-[2rem]">
-            <p className="text-[0.75rem] leading-none font-semibold tracking-[0.09rem] text-[var(--wl-300)] uppercase">{p.product}</p>
-            <h3 className="mt-[1.25rem] text-[1.5rem] leading-[1.875rem] font-semibold tracking-[-0.03rem] text-white">{p.title}</h3>
-            <p className="wl-aurora-text mt-[0.5rem] inline-block self-start text-[0.875rem] leading-[1.25rem] font-medium">{p.spec}</p>
-            <p className="mt-[1.25rem] text-[1rem] leading-[1.5rem] text-[var(--wl-silver)]">{p.body}</p>
-          </li>
+          <div
+            key={p.title}
+            className="grid grid-cols-[19rem_15rem_minmax(0,1fr)] items-baseline gap-x-[3rem] border-t border-[rgba(201,255,230,0.12)] py-[2rem] first:border-t-0 max-lg:grid-cols-1 max-lg:gap-y-2"
+          >
+            <dt>
+              <span className="block text-[0.75rem] leading-none font-semibold tracking-[0.09rem] text-[var(--wl-300)] uppercase">{p.product}</span>
+              <span className="mt-[0.75rem] block text-[1.75rem] leading-[2.125rem] font-semibold tracking-[-0.04rem] text-white">{p.title}</span>
+            </dt>
+            <dd className="wl-aurora-text inline-block self-baseline justify-self-start text-[1rem] leading-[1.5rem] font-medium">{p.spec}</dd>
+            <dd className="text-[1.0625rem] leading-[1.625rem] text-[var(--wl-silver)]">{p.body}</dd>
+          </div>
         ))}
-      </ul>
+      </dl>
       <p className="mt-[1.25rem] text-center text-[0.875rem] leading-[1.25rem] text-[var(--wl-silver)]">{VULTR.today}</p>
     </>
   );

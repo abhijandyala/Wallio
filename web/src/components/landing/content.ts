@@ -73,7 +73,6 @@ export const EXPLORE = {
 export const LIMITS = {
   eyebrow: "Limits",
   title: "Hard limits on every run",
-  body: "Every comparison runs inside the same limits. The API and the browser runner enforce them, not just this page. You can lower them in Settings.",
   // Every number here is a real limit from packages/contracts and the live run screen.
   cards: [
     {
@@ -190,26 +189,11 @@ export const BROWSER = {
     caption: "A comparison recorded from the Wallio API on Vultr, played back step by step.",
   },
   rules: [
-    {
-      title: "A fresh container for every job",
-      body: "Nothing carries over between jobs: no cookies, no keys, no history.",
-    },
-    {
-      title: "Only the sites it needs",
-      body: "Each job gets a short list of hosts. Private addresses, cloud metadata and loopback are always denied, and redirects are checked again.",
-    },
-    {
-      title: "Evidence for every page",
-      body: "A screenshot, a short excerpt and a content hash, so each claim can be opened and checked.",
-    },
-    {
-      title: "Stops, never bypasses",
-      body: "Login walls, CAPTCHAs and two-factor prompts end the step and show up as a limit, not a workaround.",
-    },
-    {
-      title: "Cleanup, verified",
-      body: "The container and its volume are removed after the run, and the removal is checked and reported.",
-    },
+    "A fresh container for every job",
+    "Only the sites it needs",
+    "Evidence for every page",
+    "Stops at logins, never bypasses",
+    "Cleanup, verified",
   ],
   attack: {
     label: "Containment test",

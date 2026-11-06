@@ -18,7 +18,6 @@ export function Limits() {
       <div className="mx-auto flex max-w-[40rem] flex-col items-center text-center max-md:px-4">
         <Eyebrow>{LIMITS.eyebrow}</Eyebrow>
         <h2 className="wl-h1 mt-[1.94rem]">{LIMITS.title}</h2>
-        <p className="wl-body mt-[3rem] max-w-[33.125rem]">{LIMITS.body}</p>
       </div>
       <div className="mx-auto mt-[5rem] grid w-[80rem] grid-cols-3 grid-rows-[minmax(18.125rem,auto)_minmax(18.125rem,auto)] gap-[1.25rem] max-md:w-[calc(100%-2rem)] max-md:grid-cols-1 max-md:grid-rows-none">
         <Card card={tall} pale className="row-span-2 max-md:row-span-1" />
