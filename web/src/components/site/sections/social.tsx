@@ -19,30 +19,24 @@ export function SocialSection() {
   const [active, setActive] = useState(0);
   useMotionValueEvent(scrollYProgress, "change", (v) => setActive(Math.min(2, Math.floor(v * 3.3))));
   const headOpacity = useTransform(scrollYProgress, [0, 0.18], reduce ? [1, 1] : [0.25, 1]);
-  // Before the pin: the frame slides in from the right, then the heading follows.
-  const { scrollYProgress: enter } = useScroll({ target: ref, offset: ["start end", "start start"] });
-  const mediaX = useTransform(enter, [0.2, 1], reduce ? ["0rem", "0rem"] : ["14rem", "0rem"]);
-  const mediaOpacity = useTransform(enter, [0.15, 0.7], reduce ? [1, 1] : [0, 1]);
+
 
   return (
     <div ref={ref} id="live" className="relative h-[200vh] max-md:h-auto">
       <section className="sticky top-0 flex h-screen items-center max-md:static max-md:h-auto max-md:py-20">
         <Container className="flex items-center gap-[3.1875rem] max-md:flex-col max-md:items-start">
           {/* Media: lime-lit frame with a glow along its top edge */}
-          <motion.div
-            style={{ x: mediaX, opacity: mediaOpacity }}
-            className="relative h-[28.25rem] w-[50.5625rem] shrink-0 max-md:aspect-[809/452] max-md:h-auto max-md:w-full max-md:!transform-none max-md:!opacity-100"
-          >
+          <div className="relative h-[28.25rem] w-[50.5625rem] shrink-0 max-md:aspect-[809/452] max-md:h-auto max-md:w-full">
             <div className="absolute inset-0 rounded-[1.6567rem] bg-[linear-gradient(color-mix(in_srgb,#58f6b1_26%,#010102),rgba(0,0,0,0))]" />
             <div className="absolute inset-x-0 -top-[0.45rem] h-[2.44rem] bg-[radial-gradient(closest-side,var(--gx-accent),transparent)] opacity-80 blur-[6px]" />
             <div className="absolute inset-[0.6rem]">
               <AnimatePresence initial={false}>
                 <motion.div
                   key={active}
-                  initial={reduce ? { opacity: 0 } : { opacity: 0, filter: "blur(10px)", scale: 1.01 }}
-                  animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
-                  exit={reduce ? { opacity: 0 } : { opacity: 0, filter: "blur(10px)" }}
-                  transition={{ duration: reduce ? 0 : 0.55, ease: [0.16, 1, 0.3, 1] }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: reduce ? 0 : 0.7, ease: "linear" }}
                   className="absolute inset-0"
                 >
                   <MockFrame className="size-full rounded-[1.2049rem]">
@@ -51,7 +45,7 @@ export function SocialSection() {
                 </motion.div>
               </AnimatePresence>
             </div>
-          </motion.div>
+          </div>
 
           <div className="flex w-[27.3125rem] flex-col max-md:w-full">
             <motion.div style={{ opacity: headOpacity }} className="max-md:!opacity-100">

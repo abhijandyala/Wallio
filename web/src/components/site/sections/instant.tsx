@@ -10,7 +10,7 @@ export function InstantSection() {
   const reduce = useReducedMotionConfig();
   const fade = reduce
     ? {}
-    : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, amount: 0.4 }, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as const } };
+    : { initial: { opacity: 0 }, whileInView: { opacity: 1 }, viewport: { once: true, amount: 0.4 }, transition: { duration: 1, ease: [0.25, 0.1, 0.25, 1] as const } };
 
   return (
     <section className="relative mt-[3.1875rem]">

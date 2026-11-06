@@ -13,7 +13,7 @@ export function AiCoachSection() {
   const reduce = useReducedMotionConfig();
   const rise = reduce
     ? {}
-    : { initial: { opacity: 0, y: 40 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, amount: 0.25 }, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as const } };
+    : { initial: { opacity: 0 }, whileInView: { opacity: 1 }, viewport: { once: true, amount: 0.25 }, transition: { duration: 1, ease: [0.25, 0.1, 0.25, 1] as const } };
 
   return (
     <section id="vultr" className="relative mt-[2.4rem] h-[59.625rem] scroll-mt-10 max-md:h-auto max-md:pb-16">
@@ -22,15 +22,17 @@ export function AiCoachSection() {
         {...(reduce
           ? {}
           : {
-              initial: { opacity: 0, y: "7rem" },
-              whileInView: { opacity: 1, y: "0rem" },
-              viewport: { once: true, amount: 0.2 },
-              transition: { duration: 1.2, ease: [0.16, 1, 0.3, 1] as const },
+              initial: { opacity: 0 },
+              whileInView: { opacity: 1 },
+              viewport: { once: true, amount: 0.15 },
+              transition: { duration: 1.2, ease: [0.25, 0.1, 0.25, 1] as const },
             })}
         className="relative h-[18.875rem]"
       >
-        <div className="pointer-events-none absolute top-[-5.9rem] left-1/2 h-[21.94rem] w-[47.4rem] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(closest-side,color-mix(in_srgb,#ad96f1_38%,transparent),transparent)] blur-[30px] max-md:w-full" />
-        <div className="pointer-events-none absolute top-[5.2rem] left-1/2 h-[8.56rem] w-[15.1rem] -translate-x-1/2 rounded-[50%] bg-[var(--gx-violet)] opacity-45 blur-[60px]" />
+        {/* The light: a wide bloom that fills the section, a brighter middle, and a hot core behind the glass. */}
+        <div className="pointer-events-none absolute top-[-17rem] left-1/2 h-[52rem] w-[84rem] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(closest-side,color-mix(in_srgb,#ad96f1_26%,transparent),color-mix(in_srgb,#ad96f1_8%,transparent)_60%,transparent)] blur-[30px] max-md:w-[200%]" />
+        <div className="pointer-events-none absolute top-[-6rem] left-1/2 h-[30rem] w-[42rem] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(closest-side,color-mix(in_srgb,#ad96f1_42%,transparent),transparent)] blur-[30px] max-md:w-full" />
+        <div className="pointer-events-none absolute top-[3.6rem] left-1/2 h-[12rem] w-[20rem] -translate-x-1/2 rounded-[50%] bg-[var(--gx-violet)] opacity-55 blur-[60px]" />
         <OrbCanvas className="absolute top-[-3.44rem] left-1/2 size-[25.69rem] -translate-x-1/2 max-md:size-[18rem]" />
       </motion.div>
 

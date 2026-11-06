@@ -3,139 +3,193 @@
 import { useEffect, useRef } from "react";
 import { useReducedMotionConfig } from "motion/react";
 
-/** One candle: centre x (0..1), body top/bottom and wick top/bottom (0..1, top = 0). */
-type Candle = { x: number; bt: number; bb: number; wt: number; wb: number };
+/**
+ * Particle candlesticks in 3D: each candle is a shell of lime points on a cylinder (a body
+ * with thick wicks above and below, rounded at the ends), set out on a rising diagonal in
+ * perspective. Each turns slowly on its own axis and its points twinkle. three.js; pauses
+ * off screen; reduced motion draws one still frame.
+ */
 
-// Rising left to right, like a chart breaking out.
+type Candle = { x: number; bottom: number; top: number; wickUp: number; wickDown: number };
+
+// Rising left to right, the way the reference breaks out: world units, body bottom/top.
 const CANDLES: Candle[] = [
-  { x: 0.12, wt: 0.42, bt: 0.47, bb: 0.86, wb: 0.92 },
-  { x: 0.25, wt: 0.46, bt: 0.5, bb: 0.8, wb: 0.88 },
-  { x: 0.37, wt: 0.38, bt: 0.43, bb: 0.68, wb: 0.78 },
-  { x: 0.5, wt: 0.3, bt: 0.36, bb: 0.6, wb: 0.66 },
-  { x: 0.62, wt: 0.22, bt: 0.27, bb: 0.6, wb: 0.66 },
-  { x: 0.73, wt: 0.2, bt: 0.26, bb: 0.45, wb: 0.51 },
-  { x: 0.84, wt: 0.07, bt: 0.12, bb: 0.36, wb: 0.42 },
+  { x: -2.75, bottom: -1.95, top: -0.05, wickUp: 0.3, wickDown: 0.55 },
+  { x: -1.85, bottom: -1.55, top: -0.35, wickUp: 0.4, wickDown: 0.35 },
+  { x: -0.95, bottom: -1.1, top: 0.0, wickUp: 0.25, wickDown: 0.45 },
+  { x: -0.05, bottom: -0.7, top: 0.65, wickUp: 0.3, wickDown: 0.3 },
+  { x: 0.85, bottom: -0.35, top: 1.2, wickUp: 0.3, wickDown: 0.35 },
+  { x: 1.75, bottom: 0.15, top: 0.95, wickUp: 0.55, wickDown: 0.35 },
+  { x: 2.65, bottom: 0.45, top: 1.95, wickUp: 0.35, wickDown: 0.3 },
 ];
 
-interface Dot {
-  x: number;
-  y: number;
-  r: number;
-  a: number;
-  s: number;
-  p: number;
+const VERT = `
+attribute vec3 aCenter;
+attribute vec2 aInfo; // twinkle phase, brightness
+uniform float uTime, uPixel, uSize;
+varying float vBright;
+mat3 rotY(float a) { float c = cos(a), s = sin(a); return mat3(c, 0., -s, 0., 1., 0., s, 0., c); }
+void main() {
+  // Turn each candle on its own vertical axis.
+  vec3 local = position - aCenter;
+  vec3 p = aCenter + rotY(uTime * 0.35 + aCenter.x) * local;
+  vec4 mv = modelViewMatrix * vec4(p, 1.0);
+  gl_Position = projectionMatrix * mv;
+  float tw = 0.65 + 0.35 * sin(uTime * (1.5 + aInfo.x * 2.0) + aInfo.x * 40.0);
+  // Points facing away read dimmer, so the cylinder has a front and a back.
+  vec3 n = rotY(uTime * 0.35 + aCenter.x) * normalize(vec3(local.x, 0.0, local.z) + 1e-5);
+  float facing = 0.55 + 0.45 * n.z;
+  vBright = aInfo.y * tw * facing * 1.15;
+  gl_PointSize = uSize * uPixel * (0.7 + aInfo.y * 0.6) * (6.0 / -mv.z);
+}
+`;
+
+const FRAG = `
+uniform vec3 uColor, uHot;
+varying float vBright;
+void main() {
+  float d = length(gl_PointCoord - 0.5);
+  if (d > 0.5) discard;
+  float a = smoothstep(0.5, 0.15, d);
+  vec3 col = mix(uColor, uHot, clamp((vBright - 0.8) * 2.5, 0.0, 1.0)) * vBright;
+  gl_FragColor = vec4(col, a);
+}
+`;
+
+function buildPoints(dense: boolean) {
+  const pos: number[] = [];
+  const center: number[] = [];
+  const info: number[] = [];
+  let seed = 11;
+  const rand = () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  const R = 0.3;
+  const W = R * 0.42;
+  const per = dense ? 1 : 0.55;
+  for (const c of CANDLES) {
+    const cy = (c.bottom + c.top) / 2;
+    // A section of the shape: from y0 to y1 at radius r, rounding at the ends.
+    const add = (y0: number, y1: number, r: number, n: number) => {
+      for (let i = 0; i < n * per; i++) {
+        const t = rand();
+        const y = y0 + (y1 - y0) * t;
+        // Round the ends: radius eases in over the last bit of each section.
+        const edge = Math.min(y - y0, y1 - y) / Math.max(0.0001, Math.min(r * 0.55, (y1 - y0) / 2));
+        const round = Math.sqrt(Math.min(1, Math.max(0.35, edge)));
+        const inner = rand() < 0.06;
+        const rr = r * round * (inner ? rand() * 0.85 : 1 + (rand() - 0.5) * 0.08);
+        const a = rand() * Math.PI * 2;
+        pos.push(c.x + Math.cos(a) * rr, y, Math.sin(a) * rr);
+        center.push(c.x, cy, 0);
+        info.push(rand(), inner ? 0.4 + rand() * 0.25 : 0.7 + Math.pow(rand(), 3) * 0.9);
+      }
+    };
+    const h = c.top - c.bottom;
+    add(c.bottom, c.top, R, h * 2900);
+    add(c.top - 0.04, c.top + c.wickUp, W, c.wickUp * 1900);
+    add(c.bottom - c.wickDown, c.bottom + 0.04, W, c.wickDown * 1900);
+  }
+  return { pos: new Float32Array(pos), center: new Float32Array(center), info: new Float32Array(info) };
 }
 
-/** Lime point-cloud candlesticks that shimmer. 2D canvas; reduced motion draws one frame. */
 export function CandlesCanvas({ className }: { className?: string }) {
-  const ref = useRef<HTMLCanvasElement>(null);
+  const host = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotionConfig();
 
   useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    let dots: Dot[] = [];
-    let raf = 0;
-    let running = true;
+    const el = host.current;
+    if (!el) return;
+    let disposed = false;
+    let cleanup = () => {};
 
-    // Deterministic noise so the cloud looks the same on every load.
-    let seed = 7;
-    const rnd = () => {
-      seed = (seed * 16807) % 2147483647;
-      return seed / 2147483647;
-    };
-
-    const build = () => {
-      const r = canvas.getBoundingClientRect();
+    (async () => {
+      const THREE = await import("three");
+      if (disposed) return;
+      const phone = window.innerWidth < 768;
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, powerPreference: "high-performance" });
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.max(1, Math.round(r.width * dpr));
-      canvas.height = Math.max(1, Math.round(r.height * dpr));
-      const W = canvas.width;
-      const H = canvas.height;
-      const bodyW = W * 0.045;
-      seed = 7;
-      dots = [];
-      for (const c of CANDLES) {
-        const cx = c.x * W;
-        // body: dense cloud with a soft, slightly ragged edge
-        const n = Math.round(((c.bb - c.bt) * H * bodyW) / (4.5 * dpr * dpr)) + 220;
-        for (let i = 0; i < n; i++) {
-          const u = rnd();
-          const edge = Math.pow(rnd(), 0.6);
-          const side = rnd() < 0.5 ? -1 : 1;
-          dots.push({
-            x: cx + side * edge * bodyW * 0.5 * (0.85 + 0.3 * rnd()),
-            y: (c.bt + (c.bb - c.bt) * u) * H,
-            r: (0.45 + rnd() * 0.8) * dpr,
-            a: 0.35 + rnd() * 0.65,
-            s: 0.5 + rnd() * 2,
-            p: rnd() * Math.PI * 2,
-          });
-        }
-        // wicks
-        for (const [a, b] of [
-          [c.wt, c.bt],
-          [c.bb, c.wb],
-        ]) {
-          const m = Math.round(((b - a) * H) / (2.2 * dpr)) + 6;
-          for (let i = 0; i < m; i++) {
-            dots.push({
-              x: cx + (rnd() - 0.5) * bodyW * 0.12,
-              y: (a + (b - a) * rnd()) * H,
-              r: (0.5 + rnd() * 0.6) * dpr,
-              a: 0.3 + rnd() * 0.6,
-              s: 0.5 + rnd() * 2,
-              p: rnd() * Math.PI * 2,
-            });
-          }
-        }
-      }
-    };
-    build();
+      renderer.setPixelRatio(dpr);
+      renderer.setClearColor(0x000000, 0);
+      // The soft halo around each candle, as on the reference.
+      renderer.domElement.style.cssText =
+        "position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(0 0 4px rgba(88,246,177,0.45));";
+      el.appendChild(renderer.domElement);
 
-    const draw = (t: number) => {
-      const W = canvas.width;
-      const H = canvas.height;
-      ctx.clearRect(0, 0, W, H);
-      // A soft body glow behind each candle, so the point cloud reads as a lit solid.
-      ctx.filter = `blur(${Math.round(W * 0.012)}px)`;
-      ctx.fillStyle = "rgba(88,246,177,0.22)";
-      for (const c of CANDLES) ctx.fillRect(c.x * W - W * 0.02, c.bt * H, W * 0.04, (c.bb - c.bt) * H);
-      ctx.filter = "none";
-      for (const d of dots) {
-        const flicker = reduce ? 1 : 0.55 + 0.45 * Math.sin(t * 0.002 * d.s + d.p);
-        ctx.globalAlpha = d.a * flicker;
-        ctx.fillStyle = d.a > 0.85 ? "#e8fff4" : "#58f6b1";
-        ctx.beginPath();
-        ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-      if (running && !reduce) raf = requestAnimationFrame(draw);
-    };
-    draw(0);
-    const ro = new ResizeObserver(() => {
-      build();
-      if (reduce) draw(0);
-    });
-    ro.observe(canvas);
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+      camera.position.set(0, 0, 8.8);
+      const group = new THREE.Group();
+      // Turned so the row recedes: nearer, larger candles at the lower left.
+      group.rotation.set(0.12, -0.42, 0.04);
+      group.position.x = -0.3;
+      scene.add(group);
 
-    const io = new IntersectionObserver(([e]) => {
-      running = e.isIntersecting;
-      cancelAnimationFrame(raf);
-      if (running && !reduce) raf = requestAnimationFrame(draw);
-    });
-    io.observe(canvas);
+      const pts = buildPoints(!phone);
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(pts.pos, 3));
+      geo.setAttribute("aCenter", new THREE.BufferAttribute(pts.center, 3));
+      geo.setAttribute("aInfo", new THREE.BufferAttribute(pts.info, 2));
+      const mat = new THREE.ShaderMaterial({
+        uniforms: {
+          uTime: { value: 1.5 },
+          uPixel: { value: dpr },
+          uSize: { value: 2.1 },
+          uColor: { value: new THREE.Color("#58f6b1") },
+          uHot: { value: new THREE.Color("#eafff5") },
+        },
+        vertexShader: VERT,
+        fragmentShader: FRAG,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      const points = new THREE.Points(geo, mat);
+      points.frustumCulled = false;
+      group.add(points);
+
+      const resize = () => {
+        const w = el.clientWidth;
+        const h = el.clientHeight;
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      };
+      resize();
+      window.addEventListener("resize", resize);
+
+      let raf = 0;
+      let visible = true;
+      const draw = (t: number) => {
+        mat.uniforms.uTime.value = reduce ? 1.5 : t / 1000;
+        renderer.render(scene, camera);
+        if (!reduce && visible) raf = requestAnimationFrame(draw);
+      };
+      const io = new IntersectionObserver(([e]) => {
+        visible = e.isIntersecting;
+        cancelAnimationFrame(raf);
+        if (visible) raf = requestAnimationFrame(draw);
+      });
+      io.observe(el);
+      raf = requestAnimationFrame(draw);
+
+      cleanup = () => {
+        cancelAnimationFrame(raf);
+        io.disconnect();
+        window.removeEventListener("resize", resize);
+        geo.dispose();
+        mat.dispose();
+        renderer.dispose();
+        renderer.domElement.remove();
+      };
+    })();
 
     return () => {
-      running = false;
-      cancelAnimationFrame(raf);
-      ro.disconnect();
-      io.disconnect();
+      disposed = true;
+      cleanup();
     };
   }, [reduce]);
 
-  return <canvas ref={ref} aria-hidden="true" className={className} />;
+  return <div ref={host} aria-hidden="true" className={className} />;
 }
