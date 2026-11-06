@@ -21,9 +21,9 @@ export const LINKS = {
 export const NAV = {
   items: [
     { label: "Product", href: "#explore" },
-    { label: "Safety", href: "#limits" },
+    { label: "Matchmaking", href: "#matchmaking" },
+    { label: "The browser", href: "#browser" },
     { label: "Built on Vultr", href: "#vultr" },
-    { label: "How it works", href: "#steps" },
     { label: "Proof", href: "#proof" },
   ],
   cta: { label: "Open the app", href: LINKS.app },
@@ -79,25 +79,21 @@ export const LIMITS = {
     {
       label: ["Spend cap", "per run"],
       value: "$0.50",
-      by: "Enforced by the API",
       body: "Each comparison gets a hard budget for model calls and the browser. The run stops before it goes over, and the spend is shown on the result.",
     },
     {
       label: ["Longest", "run"],
       value: "180s",
-      by: "Enforced by the runner",
       body: "The browser gets 3 minutes and 20 actions, can only reach each tool's official sites, and is destroyed when the run ends.",
     },
     {
       label: ["Sent", "without you"],
       value: "0",
-      by: "Enforced by the API",
       body: "Forms are filled, never submitted, until you approve the exact fields. An approval works once; a replay is refused.",
     },
     {
       label: ["Success", "checks"],
       value: "7",
-      by: "Shown on every run",
       body: "Inference, evidence, traceability, honesty, approval, containment and timing, each passed or explained.",
     },
   ],
@@ -109,6 +105,124 @@ export const VULTR = {
   body: "The Wallio API runs on Vultr Cloud Compute in Los Angeles. Model calls go to Vultr Serverless Inference, and nowhere else.",
   cta: { label: "Check the live API", href: LINKS.api },
   pin: "API · Los Angeles",
+  // How one comparison travels. Matches docs/ARCHITECTURE.md.
+  flowTitle: "Where each part runs",
+  flow: [
+    { name: "You", detail: "Your browser, a guest workspace" },
+    { name: "Wallio web", detail: "Shows results, collects choices" },
+    { name: "Wallio API", detail: "Vultr Cloud Compute · LA", vultr: true },
+  ],
+  flowOut: [
+    { name: "Serverless Inference", detail: "Every model call", vultr: true },
+    { name: "Browser runner", detail: "Vultr VM, private network", vultr: true },
+  ],
+  flowBack: "Screenshots, page hashes, test results",
+  parts: [
+    {
+      product: "Vultr Cloud Compute",
+      title: "The Wallio API",
+      spec: "vc2-2c-4gb · Los Angeles",
+      body: "Runs every comparison: guest workspaces, spend caps, approvals and the evidence store. Only Caddy faces the internet, and Postgres keeps each visitor's data apart with row-level security.",
+    },
+    {
+      product: "Vultr Serverless Inference",
+      title: "Every model call",
+      spec: "qwen3.8-flash-next, pinned",
+      body: "Plans the research, reads pricing pages, checks each claim and writes the explanation. Each call is metered against the run's spend cap. There is no other model provider.",
+    },
+    {
+      product: "Vultr Cloud Compute",
+      title: "The browser runner",
+      spec: "Separate VM · one container per job",
+      body: "Real browser work, kept apart from the API. A proxy lets each job reach only its own sites, and every container is removed and checked before the next job starts.",
+    },
+    {
+      product: "Vultr VPC",
+      title: "A private network",
+      spec: "wallio-vpc",
+      body: "Only the API can call the runner, over Vultr's private network. The runner holds no model keys or cloud credentials, so a bad page has nothing to steal.",
+    },
+  ],
+  today: "Today: the API is live on Vultr and plays comparisons back from runs it recorded. Live browsing and model calls inside runs are being switched on.",
+};
+
+/** AI matchmaking: how Discover finds and ranks tools for you. */
+export const MATCH = {
+  eyebrow: "AI matchmaking",
+  title: "Matched to how you work, not to who pays",
+  body: "Tell Wallio what you do and what matters. It researches the tools that could fit, scores each one on your priorities, and says plainly what it couldn't find out.",
+  video: {
+    src: "/landing/matchmaking.mp4",
+    poster: "/landing/matchmaking.jpg",
+    url: "wallio / discover",
+    caption: "Recorded in the app on sample data: a fresh research pass, a second match, then another workflow.",
+  },
+  steps: [
+    {
+      title: "Your profile",
+      body: "Your role, workflows, devices, budget and what matters most. Anything Wallio guesses from a connected account waits for your OK.",
+    },
+    {
+      title: "Research in a sandbox",
+      body: "A browser on Vultr reads each candidate's official pricing, docs and security pages. Every claim keeps its source and the date it was read.",
+    },
+    {
+      title: "Scored on your weights",
+      body: "Workflow quality, features, cost, privacy and ease of switching, weighted your way. An unknown widens the score into a range, like 74 to 89, instead of being guessed.",
+    },
+    {
+      title: "Honest about the rest",
+      body: "Tools that break a hard requirement are filtered out with the reason. Claims that need proof are marked Needs a test, and Compare runs your task on both.",
+    },
+  ],
+  cta: { label: "Open Discover", href: LINKS.discover },
+};
+
+/** The browser runner: real browser work, contained. */
+export const BROWSER = {
+  eyebrow: "The browser",
+  title: "A real browser, on a short leash",
+  body: "Wallio does its research and tests in a real browser on its own Vultr machine, never on yours. You watch every step as it happens.",
+  video: {
+    src: "/landing/browser-run.mp4",
+    poster: "/landing/browser-run.jpg",
+    url: "wallio / compare, live",
+    caption: "A comparison recorded from the Wallio API on Vultr, played back step by step.",
+  },
+  rules: [
+    {
+      title: "A fresh container for every job",
+      body: "Nothing carries over between jobs: no cookies, no keys, no history.",
+    },
+    {
+      title: "Only the sites it needs",
+      body: "Each job gets a short list of hosts. Private addresses, cloud metadata and loopback are always denied, and redirects are checked again.",
+    },
+    {
+      title: "Evidence for every page",
+      body: "A screenshot, a short excerpt and a content hash, so each claim can be opened and checked.",
+    },
+    {
+      title: "Stops, never bypasses",
+      body: "Login walls, CAPTCHAs and two-factor prompts end the step and show up as a limit, not a workaround.",
+    },
+    {
+      title: "Cleanup, verified",
+      body: "The container and its volume are removed after the run, and the removal is checked and reported.",
+    },
+  ],
+  attack: {
+    label: "Containment test",
+    title: "We attack it on purpose",
+    body: "Wallio keeps a hostile page of its own. It hides a prompt injection and tries to make the browser claim a credit, open an admin console and download an \"agent update\". All three are refused, the requests are denied, and the API stays healthy.",
+    cta: { label: "Run the containment test", href: LINKS.live },
+    video: {
+      src: "/landing/containment.mp4",
+      poster: "/landing/containment.jpg",
+      url: "wallio / compare, live",
+      caption: "The containment run, recorded from the API: three actions refused, API healthy afterwards.",
+    },
+  },
 };
 
 export const STEPS = {

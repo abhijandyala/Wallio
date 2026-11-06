@@ -10,6 +10,8 @@ import { Statement } from "@/components/landing/sections/statement";
 import { Explore } from "@/components/landing/sections/explore";
 import { Limits } from "@/components/landing/sections/limits";
 import { Vultr } from "@/components/landing/sections/vultr";
+import { Matchmaking } from "@/components/landing/sections/matchmaking";
+import { Browser } from "@/components/landing/sections/browser";
 import { Steps } from "@/components/landing/sections/steps";
 import { Proof } from "@/components/landing/sections/proof";
 import { Footer } from "@/components/landing/sections/footer";
@@ -34,8 +36,10 @@ export default function LandingPage() {
         <ScrollText />
         <Statement lines={STATEMENTS.intro} className="max-w-[70.5rem]" />
         <Explore />
-        <Limits />
+        <Matchmaking />
         <Statement lines={STATEMENTS.receipts} className="max-w-[61rem]" />
+        <Browser />
+        <Limits />
         <Vultr />
         <Statement lines={STATEMENTS.approval} className="max-w-[68.5rem]" />
         <Steps />

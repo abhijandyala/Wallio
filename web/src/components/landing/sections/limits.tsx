@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 /**
  * The numbers, in the reference's bento: a tall pale card on the left (violet to cream to
  * mint, the pale aurora) and three glossy deep mint cards on the right, one wide over two.
- * Each card says what the limit protects and which part of the system enforces it.
+ * Each card says what the limit protects.
  * Numbers on the dark cards are painted with the aurora. Each card hides a faint
  * dot grid that lights up around the cursor, like the reference's card effect.
  */
@@ -58,22 +58,12 @@ function Card({ card, pale, className }: { card: (typeof LIMITS.cards)[number]; 
           "[mask-image:radial-gradient(14rem_circle_at_var(--mx,50%)_var(--my,50%),#000,transparent)]",
         )}
       />
-      <div className="relative flex flex-col items-start gap-[0.875rem]">
+      <div className="relative">
         <p className={cn("wl-caps", pale ? "text-[var(--wl-900)]" : "text-[var(--wl-100)]")}>
           {card.label[0]}
           <br />
           {card.label[1]}
         </p>
-        {/* Who enforces it, so it reads as a guarantee rather than a claim. */}
-        <span
-          className={cn(
-            "flex shrink-0 items-center gap-[0.5rem] text-[0.75rem] leading-none tracking-[0.09rem] uppercase",
-            pale ? "text-[rgba(3,20,13,0.6)]" : "text-[var(--wl-silver)]",
-          )}
-        >
-          <span aria-hidden="true" className={cn("size-[0.375rem] rounded-full", pale ? "bg-[var(--wl-600)]" : "bg-[var(--wl-300)]")} />
-          {card.by}
-        </span>
       </div>
       <div className="relative mt-8">
         <div

@@ -158,7 +158,79 @@ export function Vultr() {
             </Btn>
           </div>
         </div>
+        <VultrMap />
       </Container>
     </section>
+  );
+}
+
+/** A box in the flow diagram. Vultr pieces get an aurora edge and a small Vultr mark. */
+function Node({ name, detail, vultr }: { name: string; detail: string; vultr?: boolean }) {
+  return (
+    <div
+      className={
+        "relative rounded-[0.75rem] px-[1.25rem] py-[1rem] " +
+        (vultr
+          ? "bg-[linear-gradient(var(--wl-800),var(--wl-800))_padding-box,linear-gradient(120deg,#58f6b1,#ffffff_50%,#c5afff)_border-box] border border-transparent shadow-[0_0_2rem_-0.5rem_rgba(88,246,177,0.4)]"
+          : "border border-[rgba(201,255,230,0.12)] bg-[var(--wl-900)]")
+      }
+    >
+      {vultr && (
+        <span className="absolute -top-[0.6rem] left-[1rem] rounded-[0.3rem] bg-[var(--wl-300)] px-[0.4rem] py-[0.15rem] text-[0.625rem] leading-none font-semibold tracking-[0.08rem] text-[var(--wl-900)] uppercase">
+          Vultr
+        </span>
+      )}
+      <p className="text-[1.0625rem] leading-[1.375rem] font-semibold whitespace-nowrap text-white">{name}</p>
+      <p className="mt-[0.25rem] text-[0.8125rem] leading-[1.125rem] whitespace-nowrap text-[var(--wl-silver)]">{detail}</p>
+    </div>
+  );
+}
+
+/**
+ * How one comparison travels across Vultr: a flow diagram (you, the web app, the API, then a
+ * fork to inference and the browser runner, with evidence flowing back), then a card for each
+ * Vultr piece, and an honest line about what's live today.
+ */
+function VultrMap() {
+  const [you, web, api] = VULTR.flow;
+  const [inf, run] = VULTR.flowOut;
+  return (
+    <>
+      <div className="wl-gloss mt-[1.25rem] rounded-[1rem] bg-[var(--wl-900)] px-[3rem] py-[2.75rem] max-md:px-4">
+        <p className="wl-caps text-[var(--wl-silver)]">{VULTR.flowTitle}</p>
+        <div className="mt-[2.25rem] flex items-center max-lg:flex-col max-lg:items-stretch max-lg:gap-5">
+          <Node {...you} />
+          <span aria-hidden="true" className="wl-flow-line mx-[0.75rem] min-w-[2rem] flex-1 max-lg:hidden" />
+          <Node {...web} />
+          <span aria-hidden="true" className="wl-flow-line mx-[0.75rem] min-w-[2rem] flex-1 max-lg:hidden" />
+          <Node {...api} />
+          {/* The fork: the API sends work to inference and the runner. */}
+          <svg aria-hidden="true" viewBox="0 0 100 160" preserveAspectRatio="none" className="mx-[0.25rem] h-[10rem] w-[4.5rem] shrink-0 max-lg:hidden">
+            <path className="wl-flow-path" d="M0 80 C 50 80, 50 30, 100 30" />
+            <path className="wl-flow-path" d="M0 80 C 50 80, 50 130, 100 130" />
+          </svg>
+          <div className="flex flex-col gap-[1.75rem] max-lg:gap-5">
+            <Node {...inf} />
+            <Node {...run} />
+          </div>
+        </div>
+        <div className="mt-[1.75rem] flex items-center gap-[0.75rem] text-[0.875rem] text-[var(--wl-silver)] max-lg:hidden">
+          <span aria-hidden="true" className="wl-flow-line is-back w-[6rem]" />
+          {VULTR.flowBack}, back to the API
+        </div>
+      </div>
+
+      <ul className="mt-[1.25rem] grid grid-cols-4 gap-[1.25rem] max-lg:grid-cols-2 max-md:grid-cols-1">
+        {VULTR.parts.map((p) => (
+          <li key={p.title} className="wl-gloss flex flex-col rounded-[1rem] bg-[var(--wl-800)] p-[2rem]">
+            <p className="text-[0.75rem] leading-none font-semibold tracking-[0.09rem] text-[var(--wl-300)] uppercase">{p.product}</p>
+            <h3 className="mt-[1.25rem] text-[1.5rem] leading-[1.875rem] font-semibold tracking-[-0.03rem] text-white">{p.title}</h3>
+            <p className="wl-aurora-text mt-[0.5rem] inline-block self-start text-[0.875rem] leading-[1.25rem] font-medium">{p.spec}</p>
+            <p className="mt-[1.25rem] text-[1rem] leading-[1.5rem] text-[var(--wl-silver)]">{p.body}</p>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-[1.25rem] text-center text-[0.875rem] leading-[1.25rem] text-[var(--wl-silver)]">{VULTR.today}</p>
+    </>
   );
 }

@@ -219,6 +219,32 @@ body:has(.wl-root) {
       0 0 2.5rem -0.5rem rgba(201, 255, 230, 0.35);
   }
 
+  /* Flow diagram links: dashes that travel along the line, the way requests do. */
+  .wl-flow-line {
+    height: 2px;
+    background-image: repeating-linear-gradient(90deg, rgba(88, 246, 177, 0.75) 0 0.375rem, transparent 0.375rem 0.875rem);
+    background-size: 0.875rem 2px;
+    animation: wl-flow 0.9s linear infinite;
+  }
+  .wl-flow-line.is-back {
+    background-image: repeating-linear-gradient(90deg, rgba(226, 210, 255, 0.7) 0 0.375rem, transparent 0.375rem 0.875rem);
+    animation-direction: reverse;
+  }
+  .wl-flow-path {
+    fill: none;
+    stroke: rgba(88, 246, 177, 0.75);
+    stroke-width: 2;
+    stroke-dasharray: 6 8;
+    vector-effect: non-scaling-stroke;
+    animation: wl-flow-dash 0.9s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wl-flow-line,
+    .wl-flow-path {
+      animation: none;
+    }
+  }
+
   /* Faint dot grid used on panels */
   .wl-dots {
     background-image: radial-gradient(rgba(255, 255, 255, 0.09) 0.06rem, transparent 0.08rem);
@@ -228,6 +254,17 @@ body:has(.wl-root) {
   /* Tool names marquee: 75px a second, paused off screen */
   .wl-marquee {
     animation: wl-marquee var(--wl-marquee-time, 30s) linear infinite;
+  }
+}
+
+@keyframes wl-flow {
+  to {
+    background-position-x: 0.875rem;
+  }
+}
+@keyframes wl-flow-dash {
+  to {
+    stroke-dashoffset: -14;
   }
 }
 
