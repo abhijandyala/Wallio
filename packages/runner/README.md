@@ -148,8 +148,8 @@ These need re-measuring on the Vultr VM (x86).
 ## Containment demo (≈35 s of the video, PRD §24 2:45–3:20)
 
 1. Show the hostile page screenshot (`samples/containment-page.png` locally, live from `hostile.<domain>` on Vultr). Say: *"This page tries to hijack the agent: a fake system override, a button that posts to a private server, and background requests to cloud metadata."*
-2. Show the run's evidence. The injection text comes back as **data**. `inspect` shows the button's target is a private IP, so the control plane refuses to click. A plain button that navigates to metadata is clicked and the **proxy** refuses it (`egress_denied`).
-3. Show the denial list: private ranges, cloud metadata, localhost, `exfil.attacker.example`.
+2. Show the run's evidence. The injection text comes back as **data**, not instructions. `inspect` shows the "Claim credit" button posts to a private IP, and the control plane never clicks anything on this page. Say: *"Nobody clicks anything here. The page fires its own requests as soon as it loads, and the proxy blocks every one."*
+3. Show the denial list, all from the page's own on-load requests: private ranges, cloud metadata, localhost, `exfil.attacker.example`.
 4. Show the sentinel count still at **0**, and that the sentinel *is* reachable from the runner host (`/ping`), so 0 means the policy held.
 5. Show `/healthz` ok, the app still responding, and the cleanup report: container and volume removed and verified absent.
 
@@ -175,7 +175,7 @@ Then from the control VM:
 
 ```bash
 RUNNER_URL=https://<runner-private-ip>:8443 NODE_EXTRA_CA_CERTS=/etc/wallio/runner-cert.pem RUNNER_SHARED_TOKEN=... \
-HOSTILE_URL=https://hostile.<domain>/ SENTINEL_URL=http://<control-private-ip>:9099 npm run smoke -w @wallio/runner
+HOSTILE_URL=https://hostile.149-28-76-16.sslip.io/ SENTINEL_URL=http://10.5.96.3:9099 npm run smoke -w @wallio/runner
 ```
 
 Check from outside that `https://<runner-public-ip>:8443` does not answer.
