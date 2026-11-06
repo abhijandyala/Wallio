@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 /*
  * Chart kit. Hand-built (no chart library) so every mark matches the palette:
- * flat-shaded 3D blocks (dim lavender history, bright lavender "now"), lime for money kept or tested.
+ * flat-shaded 3D blocks (dim aurora history, bright aurora "now"), lime for money kept or tested.
  * No gradients, no glows. Hover shows one small readout, never a highlight box.
  */
 
@@ -22,8 +22,8 @@ const money0 = (cents: number) => formatMoney(cents).replace(/\.00$/, "");
 
 // Each bar is three flat faces: front, a lighter top, a darker right side. No gradients.
 const BLOCK = {
-  past: { front: "#3a3150", top: "#4b4167", side: "#2a2439" },
-  now: { front: "#ad96f1", top: "#cdbefb", side: "#7e68c9" },
+  past: { front: "#1c4744", top: "#255b56", side: "#13332f" },
+  now: { front: "#84d8cf", top: "#baeee8", side: "#55ada3" },
   edge: "#58f6b1", // lime line along the current month's front edge
 };
 const DEPTH = { dx: 12, dy: 7 };
@@ -95,7 +95,7 @@ export function BlockBarChart({
                 x2={width}
                 y1={yOf(t)}
                 y2={yOf(t)}
-                stroke="rgba(255,255,255,0.08)"
+                stroke="rgba(170,240,210,0.09)"
               />
               <text
                 x={axisW - 12}
@@ -196,7 +196,7 @@ export function BlockBarChart({
                 <span
                   className={cn(
                     "tnum",
-                    change > 0 ? "text-lavender" : "text-lime",
+                    change > 0 ? "text-aurora" : "text-lime",
                   )}
                 >
                   {change > 0 ? "+" : ""}
@@ -220,10 +220,10 @@ function niceStep(raw: number) {
 
 export function Sparkbars({
   values,
-  tone = "lavender",
+  tone = "aurora",
 }: {
   values: number[];
-  tone?: "lavender" | "lime";
+  tone?: "aurora" | "lime";
 }) {
   const max = Math.max(...values, 1);
   return (
@@ -236,7 +236,7 @@ export function Sparkbars({
             i === values.length - 1
               ? tone === "lime"
                 ? "bg-lime"
-                : "bg-lavender"
+                : "bg-aurora"
               : "bg-white/15",
           )}
           style={{ height: `${Math.max(12, (v / max) * 100)}%` }}
@@ -249,10 +249,10 @@ export function Sparkbars({
 /* ── Segment bar (breakdown) ───────────────────────────────────────────── */
 
 const SEGMENT_FILLS = [
-  "var(--w-lavender)",
-  hatch("rgba(173,150,241,0.8)", 6),
+  "var(--w-aurora)",
+  hatch("rgba(132,216,207,0.8)", 6),
   "var(--w-lime)",
-  hatch("rgba(130,130,142,0.7)", 6),
+  hatch("rgba(132,145,139,0.7)", 6),
 ];
 
 export function SegmentBar({
@@ -331,7 +331,7 @@ export function EvidenceDots({
               <span className="pointer-events-none absolute -top-9 z-10 rounded-[10px] border border-line-strong bg-surface-3 px-2.5 py-1.5 text-[12px] whitespace-nowrap">
                 <span className="text-lime">{t.tested} tested</span>
                 <span className="text-text-3"> · </span>
-                <span className="text-lavender">{t.researched} read</span>
+                <span className="text-aurora">{t.researched} read</span>
               </span>
             )}
             <span
@@ -344,7 +344,7 @@ export function EvidenceDots({
                   className={cn(
                     "size-[10px] rounded-[3px]",
                     kind === "tested" && "bg-lime",
-                    kind === "researched" && "bg-lavender/70",
+                    kind === "researched" && "bg-aurora/70",
                     kind === "unknown" && "border border-white/20",
                   )}
                 />
@@ -389,7 +389,7 @@ export function RenewalTimeline({
       {/* Track */}
       <div className="relative h-1.5 rounded-[3px] bg-surface-3">
         <span
-          className="absolute inset-y-0 left-0 rounded-[3px] bg-lavender/40"
+          className="absolute inset-y-0 left-0 rounded-[3px] bg-aurora/40"
           style={{ width: `${soonest}%` }}
         />
         <span
@@ -411,7 +411,7 @@ export function RenewalTimeline({
             <span
               className={cn(
                 "rounded-md p-0.5",
-                first ? "bg-lavender" : "bg-transparent",
+                first ? "bg-aurora" : "bg-transparent",
               )}
             >
               <ToolMark name={it.toolName} />
@@ -419,7 +419,7 @@ export function RenewalTimeline({
             <span
               className={cn(
                 "h-3 w-px",
-                first ? "bg-lavender" : "bg-line-strong",
+                first ? "bg-aurora" : "bg-line-strong",
               )}
             />
           </div>
@@ -452,7 +452,7 @@ export function RenewalTimeline({
 const PASS = {
   best: { front: "#58f6b1", top: "#a6fbd5", side: "#2fae79" },
   other: BLOCK.now,
-  empty: { front: "#1c1c23", top: "#25252e", side: "#141419" },
+  empty: { front: "#12291f", top: "#1a3a2e", side: "#0b1c15" },
 };
 const D = 4; // block depth in px
 

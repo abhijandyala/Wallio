@@ -33,7 +33,7 @@ export function SpendChartPanel({
           </h2>
           <p className="display mt-3 text-[36px] leading-[40px] font-medium text-text-1">
             <Money cents={last} />
-            <span className="ml-3 align-middle text-[14px] font-normal tracking-normal text-lavender">
+            <span className="ml-3 align-middle text-[14px] font-normal tracking-normal text-aurora">
               +{change}% in {data.length} months
             </span>
           </p>

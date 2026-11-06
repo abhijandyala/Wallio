@@ -116,7 +116,7 @@ export function ConfidencePanel({
           <span className="size-2 rounded-[2px] bg-lime" /> Tested
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-2 rounded-[2px] bg-lavender/70" /> Read
+          <span className="size-2 rounded-[2px] bg-aurora/70" /> Read
         </span>
         <span className="flex items-center gap-1.5">
           <span className="size-2 rounded-[2px] border border-white/20" />{" "}

@@ -89,7 +89,7 @@ export function ApprovalPanel({
           aria-hidden="true"
           className={cn(
             "size-1.5 rounded-[1px] transition-colors",
-            shown === "waiting" ? "bg-lavender" : "bg-text-disabled",
+            shown === "waiting" ? "bg-aurora" : "bg-text-disabled",
           )}
         />
         <h2 className="min-w-0 flex-1 truncate text-[15px] font-medium text-text-1">
@@ -163,14 +163,14 @@ export function ApprovalPanel({
                         i < passed
                           ? "bg-lime-tint text-lime"
                           : i === passed
-                            ? "border border-lavender"
+                            ? "border border-aurora"
                             : "border border-line-strong",
                       )}
                     >
                       {i < passed ? (
                         <Check size={10} weight="bold" />
                       ) : i === passed ? (
-                        <span className="size-1 animate-pulse rounded-[1px] bg-lavender" />
+                        <span className="size-1 animate-pulse rounded-[1px] bg-aurora" />
                       ) : null}
                     </span>
                     {c}
@@ -252,7 +252,7 @@ function FormShot({ intent, state }: { intent: ApprovalIntent; state: State }) {
               className={cn(
                 "mt-1 h-8 w-28 rounded-[6px] border text-center text-[12px] leading-[30px] transition-colors",
                 state === "waiting"
-                  ? "border-lavender text-lavender"
+                  ? "border-aurora text-aurora"
                   : "border-line text-text-3",
               )}
             >

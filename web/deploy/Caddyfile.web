@@ -1,0 +1,38 @@
+# Main-domain block with the web app. Replaces the main __WALLIO_DOMAIN__ block in
+# deploy/Caddyfile (Anish's); keep the eval., forms. and hostile. blocks from there as they are.
+__WALLIO_DOMAIN__ {
+	encode zstd gzip
+
+	request_body {
+		max_size 1MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		-Server
+	}
+
+	# API and run events (SSE). flush_interval -1 streams events immediately.
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8787 {
+			flush_interval -1
+		}
+	}
+
+	# The owned eval page and the trial form live only on their own subdomains
+	# (eval.<domain>, forms.<domain>), so the runner's allowlist never includes this host.
+	handle /eval/* {
+		respond 404
+	}
+	handle /trial/* {
+		respond 404
+	}
+
+	# Everything else is the Next.js app: landing at /, the app at /home.
+	handle {
+		reverse_proxy 127.0.0.1:3000
+	}
+}

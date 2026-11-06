@@ -3,7 +3,11 @@ import type { RunStep } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /** Live progress of an agent run. One line per step; blocked/failed steps show a short note. */
-export function StepList({ steps }: { steps: RunStep[] }) {
+export function StepList({
+  steps,
+}: {
+  steps: Pick<RunStep, "id" | "label" | "status" | "atSeconds" | "note" | "approval">[];
+}) {
   return (
     <ol className="flex flex-col" aria-live="polite">
       {steps.map((s) => (
@@ -54,10 +58,10 @@ function StepIcon({ status }: { status: RunStep["status"] }) {
     case "active":
       return (
         <span
-          className={cn(base, "border border-lavender")}
+          className={cn(base, "border border-aurora")}
           aria-label="In progress"
         >
-          <span className="size-1.5 animate-pulse rounded-[1px] bg-lavender" />
+          <span className="size-1.5 animate-pulse rounded-[1px] bg-aurora" />
         </span>
       );
     case "blocked":

@@ -11,10 +11,13 @@ import {
   Scales,
   CheckSquareOffset,
   GearSix,
+  Bell,
   type Icon,
 } from "@phosphor-icons/react";
 import { LogoMark } from "./logo-mark";
 import { ScrambleText } from "./scramble-text";
+import { NotifyBadge } from "./notify-badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NAV_ITEMS, type NavIcon } from "./nav-items";
 import { cn } from "@/lib/utils";
 
@@ -34,14 +37,14 @@ const CARD = {
   narrow: { w: 54, overlap: 8 },
 };
 
-// Graded darks, lightest on top of the stack, so every card edge reads. Current page is lavender.
+// Graded darks, lightest on top of the stack, so every card edge reads. Current page is aurora.
 const TONES = [
-  "#2a2a33",
-  "#25252d",
-  "#212128",
-  "#1d1d23",
-  "#1a1a20",
-  "#17171c",
+  "#1a3a2e",
+  "#16332a",
+  "#132d25",
+  "#102720",
+  "#0e221c",
+  "#0c1d18",
 ];
 
 const OPEN_DELAY = 120;
@@ -87,7 +90,7 @@ export function RailNav() {
   const [hovered, setHovered] = useState<number | null>(null);
 
   const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+    pathname.startsWith(href);
   const waiting = NAV_ITEMS.reduce(
     (n, i) => n + ("count" in i ? i.count : 0),
     0,
@@ -219,14 +222,34 @@ export function RailNav() {
                       className={cn(
                         "flex h-full w-full flex-col items-center justify-between group rounded-r-[18px] shadow-[6px_0_18px_rgba(0,0,0,0.35)]",
                         wide ? "py-6 pl-4" : "py-4 pl-2",
-                        active ? "bg-lavender text-ink" : "text-text-1",
+                        active ? "bg-aurora text-ink" : "text-text-1",
                       )}
                     >
-                      <I
-                        size={wide ? 20 : 17}
-                        weight={active ? "fill" : "regular"}
-                        aria-hidden="true"
-                      />
+                      {/* The icon, with anything waiting shown on its corner where the eye lands. */}
+                      <span
+                        className="relative"
+                        aria-label={
+                          "count" in item && item.count > 0
+                            ? `${item.count} waiting`
+                            : undefined
+                        }
+                      >
+                        <I
+                          size={wide ? 20 : 17}
+                          weight={active ? "fill" : "regular"}
+                          aria-hidden="true"
+                        />
+                        <NotifyBadge
+                          count={"count" in item ? item.count : 0}
+                          tone={active ? "ink" : "lime"}
+                          size={wide ? "lg" : "md"}
+                          pulse={!active}
+                          className={cn(
+                            "absolute",
+                            wide ? "-top-3.5 -right-5" : "-top-3 -right-4",
+                          )}
+                        />
+                      </span>
                       {/* Label. On hover it decodes into what this section does, in place. */}
                       <ScrambleText
                         text={
@@ -250,18 +273,20 @@ export function RailNav() {
                               ),
                         )}
                       />
-                      <span
-                        className={cn(
-                          "tnum h-5 text-[13px] font-medium",
-                          active ? "text-ink/70" : "text-lime",
+                      {/* Spelled out at the foot of the card too, in lime. */}
+                      <span className="flex min-h-5 items-end">
+                        {"count" in item && item.count > 0 && (
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              "rotate-180 font-medium tracking-[0.04em] whitespace-nowrap [writing-mode:vertical-rl]",
+                              wide ? "text-[12px]" : "text-[10px]",
+                              active ? "text-ink/70" : "text-lime",
+                            )}
+                          >
+                            {item.count} waiting
+                          </span>
                         )}
-                        aria-label={
-                          "count" in item && item.count > 0
-                            ? `${item.count} waiting`
-                            : undefined
-                        }
-                      >
-                        {"count" in item && item.count > 0 ? item.count : ""}
                       </span>
                     </Link>
                   </motion.div>
@@ -282,28 +307,67 @@ export function RailNav() {
           }}
           aria-expanded={open}
           aria-controls="rail-menu"
-          aria-label={open ? "Close menu" : "Open menu"}
-          className="relative z-30 flex h-full flex-col items-center justify-between border-r border-line bg-bg py-6"
+          aria-label={
+            open
+              ? "Close menu"
+              : waiting > 0
+                ? `Open menu, ${waiting} waiting`
+                : "Open menu"
+          }
+          // Glossy deep mint: a soft mint light at the top and bottom, a lit inner edge, a
+          // faint glow into the page, and a thin aurora line down the right edge.
+          className="group/rail relative z-30 flex h-full flex-col items-center justify-between bg-[#04100a] bg-[radial-gradient(150%_20%_at_50%_0%,rgba(88,246,177,0.13),transparent_70%),radial-gradient(150%_24%_at_50%_100%,rgba(88,246,177,0.15),transparent_70%),linear-gradient(180deg,#081c13_0%,#030c08_50%,#081c13_100%)] py-6 shadow-[inset_1px_0_0_rgba(255,255,255,0.03),8px_0_28px_-14px_rgba(34,176,124,0.45)]"
           style={{ width: railW }}
         >
-          <LogoMark
-            className={cn("w-auto text-text-1", wide ? "h-[14px]" : "h-[11px]")}
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-px bg-[linear-gradient(180deg,transparent_0%,rgba(201,255,230,0.4)_22%,rgba(255,255,255,0.35)_50%,rgba(226,210,255,0.4)_78%,transparent_100%)] opacity-60 transition-opacity duration-300 group-hover/rail:opacity-100"
           />
+          {/* Room for the logo, which is its own link (below), laid over the rail. */}
+          <span aria-hidden="true" className={wide ? "h-[14px]" : "h-[11px]"} />
           <span
             className={cn(
-              "font-brand rotate-180 font-bold whitespace-nowrap text-text-1 [writing-mode:vertical-rl]",
+              // The wordmark in the aurora: green at the W, white, violet at the o.
+              "relative font-brand rotate-180 bg-[linear-gradient(180deg,#c9ffe6_0%,#ffffff_50%,#e2d2ff_100%)] bg-clip-text font-bold whitespace-nowrap text-transparent [writing-mode:vertical-rl]",
               wide ? "text-[22px]" : "text-[18px]",
             )}
           >
             Wallio
           </span>
-          <span
-            className="tnum h-5 text-[13px] font-medium text-lavender"
-            aria-hidden="true"
-          >
-            {waiting > 0 && !open ? waiting : ""}
+          {/* Waiting items: a bell with a lime count on its corner. */}
+          <span className="relative grid h-6 w-6 place-items-center" aria-hidden="true">
+            {waiting > 0 && !open && (
+              <>
+                <Bell size={wide ? 18 : 16} className="text-text-2" />
+                <NotifyBadge count={waiting} className="absolute -top-2 -right-2.5 scale-90" />
+              </>
+            )}
           </span>
         </button>
+
+        {/* The W goes back to the main (landing) page, as a logo usually does. */}
+        <Tooltip>
+          <TooltipTrigger
+            render={<Link href="/" />}
+            aria-label="Back to the main page"
+            onClick={() => {
+              cancel();
+              setOpen(false);
+            }}
+            className="group/logo absolute top-0 left-0 z-40 flex justify-center pt-6 pb-3"
+            style={{ width: railW }}
+          >
+            <LogoMark
+              className={cn(
+                "w-auto text-text-1 transition-[color,filter] duration-200 group-hover/logo:text-[#c9ffe6] group-hover/logo:drop-shadow-[0_0_8px_rgba(88,246,177,0.7)]",
+                wide ? "h-[14px]" : "h-[11px]",
+              )}
+            />
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={10} className="bg-surface-3 text-[12px] text-text-1 [&_svg]:hidden [&>*:last-child]:hidden">
+            Back to the main page
+          </TooltipContent>
+        </Tooltip>
       </div>
     </>
   );

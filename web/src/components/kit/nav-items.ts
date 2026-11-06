@@ -2,7 +2,7 @@ import { decisionsSample } from "@/mocks/decisions";
 
 /** Every destination in the app, in rail order. `hint` is the one-line explanation shown on hover. */
 export const NAV_ITEMS = [
-  { href: "/", label: "Home", icon: "home", hint: "Your AI setup at a glance" },
+  { href: "/home", label: "Home", icon: "home", hint: "Your AI setup at a glance" },
   {
     href: "/my-ai",
     label: "My AI",

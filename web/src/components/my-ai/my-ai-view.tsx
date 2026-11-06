@@ -269,7 +269,7 @@ function sortTools(list: Subscription[], sort: ToolsSort) {
 
 function BudgetMeter({ spent, budget, warnAtPct }: { spent: number; budget: number; warnAtPct: number }) {
   const pct = Math.min(100, (spent / Math.max(budget, 1)) * 100);
-  // Lavender from the warning line set in Settings -> Spending. Never red: it isn't an error.
+  // Aurora from the warning line set in Settings -> Spending. Never red: it isn't an error.
   const over = pct >= warnAtPct;
   return (
     <span className="flex items-center gap-2">
@@ -284,7 +284,7 @@ function BudgetMeter({ spent, budget, warnAtPct }: { spent: number; budget: numb
         aria-valuemax={100}
       >
         <span
-          className={cn("block h-full rounded-[2px]", over ? "bg-lavender" : "bg-lime")}
+          className={cn("block h-full rounded-[2px]", over ? "bg-aurora" : "bg-lime")}
           style={{ width: `${pct}%` }}
         />
       </span>

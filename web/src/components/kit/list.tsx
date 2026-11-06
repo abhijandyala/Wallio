@@ -22,7 +22,7 @@ export function ListItem({
   title: string;
   meta?: string;
   href: string;
-  /** Lavender mark for items that need the user. */
+  /** Aurora mark for items that need the user. */
   highlight?: boolean;
 }) {
   return (
@@ -31,7 +31,7 @@ export function ListItem({
         <span
           className={cn(
             "size-1.5 shrink-0 rounded-[1px]",
-            highlight ? "bg-lavender" : "bg-text-disabled",
+            highlight ? "bg-aurora" : "bg-text-disabled",
           )}
           aria-hidden="true"
         />

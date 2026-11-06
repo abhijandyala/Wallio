@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Poppins } from "next/font/google";
-import { AppShell } from "@/components/kit/app-shell";
+import { MotionPrefs } from "@/components/kit/motion-prefs";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
@@ -41,7 +41,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           >
             Skip to content
           </a>
-          <AppShell>{children}</AppShell>
+          <MotionPrefs>{children}</MotionPrefs>
         </TooltipProvider>
       </body>
     </html>

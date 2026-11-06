@@ -1,8 +1,11 @@
 # Wallio web
 
-The product interface: Home, My AI, Discover, Compare, Decisions and Settings. Next.js (App Router), Tailwind v4, shadcn on Base UI, Motion.
+The product interface: a landing page at `/`, then the app: Home (`/home`), My AI, Discover, Compare, Decisions and Settings. Next.js (App Router), Tailwind v4, shadcn on Base UI, Motion.
 
 Design rules, palette, type and the component kit live in [`docs/DESIGN.md`](../docs/DESIGN.md).
+How the web app fits with the API, Vultr inference and the browser runner: [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md).
+
+Pages outside the app rail: `/` (landing), `/privacy`, `/terms`. The app lives under `src/app/(app)/`.
 
 ```bash
 cd web
@@ -23,3 +26,7 @@ Before wiring the API, reconcile `src/lib/types.ts` with the shared contracts in
 - `/compare?simulate=partial|failed|timed_out|reconnecting|cleanup_failed` plays a comparison that ends in that state.
 - Compare's Recent list opens a saved report for each outcome.
 - Compare → "Run the containment test" plays the owned hostile-page run.
+
+## Deploying
+
+See [`deploy/DEPLOY.md`](deploy/DEPLOY.md): a Docker image or a systemd unit running `next start`, behind the same Caddy as the API.

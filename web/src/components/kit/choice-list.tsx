@@ -61,7 +61,7 @@ export function ChoiceList<T extends string>({
                 "grid size-[18px] shrink-0 place-items-center border transition-colors",
                 type === "radio" ? "rounded-[5px]" : "rounded-[4px]",
                 checked
-                  ? "border-lavender bg-lavender text-ink"
+                  ? "border-aurora bg-aurora text-ink"
                   : "border-line-strong",
               )}
             >

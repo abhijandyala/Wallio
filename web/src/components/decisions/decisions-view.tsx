@@ -242,7 +242,7 @@ function HistoryRow({
       </span>
       {pending ? (
         <span className="flex shrink-0 items-center gap-1">
-          <span className="mr-1 text-[13px] text-lavender">Did it help?</span>
+          <span className="mr-1 text-[13px] text-aurora">Did it help?</span>
           <button
             type="button"
             onClick={() => onAnswer("helped")}

@@ -18,7 +18,7 @@ export function Panel({
   /** Small inline element after the title, e.g. an info tooltip. */
   titleAddon?: React.ReactNode;
   action?: { label: string; href: string };
-  /** "accent" = lavender surface with ink text. Use once per screen at most. */
+  /** "accent" = aurora surface with ink text. Use once per screen at most. */
   variant?: "default" | "accent";
   /** Remove body padding (tables, lists that run edge to edge). */
   flush?: boolean;
@@ -30,7 +30,11 @@ export function Panel({
     <section
       className={cn(
         "flex flex-col rounded-[20px]",
-        accent ? "bg-lavender text-ink" : "border border-line bg-surface-1",
+        accent
+          ? // The landing page's pale card: the aurora's violet into cream into mint, glossy.
+            "w-gloss-pale bg-[#effff8] bg-[radial-gradient(41288.31%_255.77%_at_-42.4%_-22.13%,#e2d2ff_0%,#fffdfa_44.72%,#effff8_85.38%,#c9ffe6_100%)] text-ink"
+          : // Glossy: a lit top edge and a faint mint light from above, as on the landing's cards.
+            "w-gloss border border-line bg-surface-1 bg-[linear-gradient(180deg,rgba(201,255,230,0.045)_0%,transparent_36%),radial-gradient(120%_70%_at_50%_0%,rgba(88,246,177,0.07),transparent_65%)]",
         className,
       )}
     >

@@ -326,7 +326,7 @@ const SOURCE: Record<DataSource, string> = {
 };
 
 const input =
-  "h-11 w-full rounded-[10px] border border-line-strong bg-bg px-3 text-[14px] text-text-1 outline-none placeholder:text-text-3 transition-colors focus:border-lavender/60";
+  "h-11 w-full rounded-[10px] border border-line-strong bg-bg px-3 text-[14px] text-text-1 outline-none placeholder:text-text-3 transition-colors focus:border-aurora/60";
 
 /** `group` = a set of buttons (not one input), so it must not be a <label>. */
 function Field({

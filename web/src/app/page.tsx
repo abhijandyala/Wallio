@@ -1,136 +1,52 @@
-import { homeSample } from "@/mocks/home";
-import { DisplayName, LiveSpendPanel } from "@/components/home/settings-bits";
-import { ButtonLink } from "@/components/kit/button-link";
-import { Stat, StatStrip } from "@/components/kit/stat";
-import { Money } from "@/components/kit/money";
-import { NumberTicker } from "@/components/kit/number-ticker";
-import { Sparkbars } from "@/components/kit/charts";
-import { DecisionHero } from "@/components/home/decision-hero";
-import { StackPanel } from "@/components/home/stack-panel";
-import { InboxPanel } from "@/components/home/inbox-panel";
-import { SpendChartPanel } from "@/components/home/spend-chart-panel";
-import {
-  CategoryPanel,
-  ConfidencePanel,
-  LastComparisonPanel,
-  RenewalsPanel,
-} from "@/components/home/insight-panels";
-import { HomeEmpty } from "@/components/home/home-states";
+import type { Metadata } from "next";
+import "@/components/landing/landing.css";
+import { wlFont } from "@/components/landing/font";
+import { GlowCanvas } from "@/components/kit/glow-canvas";
+import { SmoothScroll } from "@/components/landing/smooth-scroll";
+import { STATEMENTS } from "@/components/landing/content";
+import { Header } from "@/components/landing/sections/header";
+import { Hero, ScrollText } from "@/components/landing/sections/hero";
+import { Statement } from "@/components/landing/sections/statement";
+import { Explore } from "@/components/landing/sections/explore";
+import { Limits } from "@/components/landing/sections/limits";
+import { Vultr } from "@/components/landing/sections/vultr";
+import { Matchmaking } from "@/components/landing/sections/matchmaking";
+import { Browser } from "@/components/landing/sections/browser";
+import { Steps } from "@/components/landing/sections/steps";
+import { Proof } from "@/components/landing/sections/proof";
+import { Footer } from "@/components/landing/sections/footer";
 
-export default function HomePage() {
-  // TODO(api): replace with the home summary endpoint once agreed with the backend.
-  const data = homeSample;
-  const { totals } = data;
-  const needsYou = data.inbox.filter((i) => i.needsYou).length;
+export const metadata: Metadata = {
+  title: "Wallio: your personal AI wallet",
+  description: "Track every AI tool you pay for, test a new one against yours on your own task, and act only after you approve.",
+};
 
-  if (data.subscriptions.length === 0)
-    return <HomeEmpty name={data.userFirstName} />;
-
+/**
+ * The landing page. Layout, motion and hover detail follow the reference (auros.global),
+ * measured at 1512 x 944; colours and every word are Wallio's.
+ */
+export default function LandingPage() {
   return (
-    <div className="flex flex-col gap-section">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="display text-[40px] leading-[44px] font-medium text-text-1 sm:text-[52px] sm:leading-[56px]">
-            Welcome back, <DisplayName />
-          </h1>
-          <p className="mt-2 text-[15px] text-text-2">
-            {needsYou > 0
-              ? `${needsYou} things need you today.`
-              : "Everything is up to date."}
-          </p>
-        </div>
-        <ButtonLink href="/my-ai" variant="secondary">
-          Add a tool
-        </ButtonLink>
-      </header>
-
-      <div className="grid grid-cols-12 gap-gutter">
-        {/* Row 1: summary left, the one decision right */}
-        <div className="col-span-12 grid xl:col-span-4">
-          <LiveSpendPanel totals={totals} />
-        </div>
-        <div className="order-first col-span-12 grid xl:order-none xl:col-span-8">
-          <DecisionHero decision={data.nextDecision} />
-        </div>
-
-        {/* Row 2: stats with tiny charts */}
-        <StatStrip className="col-span-12">
-          <Stat
-            label="Active tools"
-            delta={data.deltas.activeTools}
-            value={<NumberTicker value={totals.activeTools} />}
-            chart={<Sparkbars values={[3, 3, 4, 4, 5, 5, 6]} />}
-          />
-          <Stat
-            label="Renewing in 30 days"
-            delta={data.deltas.renewals}
-            value={<NumberTicker value={totals.renewalsNext30} />}
-            chart={<Sparkbars values={[1, 0, 2, 1, 1, 0, 2]} />}
-          />
-          <Stat
-            label="Tested by Wallio"
-            delta={data.deltas.tested}
-            value={
-              <>
-                <NumberTicker value={totals.testedTools} />
-                <span className="text-text-3"> of {totals.activeTools}</span>
-              </>
-            }
-            chart={<Sparkbars values={[0, 0, 0, 1, 1, 2, 3]} tone="lime" />}
-          />
-          <Stat
-            label="Possible savings"
-            delta={data.deltas.savings}
-            tone="positive"
-            value={
-              data.nextDecision?.estimatedAnnualSavingsCents != null ? (
-                <>
-                  <Money
-                    cents={data.nextDecision.estimatedAnnualSavingsCents}
-                    dropCents
-                  />
-                  <span className="text-[16px] text-lime/60">/yr</span>
-                </>
-              ) : (
-                <span className="text-text-3">—</span>
-              )
-            }
-          />
-        </StatStrip>
-
-        {/* Row 3: inbox + last result left, the centerpiece chart + Ask right */}
-        <div className="col-span-12 flex flex-col gap-gutter xl:col-span-4">
-          <InboxPanel items={data.inbox} />
-          <div className="flex-1">
-            <LastComparisonPanel comparison={data.lastComparison} />
-          </div>
-        </div>
-        <div className="col-span-12 xl:col-span-8">
-          <SpendChartPanel history={data.spendHistory} />
-        </div>
-
-        {/* Row 4: three insights */}
-        <div className="col-span-12 md:col-span-6 xl:col-span-4">
-          <RenewalsPanel
-            subscriptions={data.subscriptions}
-            today={data.today}
-          />
-        </div>
-        <div className="col-span-12 md:col-span-6 xl:col-span-4">
-          <CategoryPanel
-            categories={data.categories}
-            totalCents={totals.monthlyCents}
-          />
-        </div>
-        <div className="col-span-12 xl:col-span-4">
-          <ConfidencePanel tools={data.evidenceByTool} />
-        </div>
-
-        {/* Row 5: the full stack */}
-        <div className="col-span-12">
-          <StackPanel subscriptions={data.subscriptions} today={data.today} />
-        </div>
-      </div>
+    <div className={`wl-root ${wlFont.variable} relative`}>
+      <SmoothScroll />
+      <GlowCanvas />
+      <Header />
+      <main id="main">
+        <Hero />
+        <ScrollText />
+        <Statement lines={STATEMENTS.intro} className="max-w-[70.5rem]" />
+        <Explore />
+        <Matchmaking />
+        <Statement lines={STATEMENTS.receipts} className="max-w-[75rem]" />
+        <Browser />
+        <Limits />
+        <Vultr />
+        <Statement lines={STATEMENTS.approval} className="max-w-[68.5rem]" />
+        <Steps />
+        <Statement lines={STATEMENTS.keep} className="max-w-[58.7rem]" />
+        <Proof />
+      </main>
+      <Footer />
     </div>
   );
 }

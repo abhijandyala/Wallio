@@ -1,0 +1,211 @@
+/**
+ * TypeScript mirror of the parts of packages/contracts/src/api.ts the UI reads.
+ * The API validates every response against the zod schemas there, so these types
+ * describe what actually arrives. Keep them in step with that file.
+ */
+
+export type RunStage = "planning" | "researching" | "testing" | "verifying" | "reporting" | "done";
+export type RunOutcome = "pending" | "succeeded" | "partial" | "failed" | "timed_out" | "cancelled";
+export type RunStatus =
+  | "CREATED"
+  | "QUEUED"
+  | "PREPARING"
+  | "RUNNING"
+  | "AWAITING_APPROVAL"
+  | "VERIFYING"
+  | "SUCCEEDED"
+  | "FAILED"
+  | "TIMED_OUT"
+  | "CANCELLED"
+  | "CLEANING"
+  | "CLEANED"
+  | "CLEANUP_FAILED"
+  | (string & {});
+export type AccessMode = "researched" | "tested_integration" | "tested_owned_demo";
+export type EvidenceKind = "vendor_claim" | "observed_behavior" | "executed_test" | "user_input";
+export type RunKind = "comparison" | "trial_request" | "containment";
+
+export interface ApiError {
+  code: string;
+  message: string;
+  correlationId?: string;
+  retryable?: boolean;
+  details?: Record<string, unknown>;
+}
+
+export interface Health {
+  ok: boolean;
+  runMode: "mock" | "live" | (string & {});
+}
+
+export interface CatalogTool {
+  id: string;
+  name: string;
+  provider: string;
+  category: string;
+  homepageUrl: string;
+  pricingUrl: string | null;
+}
+
+export interface ProfileVersion {
+  id: string;
+  version: number;
+  primaryRole: string;
+  workflows: { id: string; name: string; description: string; priority: number }[];
+  budget: { currency: string; maxMonthlyMinor: number };
+}
+
+export interface ComparisonRequest {
+  idempotencyKey: string;
+  profileVersionId: string;
+  workflowId: string;
+  taskId: string;
+  incumbentToolId: string;
+  candidateToolIds: string[];
+  spendCapMinor?: number;
+}
+
+export interface Accepted {
+  runId: string;
+  status: "QUEUED";
+  eventsUrl: string;
+  statusUrl: string;
+}
+
+export interface Run {
+  id: string;
+  kind: RunKind;
+  correlationId: string;
+  status: RunStatus;
+  outcome: RunOutcome;
+  stage: RunStage;
+  cleanup: "not_started" | "pending" | "cleaned" | "failed";
+  createdAt: string;
+  updatedAt: string;
+  deadlineAt: string;
+  lastEventSeq: number;
+  coverage: { evidenceCount: number; candidatesResearched: number; candidatesTested: number };
+  spend: { currency: string; reservedMinor: number; actualMinor: number; capMinor: number };
+  pendingApprovalId: string | null;
+  recommendationId: string | null;
+  error: ApiError | null;
+}
+
+type Base<T extends string, D> = {
+  runId: string;
+  seq: number;
+  ts: string;
+  stage: RunStage;
+  message: string;
+  type: T;
+  data: D;
+};
+
+export type RunEvent =
+  | Base<"status_changed", { from: RunStatus; to: RunStatus }>
+  | Base<"stage_changed", { from: RunStage; to: RunStage }>
+  | Base<"step", { stepIndex: number; maxSteps: number; actionType: string; url: string | null; candidateToolId: string | null }>
+  | Base<"evidence_captured", { evidenceId: string; kind: EvidenceKind; url: string | null; candidateToolId: string | null }>
+  | Base<"inference_call", { purpose: "plan" | "extract" | "verify" | "explain" | "task"; model: string; latencyMs: number; ok: boolean }>
+  | Base<"policy_denied", { attemptedAction: string; target: string; reason: string }>
+  | Base<"approval_required", { approvalId: string }>
+  | Base<"approval_resolved", { approvalId: string; result: "approved" | "declined" | "expired" | "invalidated" }>
+  | Base<"action_result", { approvalId: string; result: "submitted" | "uncertain" | "refused" | "simulated"; evidenceId: string | null }>
+  | Base<
+      "containment_result",
+      {
+        contained: boolean;
+        deniedRequests: number;
+        refusedActions: number;
+        sentinel: { before: number; after: number } | null;
+        cleanupVerified: boolean;
+        evidenceId: string | null;
+      }
+    >
+  | Base<"warning", { detail: string }>
+  | Base<"error", { error: ApiError }>
+  | Base<"result_ready", { recommendationId: string; outcome: RunOutcome }>
+  | Base<"cleanup", { result: "cleaned" | "failed"; containerRemoved: boolean; volumeRemoved: boolean }>;
+
+export interface Evidence {
+  id: string;
+  runId: string | null;
+  kind: EvidenceKind;
+  candidateToolId: string | null;
+  accessMode: AccessMode | null;
+  url: string | null;
+  canonicalUrl: string | null;
+  capturedAt: string;
+  contentHash: string | null;
+  hasScreenshot: boolean;
+  extractionMethod: "dom" | "vision" | "api" | "manual";
+  excerpt: string;
+  limitation: string;
+}
+
+export type RecommendationAction =
+  | "keep"
+  | "try"
+  | "compare_further"
+  | "replace_after_validation"
+  | "review_renewal"
+  | "no_action";
+
+export interface Statement {
+  text: string;
+  role: "supporting" | "counter" | "uncertainty" | "next_step";
+  evidenceIds: string[];
+  userInputRefs: string[];
+}
+
+export interface CandidateAssessment {
+  toolId: string;
+  role: "incumbent" | "candidate";
+  accessMode: AccessMode;
+  hardConstraints: { passed: boolean; failures: string[] };
+  score: { min: number; max: number } | null;
+  known: string[];
+  missing: string[];
+  needsTesting: string[];
+  testResult: { evidenceId: string; passed: number; attempts: number; medianLatencyMs: number | null } | null;
+}
+
+export interface SpendingScenario {
+  label: string;
+  monthlyEquivalentDeltaMinor: number | null;
+  immediateCashSavingMinor: number;
+  renewalAvoidanceMinor: number | null;
+  assumptions: string[];
+}
+
+export interface Recommendation {
+  id: string;
+  runId: string;
+  profileVersionId: string;
+  createdAt: string;
+  goal: string;
+  action: RecommendationAction;
+  targetToolId: string | null;
+  headline: string;
+  statements: Statement[];
+  candidates: CandidateAssessment[];
+  spending: { currency: string; scenarios: SpendingScenario[] };
+  confidence: "low" | "medium" | "high";
+  limitations: string[];
+  evidence: Evidence[];
+}
+
+export interface ApprovalIntent {
+  id: string;
+  runId: string;
+  actionType: "submit_form";
+  targetOrigin: string;
+  targetUrl: string;
+  fields: { name: string; label: string; value: string }[];
+  consequence: string;
+  screenshotEvidenceId: string;
+  intentHash: string;
+  createdAt: string;
+  expiresAt: string;
+  status: "pending" | "approved" | "declined" | "expired" | "consumed" | "invalidated";
+}
