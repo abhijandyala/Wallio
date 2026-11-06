@@ -8,17 +8,26 @@ import { cn } from "@/lib/utils";
 export function NotifyBadge({
   count,
   tone = "lime",
+  size = "md",
+  pulse = false,
   className,
 }: {
   count: number;
   tone?: "lime" | "ink";
+  size?: "md" | "lg";
+  /** A slow breathing glow, for spots the eye might otherwise skip. Off under reduced motion. */
+  pulse?: boolean;
   className?: string;
 }) {
   if (count <= 0) return null;
   return (
     <span
       className={cn(
-        "tnum inline-grid h-[18px] min-w-[18px] place-items-center rounded-[6px] px-[5px] text-[11px] leading-none font-semibold",
+        "tnum inline-grid place-items-center leading-none font-semibold",
+        size === "lg"
+          ? "h-[24px] min-w-[24px] rounded-[8px] px-[7px] text-[13px]"
+          : "h-[18px] min-w-[18px] rounded-[6px] px-[5px] text-[11px]",
+        pulse && "motion-safe:animate-[notify-pulse_2.4s_ease-in-out_infinite]",
         tone === "lime"
           ? "bg-lime text-ink shadow-[0_0_0_3px_rgba(88,246,177,0.14),0_0_14px_rgba(88,246,177,0.35)]"
           : "bg-ink text-aurora",

@@ -197,6 +197,17 @@
   }
 }
 
+/* NotifyBadge pulse: the lime glow breathes out and back. */
+@keyframes notify-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgba(88, 246, 177, 0.16), 0 0 14px rgba(88, 246, 177, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(88, 246, 177, 0.08), 0 0 26px rgba(88, 246, 177, 0.6);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

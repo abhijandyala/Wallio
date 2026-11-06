@@ -17,6 +17,7 @@ import {
 import { LogoMark } from "./logo-mark";
 import { ScrambleText } from "./scramble-text";
 import { NotifyBadge } from "./notify-badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NAV_ITEMS, type NavIcon } from "./nav-items";
 import { cn } from "@/lib/utils";
 
@@ -224,11 +225,31 @@ export function RailNav() {
                         active ? "bg-aurora text-ink" : "text-text-1",
                       )}
                     >
-                      <I
-                        size={wide ? 20 : 17}
-                        weight={active ? "fill" : "regular"}
-                        aria-hidden="true"
-                      />
+                      {/* The icon, with anything waiting shown on its corner where the eye lands. */}
+                      <span
+                        className="relative"
+                        aria-label={
+                          "count" in item && item.count > 0
+                            ? `${item.count} waiting`
+                            : undefined
+                        }
+                      >
+                        <I
+                          size={wide ? 20 : 17}
+                          weight={active ? "fill" : "regular"}
+                          aria-hidden="true"
+                        />
+                        <NotifyBadge
+                          count={"count" in item ? item.count : 0}
+                          tone={active ? "ink" : "lime"}
+                          size={wide ? "lg" : "md"}
+                          pulse={!active}
+                          className={cn(
+                            "absolute",
+                            wide ? "-top-3.5 -right-5" : "-top-3 -right-4",
+                          )}
+                        />
+                      </span>
                       {/* Label. On hover it decodes into what this section does, in place. */}
                       <ScrambleText
                         text={
@@ -252,18 +273,20 @@ export function RailNav() {
                               ),
                         )}
                       />
-                      <span
-                        className="grid h-5 place-items-center"
-                        aria-label={
-                          "count" in item && item.count > 0
-                            ? `${item.count} waiting`
-                            : undefined
-                        }
-                      >
-                        <NotifyBadge
-                          count={"count" in item ? item.count : 0}
-                          tone={active ? "ink" : "lime"}
-                        />
+                      {/* Spelled out at the foot of the card too, in lime. */}
+                      <span className="flex min-h-5 items-end">
+                        {"count" in item && item.count > 0 && (
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              "rotate-180 font-medium tracking-[0.04em] whitespace-nowrap [writing-mode:vertical-rl]",
+                              wide ? "text-[12px]" : "text-[10px]",
+                              active ? "text-ink/70" : "text-lime",
+                            )}
+                          >
+                            {item.count} waiting
+                          </span>
+                        )}
                       </span>
                     </Link>
                   </motion.div>
@@ -300,9 +323,8 @@ export function RailNav() {
             aria-hidden="true"
             className="pointer-events-none absolute inset-y-0 right-0 w-px bg-[linear-gradient(180deg,transparent_0%,rgba(201,255,230,0.4)_22%,rgba(255,255,255,0.35)_50%,rgba(226,210,255,0.4)_78%,transparent_100%)] opacity-60 transition-opacity duration-300 group-hover/rail:opacity-100"
           />
-          <LogoMark
-            className={cn("relative w-auto text-text-1", wide ? "h-[14px]" : "h-[11px]")}
-          />
+          {/* Room for the logo, which is its own link (below), laid over the rail. */}
+          <span aria-hidden="true" className={wide ? "h-[14px]" : "h-[11px]"} />
           <span
             className={cn(
               // The wordmark in the aurora: green at the W, white, violet at the o.
@@ -322,6 +344,30 @@ export function RailNav() {
             )}
           </span>
         </button>
+
+        {/* The W goes back to the main (landing) page, as a logo usually does. */}
+        <Tooltip>
+          <TooltipTrigger
+            render={<Link href="/" />}
+            aria-label="Back to the main page"
+            onClick={() => {
+              cancel();
+              setOpen(false);
+            }}
+            className="group/logo absolute top-0 left-0 z-40 flex justify-center pt-6 pb-3"
+            style={{ width: railW }}
+          >
+            <LogoMark
+              className={cn(
+                "w-auto text-text-1 transition-[color,filter] duration-200 group-hover/logo:text-[#c9ffe6] group-hover/logo:drop-shadow-[0_0_8px_rgba(88,246,177,0.7)]",
+                wide ? "h-[14px]" : "h-[11px]",
+              )}
+            />
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={10} className="bg-surface-3 text-[12px] text-text-1 [&_svg]:hidden [&>*:last-child]:hidden">
+            Back to the main page
+          </TooltipContent>
+        </Tooltip>
       </div>
     </>
   );
