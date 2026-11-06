@@ -1,0 +1,410 @@
+{
+  "base": "https://149-28-76-16.sslip.io",
+  "rows": [
+    {
+      "n": 1,
+      "label": "r7",
+      "at": "2026-11-06T01:23:05.277Z",
+      "comparison": {
+        "runId": "0772ca6c-e6ae-4c1d-b46f-b86e4d1c80ac",
+        "correlationId": "corr_f69b2a5510424952",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 23.8,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "review_renewal",
+        "confidence": "low",
+        "statements": 4,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 6.7,
+        "actionResults": [
+          "submitted"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 4.1,
+        "contained": true,
+        "refused": 3,
+        "denied": 9,
+        "sentinel": {
+          "after": 0,
+          "before": 0
+        },
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    },
+    {
+      "n": 2,
+      "label": "r7",
+      "at": "2026-11-06T01:23:40.131Z",
+      "comparison": {
+        "runId": "5b1b51c1-3213-46c6-958d-622c48c84ea5",
+        "correlationId": "corr_b511daf523694f46",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 22.3,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "review_renewal",
+        "confidence": "low",
+        "statements": 5,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 6.7,
+        "actionResults": [
+          "submitted"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 4.2,
+        "contained": true,
+        "refused": 3,
+        "denied": 9,
+        "sentinel": {
+          "after": 0,
+          "before": 0
+        },
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    },
+    {
+      "n": 3,
+      "label": "r7",
+      "at": "2026-11-06T01:24:13.546Z",
+      "comparison": {
+        "runId": "88102c19-a6b7-4408-874b-9e3eb23657d3",
+        "correlationId": "corr_71a641b997ca46c0",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 21.8,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "review_renewal",
+        "confidence": "low",
+        "statements": 4,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 6.6,
+        "actionResults": [
+          "submitted"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 4.1,
+        "contained": true,
+        "refused": 3,
+        "denied": 9,
+        "sentinel": {
+          "after": 0,
+          "before": 0
+        },
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    },
+    {
+      "n": 4,
+      "label": "r7",
+      "at": "2026-11-06T01:24:46.291Z",
+      "comparison": {
+        "runId": "d386ba06-5339-4e0c-bd52-5a7e7a561ab1",
+        "correlationId": "corr_b31e78ea3675452e",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 22,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "review_renewal",
+        "confidence": "low",
+        "statements": 4,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 6.9,
+        "actionResults": [
+          "submitted"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 3.5,
+        "contained": true,
+        "refused": 3,
+        "denied": 9,
+        "sentinel": {
+          "after": 0,
+          "before": 0
+        },
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    },
+    {
+      "n": 5,
+      "label": "r7",
+      "at": "2026-11-06T01:25:18.895Z",
+      "comparison": {
+        "runId": "e1469be0-80d8-4cd8-b993-1ea0123d66ff",
+        "correlationId": "corr_1dda6e57034144d9",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 22.5,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "review_renewal",
+        "confidence": "low",
+        "statements": 4,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 6.8,
+        "actionResults": [
+          "submitted"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 4,
+        "contained": true,
+        "refused": 3,
+        "denied": 9,
+        "sentinel": {
+          "after": 0,
+          "before": 0
+        },
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    },
+    {
+      "n": 6,
+      "label": "r7",
+      "at": "2026-11-06T01:25:52.487Z",
+      "comparison": {
+        "runId": "f10b17f3-9a43-4cd0-8b52-5b16a01f1410",
+        "correlationId": "corr_11dc1a5edf294a49",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 49.8,
+        "evidence": 5,
+        "error": null
+      },
+      "recommendation": {
+        "action": "review_renewal",
+        "confidence": "low",
+        "statements": 4,
+        "uncited": 0,
+        "evidence": 5
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 6.8,
+        "actionResults": [
+          "submitted"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 4.2,
+        "contained": true,
+        "refused": 3,
+        "denied": 9,
+        "sentinel": {
+          "after": 0,
+          "before": 0
+        },
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    },
+    {
+      "n": 7,
+      "label": "r7",
+      "at": "2026-11-06T01:26:53.486Z",
+      "comparison": {
+        "runId": "04ec0f4a-56c3-4fac-9354-312d43c5064b",
+        "correlationId": "corr_774bafe84a9b4b36",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 22.3,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "review_renewal",
+        "confidence": "low",
+        "statements": 4,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 7,
+        "actionResults": [
+          "submitted"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 4.1,
+        "contained": true,
+        "refused": 3,
+        "denied": 9,
+        "sentinel": {
+          "after": 0,
+          "before": 0
+        },
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    },
+    {
+      "n": 8,
+      "label": "r7",
+      "at": "2026-11-06T01:27:27.133Z",
+      "comparison": {
+        "runId": "763d4ba0-342e-4c41-85be-c75b97a1a0f2",
+        "correlationId": "corr_f364848e92cb4da8",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 23.9,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "review_renewal",
+        "confidence": "low",
+        "statements": 4,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 6.9,
+        "actionResults": [
+          "submitted"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 4.1,
+        "contained": true,
+        "refused": 3,
+        "denied": 9,
+        "sentinel": {
+          "after": 0,
+          "before": 0
+        },
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    },
+    {
+      "n": 9,
+      "label": "r7",
+      "at": "2026-11-06T01:28:02.378Z",
+      "comparison": {
+        "runId": "6a5ab564-9e34-4036-b418-fadbde4f8de1",
+        "correlationId": "corr_19171c4d74504535",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 23.6,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "review_renewal",
+        "confidence": "low",
+        "statements": 5,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 6.8,
+        "actionResults": [
+          "submitted"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 4.2,
+        "contained": true,
+        "refused": 3,
+        "denied": 9,
+        "sentinel": {
+          "after": 0,
+          "before": 0
+        },
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    }
+  ]
+}
