@@ -66,11 +66,11 @@ void main() {
   float scattered = mix(burstLit, cloudLit, uCloud);
   scattered = mix(scattered, shapeLit, uShape);
   vBright = mix(lit, scattered, 1.0 - globeW);
-  if (uMirror > 0.5) vBright = min(vBright, 0.6);
+  if (uMirror > 0.5) vBright = min(vBright, 0.85);
 
   float size = uSize * (kind < 0.5 ? 1.0 : 0.78) * (0.65 + r * 0.7);
   gl_PointSize = size * uPixel * (4.8 / -mv.z);
-  vAlpha = uMirror > 0.5 ? 0.16 * exp(-below * 1.6) : 1.0;
+  vAlpha = uMirror > 0.5 ? 0.75 * exp(-below * 1.1) : 1.0;
 }
 `;
 
@@ -90,6 +90,43 @@ void main() {
 }
 `;
 
+/**
+ * The water: the mirrored particles (rendered to a texture) drawn below the horizon with
+ * ripples that bunch up toward the horizon like a real surface seen at an angle, a little
+ * smear, glints on the crests, and a faint lit surface around the middle.
+ */
+const WATER_VERT = /* glsl */ `
+varying vec2 vUv;
+void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }
+`;
+
+const WATER_FRAG = /* glsl */ `
+uniform sampler2D tMirror;
+uniform float uTime, uHorizon, uOpacity, uAspect;
+uniform vec3 uTint;
+varying vec2 vUv;
+void main() {
+  float below = uHorizon - vUv.y;
+  if (below <= 0.0) { gl_FragColor = vec4(0.0); return; }
+  float persp = 1.0 / (below * 7.0 + 0.22);
+  float x = (vUv.x - 0.5) * uAspect;
+  float wave = sin(persp * 9.0 - uTime * 1.5 + sin(x * 9.0 + uTime * 0.5) * 1.3)
+             + 0.55 * sin(persp * 19.0 + x * 7.0 - uTime * 2.2)
+             + 0.15 * sin(persp * 23.0 - x * 11.0 + uTime * 1.1);
+  float near = smoothstep(0.0, 0.04, below);
+  vec2 off = vec2(wave * 0.0045, wave * 0.011) * near;
+  vec3 c = texture2D(tMirror, vUv + off).rgb * 0.5
+         + texture2D(tMirror, vUv + off * 1.7 + vec2(0.0035, 0.0)).rgb * 0.25
+         + texture2D(tMirror, vUv + off * 0.6 - vec2(0.0035, 0.0)).rgb * 0.25;
+  float crest = smoothstep(0.55, 1.0, wave * 0.33 + 0.5);
+  float fade = smoothstep(0.0, 0.012, below) * exp(-below * 1.9);
+  float middle = exp(-x * x * 2.4);
+  vec3 surface = uTint * (0.018 + 0.045 * crest) * exp(-below * 2.6) * middle;
+  vec3 col = c * (0.95 + crest * 0.9) * fade + surface;
+  gl_FragColor = vec4(col * uOpacity, 1.0);
+}
+`;
+
 /** Where each scene wants the stage to be. t = scene progress 0..1. */
 interface Target {
   opacity: number;
@@ -104,6 +141,10 @@ interface Target {
   bars: number;
   /** How much the globe turns on its own (0 = holds still). */
   drift: number;
+  /** Water line, in globe radii below the centre. */
+  floor: number;
+  /** Water strength 0..1. */
+  water: number;
 }
 
 // Turn that puts a longitude in front of the camera: lon = 90deg + turn.
@@ -112,22 +153,23 @@ const START = -0.25; // ~76E: India, as the reference opens
 
 function target(scene: Scene | null, t: number, scroll: number): Target {
   const spin = START - scroll * 0.0009;
-  const off: Target = { opacity: 0, burst: 0, cloud: 0, shape: 0, y: 0, x: 0, scale: 1, spin, tilt: 0.3, bars: 0, drift: 1 };
+  const off: Target = { opacity: 0, burst: 0, cloud: 0, shape: 0, y: 0, x: 0, scale: 1, spin, tilt: 0.3, bars: 0, drift: 1, floor: -1.12, water: 0 };
   const ease = (v: number) => v * v * (3 - 2 * v);
   switch (scene) {
     case "hero":
       // Opens low behind the hero copy and rises to the centre, growing.
-      return { ...off, opacity: 1, y: -0.9 + ease(t) * 0.88, bars: 1 - ease(Math.min(1, t * 1.25)), scale: 1 + ease(t) * 0.1 };
+      return { ...off, opacity: 1, y: -0.9 + ease(t) * 0.88, bars: 1 - ease(Math.min(1, t * 1.25)), scale: 1 + ease(t) * 0.1, water: 0.25 };
     case "stats":
-      return { ...off, opacity: 1, y: -0.02, scale: 1.1 + t * 0.06 };
+      return { ...off, opacity: 1, y: -0.02, scale: 1.1 + t * 0.06, water: 0.35 + t * 0.25 };
     case "burst": {
       const a = ease(Math.min(1, t * 1.8));
       const b = ease(Math.max(0, (t - 0.45) / 0.55));
-      return { ...off, opacity: 1, burst: a, cloud: b, y: -0.02 - b * 0.15, scale: 1.16 - b * 0.16 };
+      // The water rises to meet the cloud and brightens with its reflection.
+      return { ...off, opacity: 1, burst: a, cloud: b, y: -0.02 - b * 0.15, scale: 1.16 - b * 0.16, floor: -1.12 + b * 0.94, water: 0.6 + a * 0.4 };
     }
     case "gateway": {
       const s = ease(Math.min(1, t * 4.5));
-      return { ...off, opacity: 1 - ease(Math.max(0, (t - 0.82) / 0.18)), burst: 1, cloud: 1, shape: s, y: -0.17 + s * 0.12, scale: 1 };
+      return { ...off, opacity: 1 - ease(Math.max(0, (t - 0.82) / 0.18)), burst: 1, cloud: 1, shape: s, y: -0.17 + s * 0.12, scale: 1, floor: -0.18 - s * 0.9, water: 1 - s };
     }
     case "steps":
       return {
@@ -136,8 +178,11 @@ function target(scene: Scene | null, t: number, scroll: number): Target {
         spin: ASIA - t * 0.35,
         tilt: 0.08,
         drift: 0,
-        y: -0.08,
+        // Rises from below as the section arrives, then sits on its water.
+        y: -0.08 - (1 - ease(Math.min(1, t * 4.5))) * 0.75,
         scale: 0.86,
+        floor: -1.06,
+        water: 0.95,
       };
     default:
       return off;
@@ -234,12 +279,42 @@ export function Stage() {
       const mirror = new THREE.Points(geo, make(1));
       main.frustumCulled = false;
       mirror.frustumCulled = false;
-      scene.add(mirror, main);
+      scene.add(main);
+      const mirrorScene = new THREE.Scene();
+      mirrorScene.add(mirror);
+
+      // Half-resolution texture for the reflection: cheaper, and the softness reads as water.
+      const rt = new THREE.WebGLRenderTarget(2, 2, { depthBuffer: false });
+      const waterMat = new THREE.ShaderMaterial({
+        uniforms: {
+          tMirror: { value: rt.texture },
+          uTime: { value: 0 },
+          uHorizon: { value: 0.2 },
+          uOpacity: { value: 0 },
+          uAspect: { value: 1 },
+          uTint: { value: new THREE.Color("#58f6b1") },
+        },
+        vertexShader: WATER_VERT,
+        fragmentShader: WATER_FRAG,
+        transparent: true,
+        depthWrite: false,
+        depthTest: false,
+        blending: THREE.AdditiveBlending,
+      });
+      const waterQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), waterMat);
+      waterQuad.frustumCulled = false;
+      const waterScene = new THREE.Scene();
+      waterScene.add(waterQuad);
+      const flat = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+      renderer.autoClear = false;
+      const horizon = new THREE.Vector3();
 
       const resize = () => {
         const w = el.clientWidth;
         const h = el.clientHeight;
         renderer.setSize(w, h, false);
+        rt.setSize(Math.max(2, Math.round(w * dpr * 0.5)), Math.max(2, Math.round(h * dpr * 0.5)));
+        waterMat.uniforms.uAspect.value = w / h;
         camera.aspect = w / h;
         // Keep the globe the same share of the screen on narrow phones.
         camera.position.z = w / h < 0.8 ? 4.8 / Math.max(0.55, (w / h) * 1.15) : 4.8;
@@ -281,13 +356,28 @@ export function Stage() {
           u.uShapeTurn.value = reduce ? 0 : Math.sin(idle * 0.35) * 0.35;
           u.uScale.value = now.scale;
           u.uOffset.value.set(now.x, now.y, 0);
-          u.uFloor.value = -1.12 * now.scale + now.y;
+          u.uFloor.value = now.floor * now.scale + now.y;
           u.uOpacity.value = now.opacity;
         }
-        if (bars.current) bars.current.style.opacity = String(now.bars * now.opacity);
+        // Faded per panel: opacity on the parent would cut the panels off from what they blur.
+        if (bars.current) bars.current.style.setProperty("--bars", String(now.bars * now.opacity));
         if (glow.current) glow.current.style.opacity = String(now.opacity * (1 - now.shape * 0.4));
         renderer.domElement.style.opacity = now.opacity > 0.002 ? "1" : "0";
-        if (now.opacity > 0.002) renderer.render(scene, camera);
+        if (now.opacity > 0.002) {
+          // Where the water line sits on screen.
+          horizon.set(now.x, now.floor * now.scale + now.y, 0).project(camera);
+          waterMat.uniforms.uHorizon.value = horizon.y * 0.5 + 0.5;
+          waterMat.uniforms.uTime.value = idle;
+          waterMat.uniforms.uOpacity.value = now.water * now.opacity;
+          renderer.setRenderTarget(rt);
+          renderer.setClearColor(0x000000, 0);
+          renderer.clear();
+          if (now.water > 0.01) renderer.render(mirrorScene, camera);
+          renderer.setRenderTarget(null);
+          renderer.clear();
+          if (now.water > 0.01) renderer.render(waterScene, flat);
+          renderer.render(scene, camera);
+        }
         raf = requestAnimationFrame(tick);
       };
       raf = requestAnimationFrame(tick);
@@ -298,6 +388,9 @@ export function Stage() {
         geo.dispose();
         main.material.dispose();
         mirror.material.dispose();
+        waterMat.dispose();
+        waterQuad.geometry.dispose();
+        rt.dispose();
         renderer.dispose();
         renderer.domElement.remove();
       };
@@ -321,23 +414,30 @@ export function Stage() {
         }}
       />
       <div ref={host} className="absolute inset-0" />
-      {/* The four light pillars over the hero globe */}
-      <div ref={bars} className="absolute inset-0 opacity-0">
-        {[
-          { left: 23.74, inner: false },
-          { left: 37.17, inner: true },
-          { left: 50.66, inner: true },
-          { left: 64.09, inner: false },
-        ].map((b) => (
+      {/*
+        Hero glass: four frosted panels over the globe (the reference's hero bars, 184px of
+        1512 with 19px gaps). The globe reads soft behind them; the gaps stay sharp, and a
+        bright particle stream runs down each gap.
+      */}
+      <div ref={bars} className="absolute inset-0 [--bars:0] [&>span]:opacity-(--bars)">
+        {[23.74, 37.17, 50.66, 64.09].map((left) => (
           <span
-            key={b.left}
+            key={left}
             className="absolute top-0 h-full w-[12.17%]"
+            style={{ left: `${left}%`, backdropFilter: "blur(0.1875rem)", WebkitBackdropFilter: "blur(0.1875rem)" }}
+          />
+        ))}
+        {[36.54, 50, 63.46].map((left) => (
+          <span
+            key={left}
+            className="absolute top-0 h-full w-[0.5rem] -translate-x-1/2"
             style={{
-              left: `${b.left}%`,
-              background: `radial-gradient(circle at 50% 50%, color-mix(in srgb, #9dffd2 ${b.inner ? 95 : 70}%, transparent) 0 1.1px, transparent 1.6px) center top / 100% 6px repeat-y`,
-              maskImage: "linear-gradient(180deg, transparent 18%, #000 40%, #000 72%, transparent 92%)",
-              filter: "drop-shadow(0 0 4px color-mix(in srgb, #58f6b1 85%, transparent)) drop-shadow(0 0 12px color-mix(in srgb, #58f6b1 40%, transparent))",
-              opacity: b.inner ? 1 : 0.75,
+              left: `${left}%`,
+              background:
+                "radial-gradient(circle at 50% 50%, color-mix(in srgb, #9dffd2 92%, transparent) 0 1.1px, transparent 1.6px) center top / 100% 6px repeat-y",
+              maskImage: "linear-gradient(180deg, transparent 14%, #000 34%, #000 74%, transparent 94%)",
+              filter:
+                "drop-shadow(0 0 4px color-mix(in srgb, #58f6b1 85%, transparent)) drop-shadow(0 0 12px color-mix(in srgb, #58f6b1 40%, transparent))",
             }}
           />
         ))}

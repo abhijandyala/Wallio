@@ -40,8 +40,16 @@ export function LiquiditySection() {
         className="relative mx-auto mt-[4rem] w-[75.75rem] max-md:mt-10 max-md:w-[calc(100%-2rem)]"
       >
         {/* Light on the top edge: a wide soft glow and a bright thin line */}
-        <span
+        <motion.span
           aria-hidden="true"
+          {...(reduce
+            ? {}
+            : {
+                initial: { scaleX: 0.25, opacity: 0 },
+                whileInView: { scaleX: 1, opacity: 0.85 },
+                viewport: { once: true, margin: "-15% 0px" },
+                transition: { duration: 1.1, delay: 0.25, ease: [0.16, 1, 0.3, 1] as const },
+              })}
           className="pointer-events-none absolute -top-[2.25rem] left-0 z-10 h-[4rem] w-full bg-[radial-gradient(50%_50%,color-mix(in_srgb,#58f6b1_90%,transparent),transparent_70%)] opacity-[0.85] blur-[6px]"
         />
         <span

@@ -25,7 +25,14 @@ export function VerifiedSection() {
       </Container>
 
       <motion.div
-        {...(reduce ? {} : { ...fade, transition: { duration: 0.9, delay: 0.1, ease: [0.16, 1, 0.3, 1] as const } })}
+        {...(reduce
+          ? {}
+          : {
+              initial: { opacity: 0, x: "8rem" },
+              whileInView: { opacity: 1, x: "0rem" },
+              viewport: { once: true, amount: 0.3 },
+              transition: { duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] as const },
+            })}
         className="absolute top-[6.44rem] left-[43.06vw] h-[32.19rem] w-[67.06rem] max-md:relative max-md:top-0 max-md:left-4 max-md:h-[26rem] max-md:w-[40rem]"
       >
         <div className="pointer-events-none absolute -inset-[0.625rem] rounded-[1.1rem] bg-[linear-gradient(color-mix(in_srgb,#58f6b1_26%,#010102),rgba(0,0,0,0)_55%)]" />

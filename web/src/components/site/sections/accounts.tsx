@@ -30,8 +30,8 @@ export function AccountsSection() {
       </motion.div>
 
       <div className="group/cards mx-auto mt-[2.4rem] grid w-[74.75rem] grid-cols-3 gap-[1.2rem] py-[1.2rem] max-md:w-[calc(100%-2rem)] max-md:grid-cols-1">
-        {MODES.cards.map((card, i) => (
-          <motion.div key={card.title} {...reveal(0.08 * i)}>
+        {MODES.cards.map((card) => (
+          <motion.div key={card.title} {...reveal(card.tag !== null ? 0 : 0.14)}>
             <AccountCard featured={card.tag !== null} card={card} />
           </motion.div>
         ))}

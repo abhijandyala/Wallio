@@ -18,11 +18,21 @@ export function AiCoachSection() {
   return (
     <section id="vultr" className="relative mt-[2.4rem] h-[59.625rem] scroll-mt-10 max-md:h-auto max-md:pb-16">
       {/* Orb area */}
-      <div className="relative h-[18.875rem]">
+      <motion.div
+        {...(reduce
+          ? {}
+          : {
+              initial: { opacity: 0, y: "7rem" },
+              whileInView: { opacity: 1, y: "0rem" },
+              viewport: { once: true, amount: 0.2 },
+              transition: { duration: 1.2, ease: [0.16, 1, 0.3, 1] as const },
+            })}
+        className="relative h-[18.875rem]"
+      >
         <div className="pointer-events-none absolute top-[-5.9rem] left-1/2 h-[21.94rem] w-[47.4rem] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(closest-side,color-mix(in_srgb,#ad96f1_38%,transparent),transparent)] blur-[30px] max-md:w-full" />
         <div className="pointer-events-none absolute top-[5.2rem] left-1/2 h-[8.56rem] w-[15.1rem] -translate-x-1/2 rounded-[50%] bg-[var(--gx-violet)] opacity-45 blur-[60px]" />
         <OrbCanvas className="absolute top-[-3.44rem] left-1/2 size-[25.69rem] -translate-x-1/2 max-md:size-[18rem]" />
-      </div>
+      </motion.div>
 
       <motion.div {...rise} className="relative mx-auto -mt-[0.375rem] flex w-[43rem] flex-col items-center text-center max-md:w-[calc(100%-2rem)]">
         <Heading className="mt-[1rem]">{VULTR.title}</Heading>

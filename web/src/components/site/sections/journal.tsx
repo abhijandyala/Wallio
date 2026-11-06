@@ -96,10 +96,10 @@ export function JournalSection() {
 type Glow = "top" | "bottom-left" | "top-right" | "top-left";
 
 const GLOW: Record<Glow, string> = {
-  top: "bg-[radial-gradient(60%_55%_at_50%_0%,color-mix(in_srgb,#58f6b1_22%,transparent),transparent)]",
-  "bottom-left": "bg-[radial-gradient(55%_95%_at_22%_88%,color-mix(in_srgb,#58f6b1_72%,transparent),transparent_70%)]",
-  "top-right": "bg-[radial-gradient(55%_90%_at_92%_8%,color-mix(in_srgb,#58f6b1_62%,transparent),transparent_70%)]",
-  "top-left": "bg-[radial-gradient(55%_90%_at_6%_6%,color-mix(in_srgb,#58f6b1_30%,transparent),transparent_70%)]",
+  top: "bg-[radial-gradient(60%_55%_at_50%_0%,color-mix(in_srgb,#58f6b1_34%,transparent),transparent)]",
+  "bottom-left": "bg-[radial-gradient(60%_100%_at_22%_88%,color-mix(in_srgb,#58f6b1_88%,transparent),transparent_72%)]",
+  "top-right": "bg-[radial-gradient(60%_95%_at_92%_8%,color-mix(in_srgb,#58f6b1_82%,transparent),transparent_72%)]",
+  "top-left": "bg-[radial-gradient(60%_95%_at_6%_6%,color-mix(in_srgb,#58f6b1_55%,transparent),transparent_72%)]",
 };
 
 function BentoCard({
