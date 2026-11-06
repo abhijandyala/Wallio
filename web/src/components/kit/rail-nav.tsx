@@ -291,15 +291,22 @@ export function RailNav() {
                 ? `Open menu, ${waiting} waiting`
                 : "Open menu"
           }
-          className="relative z-30 flex h-full flex-col items-center justify-between border-r border-line bg-bg py-6"
+          // Glossy deep mint: a soft mint light at the top and bottom, a lit inner edge, a
+          // faint glow into the page, and a thin aurora line down the right edge.
+          className="group/rail relative z-30 flex h-full flex-col items-center justify-between bg-[#04100a] bg-[radial-gradient(150%_20%_at_50%_0%,rgba(88,246,177,0.13),transparent_70%),radial-gradient(150%_24%_at_50%_100%,rgba(88,246,177,0.15),transparent_70%),linear-gradient(180deg,#081c13_0%,#030c08_50%,#081c13_100%)] py-6 shadow-[inset_1px_0_0_rgba(255,255,255,0.03),8px_0_28px_-14px_rgba(34,176,124,0.45)]"
           style={{ width: railW }}
         >
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-px bg-[linear-gradient(180deg,transparent_0%,rgba(201,255,230,0.4)_22%,rgba(255,255,255,0.35)_50%,rgba(226,210,255,0.4)_78%,transparent_100%)] opacity-60 transition-opacity duration-300 group-hover/rail:opacity-100"
+          />
           <LogoMark
-            className={cn("w-auto text-text-1", wide ? "h-[14px]" : "h-[11px]")}
+            className={cn("relative w-auto text-text-1", wide ? "h-[14px]" : "h-[11px]")}
           />
           <span
             className={cn(
-              "font-brand rotate-180 font-bold whitespace-nowrap text-text-1 [writing-mode:vertical-rl]",
+              // The wordmark in the aurora: green at the W, white, violet at the o.
+              "relative font-brand rotate-180 bg-[linear-gradient(180deg,#c9ffe6_0%,#ffffff_50%,#e2d2ff_100%)] bg-clip-text font-bold whitespace-nowrap text-transparent [writing-mode:vertical-rl]",
               wide ? "text-[22px]" : "text-[18px]",
             )}
           >
