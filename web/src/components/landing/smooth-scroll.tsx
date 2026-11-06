@@ -6,15 +6,16 @@ import Lenis from "lenis";
 import "lenis/dist/lenis.css";
 
 /**
- * Smooth, eased scrolling for the landing page, tuned like the reference
- * (lerp 0.1, wheel and touch 0.75). Native scroll underneath, so sticky sections,
- * scroll-linked motion and the particle stage all keep working. Off with reduced motion.
+ * Smooth, eased scrolling, set up the way the reference sets it up: Lenis with its own
+ * defaults (lerp 0.1, wheel and touch at 1), stepped every animation frame. It moves the
+ * real page scroll, so sticky panels and scroll-linked motion keep working. Off with
+ * reduced motion.
  */
 export function SmoothScroll() {
   const reduce = useReducedMotionConfig();
   useEffect(() => {
     if (reduce) return;
-    const lenis = new Lenis({ lerp: 0.1, wheelMultiplier: 0.75, touchMultiplier: 0.75 });
+    const lenis = new Lenis({ lerp: 0.1, anchors: true });
     let raf = 0;
     const tick = (t: number) => {
       lenis.raf(t);

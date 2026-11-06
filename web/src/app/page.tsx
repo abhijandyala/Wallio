@@ -1,46 +1,48 @@
 import type { Metadata } from "next";
-import "@/components/site/site.css";
-import { gxFont } from "@/components/site/font";
-import { Stage } from "@/components/site/stage/stage";
-import { SmoothScroll } from "@/components/site/smooth-scroll";
-import { NavSection } from "@/components/site/sections/nav";
-import { HeroSection } from "@/components/site/sections/hero";
-import { LiquiditySection } from "@/components/site/sections/liquidity";
-import { AccountsSection } from "@/components/site/sections/accounts";
-import { StepsSection } from "@/components/site/sections/steps";
-import { SocialSection } from "@/components/site/sections/social";
-import { AiCoachSection } from "@/components/site/sections/ai-coach";
-import { JournalSection } from "@/components/site/sections/journal";
-import { VerifiedSection } from "@/components/site/sections/verified";
-import { InstantSection } from "@/components/site/sections/instant";
-import { FooterSection } from "@/components/site/sections/footer";
+import "@/components/landing/landing.css";
+import { wlFont } from "@/components/landing/font";
+import { Background } from "@/components/landing/background";
+import { SmoothScroll } from "@/components/landing/smooth-scroll";
+import { STATEMENTS } from "@/components/landing/content";
+import { Header } from "@/components/landing/sections/header";
+import { Hero, ScrollText } from "@/components/landing/sections/hero";
+import { Statement } from "@/components/landing/sections/statement";
+import { Explore } from "@/components/landing/sections/explore";
+import { Limits } from "@/components/landing/sections/limits";
+import { Vultr } from "@/components/landing/sections/vultr";
+import { Steps } from "@/components/landing/sections/steps";
+import { Proof } from "@/components/landing/sections/proof";
+import { Footer } from "@/components/landing/sections/footer";
 
 export const metadata: Metadata = {
-  title: "Wallio",
+  title: "Wallio: your personal AI wallet",
+  description: "Track every AI tool you pay for, test a new one against yours on your own task, and act only after you approve.",
 };
 
 /**
- * The landing page. Layout and motion follow the reference site; colors are ours and
- * every piece of copy is "(insert here)" until we write it.
+ * The landing page. Layout, motion and hover detail follow the reference (auros.global),
+ * measured at 1512 x 944; colours and every word are Wallio's.
  */
 export default function LandingPage() {
   return (
-    <div className={`gx-root ${gxFont.variable} relative`}>
+    <div className={`wl-root ${wlFont.variable} relative`}>
       <SmoothScroll />
-      <Stage />
-      <NavSection />
-      <main id="main" className="relative z-10">
-        <HeroSection />
-        <LiquiditySection />
-        <AccountsSection />
-        <StepsSection />
-        <SocialSection />
-        <AiCoachSection />
-        <JournalSection />
-        <VerifiedSection />
-        <InstantSection />
+      <Background />
+      <Header />
+      <main id="main">
+        <Hero />
+        <ScrollText />
+        <Statement lines={STATEMENTS.intro} className="max-w-[70.5rem]" />
+        <Explore />
+        <Limits />
+        <Statement lines={STATEMENTS.receipts} className="max-w-[61rem]" />
+        <Vultr />
+        <Statement lines={STATEMENTS.approval} className="max-w-[68.5rem]" />
+        <Steps />
+        <Statement lines={STATEMENTS.keep} className="max-w-[58.7rem]" />
+        <Proof />
       </main>
-      <FooterSection />
+      <Footer />
     </div>
   );
 }
