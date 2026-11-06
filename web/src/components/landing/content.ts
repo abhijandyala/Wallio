@@ -152,7 +152,7 @@ export const MATCH = {
   title: "Matched to how you work, not to who pays",
   body: "Tell Wallio what you do and what matters. It researches the tools that could fit, scores each one on your priorities, and says plainly what it couldn't find out.",
   video: {
-    src: "/landing/matchmaking.mp4",
+    src: "/landing/matchmaking-60fps.mp4",
     poster: "/landing/matchmaking.jpg",
     url: "wallio / discover",
     caption: "Recorded in the app on sample data: a fresh research pass, a second match, then another workflow.",
@@ -184,7 +184,7 @@ export const BROWSER = {
   title: "A real browser, on a short leash",
   body: "Wallio does its research and tests in a real browser on its own Vultr machine, never on yours. You watch every step as it happens.",
   video: {
-    src: "/landing/browser-run.mp4",
+    src: "/landing/browser-run-60fps.mp4",
     poster: "/landing/browser-run.jpg",
     url: "wallio / compare, live",
     caption: "A comparison recorded from the Wallio API on Vultr, played back step by step.",
@@ -217,7 +217,7 @@ export const BROWSER = {
     body: "Wallio keeps a hostile page of its own. It hides a prompt injection and tries to make the browser claim a credit, open an admin console and download an \"agent update\". All three are refused, the requests are denied, and the API stays healthy.",
     cta: { label: "Run the containment test", href: LINKS.live },
     video: {
-      src: "/landing/containment.mp4",
+      src: "/landing/containment-60fps.mp4",
       poster: "/landing/containment.jpg",
       url: "wallio / compare, live",
       caption: "The containment run, recorded from the API: three actions refused, API healthy afterwards.",
