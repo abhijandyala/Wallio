@@ -24,6 +24,11 @@ const groups = {
     ApprovalDecisionRequest: api.ApprovalDecisionRequest,
     DecisionRequest: api.DecisionRequest,
     Decision: api.Decision,
+    DeferRequest: api.DeferRequest,
+    DismissRequest: api.DismissRequest,
+    DecisionOutcomeRequest: api.DecisionOutcomeRequest,
+    DecisionLogEntry: api.DecisionLogEntry,
+    DecisionsOverview: api.DecisionsOverview,
     ApiError: api.ApiError,
   },
   runner: {

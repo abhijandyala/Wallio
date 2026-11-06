@@ -231,5 +231,5 @@
     "deniedRequests",
     "capturedAt"
   ],
-  "$id": "wallio/runner/Observation@0.2.1"
+  "$id": "wallio/runner/Observation@0.3.0"
 }

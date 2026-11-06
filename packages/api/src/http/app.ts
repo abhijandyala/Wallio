@@ -29,6 +29,12 @@ type Env = { Variables: { tenantId: string; correlationId: string } };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const iso = (d: Date | string | null) => (d === null ? null : new Date(d).toISOString());
 
+/** The recommendation's own yearly estimate: 12 × the first known monthly saving among its scenarios. */
+function annualSaving(rec: { spending?: { scenarios?: Array<{ monthlyEquivalentDeltaMinor: number | null }> } }): number | null {
+  const delta = rec.spending?.scenarios?.find((s) => s.monthlyEquivalentDeltaMinor !== null && s.monthlyEquivalentDeltaMinor < 0)?.monthlyEquivalentDeltaMinor;
+  return delta == null ? null : -delta * 12;
+}
+
 export interface AppDeps {
   config: AppConfig;
   db: Db;
@@ -526,8 +532,8 @@ export function createApp({ config, db, runs }: AppDeps) {
 
   // ───────────────────────── decisions ─────────────────────────
 
-  app.post("/api/decisions", async (c) => {
-    const req = await body(c, api.DecisionRequest);
+  /** Appends a decision on one of this workspace's recommendations, with an evidence snapshot. */
+  async function recordDecision(c: Context<Env>, req: { recommendationId: string; choice: string; reason?: string; reviewDate?: string }) {
     const out = await tenant(c, async (q, tenantId) => {
       const rec = (await q("SELECT id, profile_version_id, body FROM recommendations WHERE id = $1 AND tenant_id = $2", [UUID.test(req.recommendationId) ? req.recommendationId : null, tenantId])).rows[0];
       if (!rec) throw notFound("Recommendation");
@@ -545,7 +551,90 @@ export function createApp({ config, db, runs }: AppDeps) {
       ...(out.reason ? { reason: out.reason } : {}), ...(out.review_date ? { reviewDate: out.review_date } : {}),
       profileVersionId: out.profile_version_id, evidenceSnapshotIds: out.evidence_snapshot_ids, createdAt: iso(out.created_at),
     }, 201);
+  }
+
+  app.post("/api/decisions", async (c) => recordDecision(c, await body(c, api.DecisionRequest)));
+
+  const today = () => new Date().toISOString().slice(0, 10);
+  const addDays = (d: string, n: number) => new Date(Date.parse(`${d}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+
+  app.post("/api/recommendations/:id/defer", async (c) => {
+    const req = await body(c, api.DeferRequest);
+    const until = req.until ?? addDays(today(), 14);
+    if (until <= today()) throw new HttpError("validation_failed", "Pick a date after today.", { field: "until" });
+    if (until > addDays(today(), 366)) throw new HttpError("validation_failed", "Pick a date within a year.", { field: "until" });
+    return recordDecision(c, { recommendationId: c.req.param("id"), choice: "defer", reason: req.reason, reviewDate: until });
   });
+
+  app.post("/api/recommendations/:id/dismiss", async (c) => {
+    const req = await body(c, api.DismissRequest);
+    return recordDecision(c, { recommendationId: c.req.param("id"), choice: "dismiss", reason: req.reason });
+  });
+
+  // The check-in: did an accepted recommendation help? Latest answer wins.
+  app.post("/api/decisions/:id/outcome", async (c) => {
+    const req = await body(c, api.DecisionOutcomeRequest);
+    const id = c.req.param("id");
+    if (!UUID.test(id)) throw notFound("Decision");
+    await tenant(c, async (q, tenantId) => {
+      const d = (await q<{ id: string; recommendation_id: string; choice: string }>("SELECT id, recommendation_id, choice FROM decisions WHERE id = $1 AND tenant_id = $2", [id, tenantId])).rows[0];
+      if (!d) throw notFound("Decision");
+      if (d.choice !== "accept") throw new HttpError("conflict", "Only accepted recommendations have a check-in.");
+      const latest = (await q<{ id: string }>("SELECT id FROM decisions WHERE tenant_id = $1 AND recommendation_id = $2 ORDER BY created_at DESC, id DESC LIMIT 1", [tenantId, d.recommendation_id])).rows[0];
+      if (latest?.id !== d.id) throw new HttpError("conflict", "A newer decision replaced this one.");
+      await q("INSERT INTO decision_outcomes (tenant_id, decision_id, result) VALUES ($1,$2,$3)", [tenantId, d.id, req.result]);
+      await q("INSERT INTO audit_events (tenant_id, actor, action, target, details, correlation_id) VALUES ($1,'user','decision.outcome',$2,$3,$4)", [tenantId, d.id, { result: req.result }, c.get("correlationId")]);
+    });
+    const entry = (await loadDecisions(c)).history.find((h) => h.id === id);
+    if (!entry) throw notFound("Decision");
+    return send(c, api.DecisionLogEntry, entry);
+  });
+
+  /** Everything the Decisions page shows, read in one tenant-scoped transaction. */
+  async function loadDecisions(c: Context<Env>): Promise<api.DecisionsOverview> {
+    return tenant(c, async (q, tenantId) => {
+      await q("UPDATE approvals SET status = 'expired' WHERE tenant_id = $1 AND status IN ('pending','approved') AND expires_at <= now()", [tenantId]);
+      const approvals = (await q("SELECT * FROM approvals WHERE tenant_id = $1 AND status = 'pending' ORDER BY created_at DESC LIMIT 20", [tenantId])).rows;
+      // Latest decision per recommendation (ties broken by id so the order is stable).
+      const recs = (await q(
+        `SELECT r.id, r.run_id, r.body, r.created_at, d.id AS decision_id, d.choice, d.review_date, d.created_at AS decided_at,
+                o.result, o.created_at AS result_at, t.name AS tool_name
+           FROM recommendations r
+           LEFT JOIN LATERAL (SELECT * FROM decisions d WHERE d.tenant_id = r.tenant_id AND d.recommendation_id = r.id
+                              ORDER BY d.created_at DESC, d.id DESC LIMIT 1) d ON true
+           LEFT JOIN LATERAL (SELECT * FROM decision_outcomes o WHERE o.tenant_id = r.tenant_id AND o.decision_id = d.id
+                              ORDER BY o.created_at DESC, o.id DESC LIMIT 1) o ON true
+           LEFT JOIN catalog_tools t ON t.id = r.body->>'targetToolId'
+          WHERE r.tenant_id = $1
+          ORDER BY r.created_at DESC
+          LIMIT 200`,
+        [tenantId],
+      )).rows;
+      const now = today();
+      const open = recs.filter((r) => !r.choice || (r.choice === "defer" && r.review_date <= now)).slice(0, 20);
+      const deferred = recs.filter((r) => r.choice === "defer" && r.review_date > now);
+      const decided = recs.filter((r) => r.choice && r.choice !== "defer").sort((a, b) => +new Date(b.decided_at) - +new Date(a.decided_at)).slice(0, 50);
+      return {
+        approvals: approvals.map(approvalToContract) as api.ApprovalIntent[], // validated by send()
+        recommendations: open.map((r) => r.body),
+        deferred: deferred.map((r) => ({ recommendationId: r.id, headline: r.body.headline, until: r.review_date })),
+        history: decided.map((r) => {
+          const accepted = r.choice === "accept";
+          return {
+            id: r.decision_id, recommendationId: r.id, runId: r.run_id, choice: r.choice, action: r.body.action,
+            targetToolId: r.body.targetToolId ?? null, targetToolName: r.tool_name ?? null, headline: r.body.headline,
+            decidedAt: iso(r.decided_at)!,
+            checkInOn: accepted ? (r.review_date ?? addDays(iso(r.decided_at)!.slice(0, 10), 14)) : null,
+            result: accepted ? (r.result ?? "pending") : null,
+            resultAt: accepted && r.result_at ? iso(r.result_at) : null,
+            estimatedAnnualSavingMinor: accepted ? annualSaving(r.body) : null,
+          };
+        }),
+      };
+    });
+  }
+
+  app.get("/api/decisions", async (c) => send(c, api.DecisionsOverview, await loadDecisions(c)));
 
   // Screenshot bytes, after the same ownership check. Never a public bucket URL.
   app.get("/api/evidence/:id/screenshot", async (c) => {

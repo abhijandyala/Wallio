@@ -247,5 +247,5 @@
     "recommendationId",
     "error"
   ],
-  "$id": "wallio/api/Run@0.2.1"
+  "$id": "wallio/api/Run@0.3.0"
 }

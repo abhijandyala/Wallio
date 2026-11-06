@@ -42,5 +42,5 @@
     "code",
     "message"
   ],
-  "$id": "wallio/runner/RunnerHttpError@0.2.1"
+  "$id": "wallio/runner/RunnerHttpError@0.3.0"
 }

@@ -38,7 +38,7 @@ try {
   const ids = (await client.query<{ id: string }>(SELECT, [olderThanMinutes])).rows.map((r) => r.id);
   const count = async (table: string) =>
     Number((await client.query(`SELECT count(*) FROM ${table} WHERE ${table === "sessions" ? "workspace_id" : "tenant_id"} = ANY($1)`, [ids])).rows[0].count);
-  const tables = ["sessions", "subscriptions", "profile_versions", "runs", "run_events", "evidence", "evidence_screenshots", "recommendations", "decisions", "approvals", "form_sessions", "eval_sessions", "inference_usage", "audit_events"];
+  const tables = ["sessions", "subscriptions", "profile_versions", "runs", "run_events", "evidence", "evidence_screenshots", "recommendations", "decisions", "decision_outcomes", "approvals", "form_sessions", "eval_sessions", "inference_usage", "audit_events"];
   const before: Record<string, number> = {};
   for (const t of tables) before[t] = await count(t);
   const skipped = Number((await client.query("SELECT count(*) FROM workspaces WHERE kind = 'guest'")).rows[0].count) - ids.length;

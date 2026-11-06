@@ -36,7 +36,11 @@ All requests use a session cookie (guest session for judges). Every mutation is 
 | GET | `/api/evidence/:id/screenshot` | → `image/png` | Ownership checked; never a public bucket URL |
 | GET | `/api/approvals/:id` | → `ApprovalIntent` | |
 | POST | `/api/approvals/:id/decision` | `ApprovalDecisionRequest` → `ApprovalIntent` | Must echo `intentHash` shown to the user |
-| POST | `/api/decisions` | `DecisionRequest` → `Decision` | |
+| POST | `/api/decisions` | `DecisionRequest` → **201** `Decision` | |
+| GET | `/api/decisions` | → `DecisionsOverview` | v0.3: the Decisions page in one call: waiting approvals, open recommendations, deferred ones, and history |
+| POST | `/api/recommendations/:id/defer` | `DeferRequest` → **201** `Decision` | v0.3: `until` defaults to 14 days from today; must be after today and within a year |
+| POST | `/api/recommendations/:id/dismiss` | `DismissRequest` → **201** `Decision` | v0.3 |
+| POST | `/api/decisions/:id/outcome` | `DecisionOutcomeRequest` → `DecisionLogEntry` | v0.3: the check-in answer (`helped` / `no_change`). Accepted, latest decisions only, otherwise `409 conflict`; the latest answer wins |
 
 ### What the UI should rely on
 - **Lifecycle vs outcome:** `Run.status` is lifecycle (ends in `CLEANED`/`CLEANUP_FAILED`). Show the result from `Run.outcome`. A run can be `CLEANED` with outcome `partial`.
@@ -51,6 +55,13 @@ All requests use a session cookie (guest session for judges). Every mutation is 
   - If the page changes after approval, you get `approval_resolved` with `invalidated`, then a **new** `approval_required` with a new id: show the new intent.
   - After approval, `action_result` says `submitted` (sent once to Wallio's form), `uncertain`, `refused`, or `simulated` (demo playback, nothing sent).
 - **Run kinds (v0.2):** `Run.kind` is `comparison`, `trial_request` or `containment`. Only comparisons produce a recommendation (`result_ready`).
+- **Decisions page (v0.3):** `GET /api/decisions` returns only this workspace's data.
+  - `approvals`: pending, unexpired intents. Render each like the approval screen and decide with `POST /api/approvals/:id/decision`.
+  - `recommendations`: open ones (no decision yet, or a deferral whose date has come), newest first, at most 20. Full `Recommendation` objects.
+  - `deferred`: hidden until `until`. `history`: the latest non-deferral decision per recommendation, newest first, at most 50.
+  - `history[].result` is `pending` until the user answers the check-in (`checkInOn`, default decision date + 14 days), and `null` for dismissed or disagreed ones: show no check-in for those.
+  - `estimatedAnnualSavingMinor` is the recommendation's own estimate (12 × its first known monthly saving), not a measured saving. Label it "estimated". It's `null` when unknown or not accepted; never show 0 for null.
+  - Decisions are append-only: a new decision on the same recommendation replaces the old one on this page.
 - **Containment:** show each `policy_denied` event as it arrives, then the `containment_result` summary (`contained`, refused requests and actions, sentinel before/after, cleanup verified). Label it "controlled containment test", not proof of invulnerability.
 
 ## B. API ↔ Runner (Anish ↔ Adhvik)

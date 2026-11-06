@@ -451,5 +451,59 @@ export const Decision = DecisionRequest.extend({
   evidenceSnapshotIds: z.array(Id),
   createdAt: Timestamp,
 });
+export type Decision = z.infer<typeof Decision>;
+
+/** POST /api/recommendations/:id/defer. Hides it until `until` (default: 14 days from today). */
+export const DeferRequest = z.object({
+  until: z.iso.date().optional(),
+  reason: z.string().max(1000).optional(),
+});
+export type DeferRequest = z.infer<typeof DeferRequest>;
+
+/** POST /api/recommendations/:id/dismiss */
+export const DismissRequest = z.object({ reason: z.string().max(1000).optional() });
+export type DismissRequest = z.infer<typeof DismissRequest>;
+
+/** POST /api/decisions/:id/outcome. The check-in answer, for accepted recommendations only. */
+export const DecisionOutcomeRequest = z.object({ result: z.enum(["helped", "no_change"]) });
+export type DecisionOutcomeRequest = z.infer<typeof DecisionOutcomeRequest>;
+
+/** One line of the decision history: the latest decision on a recommendation. */
+export const DecisionLogEntry = z.object({
+  /** The decision's id (use it for POST /api/decisions/:id/outcome). */
+  id: Id,
+  recommendationId: Id,
+  runId: Id,
+  choice: z.enum(["accept", "dismiss", "disagree"]),
+  action: RecommendationAction,
+  targetToolId: Id.nullable(),
+  targetToolName: z.string().nullable(),
+  headline: z.string(),
+  decidedAt: Timestamp,
+  /** When Wallio asks whether it helped. Accepted decisions only. */
+  checkInOn: z.iso.date().nullable(),
+  /** `pending` until the user answers the check-in; null when there is nothing to check (dismissed, disagreed). */
+  result: z.enum(["helped", "no_change", "pending"]).nullable(),
+  resultAt: Timestamp.nullable(),
+  /**
+   * The recommendation's own estimate: 12 × the monthly saving of its first scenario with a known,
+   * negative monthly change. Null if accepted-but-unknown or not accepted. An estimate, never a measured saving.
+   */
+  estimatedAnnualSavingMinor: z.int().nonnegative().nullable(),
+});
+export type DecisionLogEntry = z.infer<typeof DecisionLogEntry>;
+
+/** GET /api/decisions: everything the Decisions page shows, for this workspace only. */
+export const DecisionsOverview = z.object({
+  /** Approvals still waiting on the user (pending and unexpired), newest first. */
+  approvals: z.array(ApprovalIntent),
+  /** Recommendations with no decision yet, or deferred until today or earlier. Newest first, at most 20. */
+  recommendations: z.array(Recommendation),
+  /** Recommendations deferred to a future date. */
+  deferred: z.array(z.object({ recommendationId: Id, headline: z.string(), until: z.iso.date() })),
+  /** Latest decision per recommendation (except deferrals), newest first, at most 50. */
+  history: z.array(DecisionLogEntry),
+});
+export type DecisionsOverview = z.infer<typeof DecisionsOverview>;
 
 export { ApiError };

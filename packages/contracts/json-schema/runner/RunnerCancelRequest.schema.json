@@ -16,5 +16,5 @@
   "required": [
     "reason"
   ],
-  "$id": "wallio/runner/RunnerCancelRequest@0.2.1"
+  "$id": "wallio/runner/RunnerCancelRequest@0.3.0"
 }

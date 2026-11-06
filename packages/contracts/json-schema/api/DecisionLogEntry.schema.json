@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "recommendationId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "choice": {
+      "type": "string",
+      "enum": [
+        "accept",
+        "dismiss",
+        "disagree"
+      ]
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "keep",
+        "try",
+        "compare_further",
+        "replace_after_validation",
+        "review_renewal",
+        "no_action"
+      ]
+    },
+    "targetToolId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "targetToolName": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "headline": {
+      "type": "string"
+    },
+    "decidedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+    },
+    "checkInOn": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "result": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "helped",
+            "no_change",
+            "pending"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "resultAt": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "estimatedAnnualSavingMinor": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "recommendationId",
+    "runId",
+    "choice",
+    "action",
+    "targetToolId",
+    "targetToolName",
+    "headline",
+    "decidedAt",
+    "checkInOn",
+    "result",
+    "resultAt",
+    "estimatedAnnualSavingMinor"
+  ],
+  "$id": "wallio/api/DecisionLogEntry@0.3.0"
+}

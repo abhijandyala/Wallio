@@ -88,5 +88,5 @@
     "incumbentToolId",
     "candidateToolIds"
   ],
-  "$id": "wallio/api/ComparisonRequest@0.2.1"
+  "$id": "wallio/api/ComparisonRequest@0.3.0"
 }
