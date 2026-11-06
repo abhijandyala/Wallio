@@ -36,12 +36,12 @@ const CARD = {
 
 // Graded darks, lightest on top of the stack, so every card edge reads. Current page is lavender.
 const TONES = [
-  "#2a2a33",
-  "#25252d",
-  "#212128",
-  "#1d1d23",
-  "#1a1a20",
-  "#17171c",
+  "#1a3a2e",
+  "#16332a",
+  "#132d25",
+  "#102720",
+  "#0e221c",
+  "#0c1d18",
 ];
 
 const OPEN_DELAY = 120;

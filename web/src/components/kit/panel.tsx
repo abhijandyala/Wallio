@@ -30,7 +30,11 @@ export function Panel({
     <section
       className={cn(
         "flex flex-col rounded-[20px]",
-        accent ? "bg-lavender text-ink" : "border border-line bg-surface-1",
+        accent
+          ? // The landing page's pale card: lavender into cream into mint.
+            "bg-lavender bg-[radial-gradient(41288.31%_255.77%_at_-42.4%_-22.13%,#ddd0ff_0%,#fffdfa_44.72%,#effff8_85.38%,#c9ffe6_100%)] text-ink"
+          : // A faint mint light from the top, as on the landing page's cards.
+            "border border-line bg-surface-1 bg-[radial-gradient(120%_70%_at_50%_0%,rgba(88,246,177,0.055),transparent_65%)]",
         className,
       )}
     >

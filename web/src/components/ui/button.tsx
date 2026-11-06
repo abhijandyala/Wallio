@@ -8,8 +8,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        /** Lime. At most one per screen: the next action. */
-        primary: "bg-lime text-ink hover:bg-lime-strong",
+        /** The pale gradient. At most one per screen: the next action. */
+        primary: "w-btn-primary",
         /** Quiet bordered button for secondary choices. */
         secondary:
           "border border-line-strong bg-surface-2 text-text-1 hover:bg-surface-3",

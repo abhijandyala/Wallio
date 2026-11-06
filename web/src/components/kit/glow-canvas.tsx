@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useReducedMotionConfig } from "motion/react";
+import { cn } from "cn";
 
 /**
  * The page's light, drawn like the reference's: a fixed 2D canvas behind everything with
@@ -9,6 +10,9 @@ import { useReducedMotionConfig } from "motion/react";
  * glows, the middle one a black shade that swings in and out, so the light keeps shifting.
  * It runs on time, not scroll, at a tenth of real speed, and fades in over three seconds.
  * The canvas is kept small (about 960 x 540 worth of pixels) since it is all soft gradients.
+ *
+ * Shared: the landing page shows it at full strength; the app shows it dimmed behind its
+ * opaque panels, so the light only shows in the gaps and never under the data.
  */
 const BACKGROUND = "#020806";
 const GLOW = ["#22b07c", "#0d4a35", "#03140d"];
@@ -40,7 +44,7 @@ function drawCircle(ctx: CanvasRenderingContext2D, id: number, colors: string[],
   ctx.fill();
 }
 
-export function Background() {
+export function GlowCanvas({ strength = 1, className }: { strength?: number; className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const reduce = useReducedMotionConfig();
 
@@ -78,13 +82,13 @@ export function Background() {
     };
     raf = requestAnimationFrame(draw);
     // Fade in like the reference (3s, power2.inOut).
-    canvas.animate([{ opacity: 0 }, { opacity: 1 }], { duration: reduce ? 0 : 3000, easing: "cubic-bezier(0.45, 0, 0.55, 1)", fill: "forwards" });
+    canvas.animate([{ opacity: 0 }, { opacity: strength }], { duration: reduce ? 0 : 3000, easing: "cubic-bezier(0.45, 0, 0.55, 1)", fill: "forwards" });
 
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", size);
     };
-  }, [reduce]);
+  }, [reduce, strength]);
 
-  return <canvas ref={ref} aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 size-full opacity-0" />;
+  return <canvas ref={ref} aria-hidden="true" className={cn("pointer-events-none fixed inset-0 size-full opacity-0", className ?? "-z-10")} />;
 }

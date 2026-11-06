@@ -73,23 +73,24 @@
 :root {
   color-scheme: dark;
 
-  --w-bg: #010102;
-  --w-surface-1: #0c0c10;
-  --w-surface-2: #131318;
-  --w-surface-3: #1a1a21;
-  --w-border: rgba(255, 255, 255, 0.08);
-  --w-border-strong: rgba(255, 255, 255, 0.14);
-  --w-text-1: #f4f4f6;
-  --w-text-2: #a3a3ae;
-  --w-text-3: #82828e;
-  --w-text-disabled: #4a4a55;
+  /* Mint-tinted darks, shared with the landing page (docs/DESIGN.md) */
+  --w-bg: #020806;
+  --w-surface-1: #071810;
+  --w-surface-2: #0c2219;
+  --w-surface-3: #122d22;
+  --w-border: rgba(170, 240, 210, 0.09);
+  --w-border-strong: rgba(170, 240, 210, 0.16);
+  --w-text-1: #f2f7f4;
+  --w-text-2: #aab7b1;
+  --w-text-3: #84918b;
+  --w-text-disabled: #4a5651;
   --w-lavender: #ad96f1;
   --w-lavender-tint: rgba(173, 150, 241, 0.12);
   --w-lime: #58f6b1;
   --w-lime-tint: rgba(88, 246, 177, 0.1);
   --w-lavender-strong: #9b80ec; /* hover on lavender surfaces */
   --w-lime-strong: #3fe89c; /* hover on lime buttons */
-  --w-ink: #010102; /* text on lavender or lime */
+  --w-ink: #03140d; /* text on lavender, lime and the pale gradient */
   --w-danger: #ff6b6b; /* reserved: errors and destructive confirmations only */
 
   --background: var(--w-bg);
@@ -99,7 +100,7 @@
   --popover: var(--w-surface-3);
   --popover-foreground: var(--w-text-1);
   --primary: var(--w-lime);
-  --primary-foreground: #010102;
+  --primary-foreground: var(--w-ink);
   --secondary: var(--w-surface-2);
   --secondary-foreground: var(--w-text-1);
   --muted: var(--w-surface-2);
@@ -112,9 +113,9 @@
   --ring: var(--w-lavender);
   --chart-1: var(--w-lavender);
   --chart-2: var(--w-lime);
-  --chart-3: #7f7f8c;
-  --chart-4: #55555f;
-  --chart-5: #34343c;
+  --chart-3: #7d8a84;
+  --chart-4: #53605a;
+  --chart-5: #33403a;
   --radius: 12px;
 }
 
@@ -143,6 +144,21 @@
   }
   html {
     -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  /* The main action: the landing page's pale mint-to-lavender gradient, which slides
+     across on hover (600ms, as on the reference). Dark ink text. */
+  .w-btn-primary {
+    background-image: linear-gradient(90deg, #ddd0ff, #fffdfa, #effff8, #c9ffe6, #c9ffe6, #effff8, #fffdfa, #ddd0ff);
+    background-size: 200% 100%;
+    background-position: 100% 0%;
+    color: var(--w-ink);
+    transition: background-position 600ms ease !important;
+  }
+  .w-btn-primary:hover {
+    background-position: 0% 0%;
   }
 }
 

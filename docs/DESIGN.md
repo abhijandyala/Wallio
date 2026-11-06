@@ -7,11 +7,11 @@ Code lives in `web/src/app/globals.css` (tokens) and `web/src/components/kit/` (
 
 1. **Use the whole width, lean right.** No sidebar. Content fills the screen on a 12-column grid; navigation lives in the slim Wallio rail on the left edge. Wide panels (tables, the main content) go on the right; narrow ones (inbox, summaries) on the left.
 2. **No pills.** Buttons and inputs are radius 8, panels radius 20. No `rounded-full` anywhere except avatars if we ever add photos.
-3. **Only the palette.** Cobalt Black, Lavender, Lime, and the gray text tiers. No amber, blue, or extra greens. Red is reserved for errors and destructive confirmations.
+3. **Only the palette.** Mint-tinted blacks, Lavender, Lime, and the mint-gray text tiers (shared with the landing page). No amber, blue, or extra greens. Red is reserved for errors and destructive confirmations.
 4. **No tag-title-description-subdescription stacks.** A block gets a **title** and **one** of: a value, a sentence, a list, or a table. Never a colored micro-label above the title, never a second line of fine print below.
 5. **One line per row.** Lists and tables don't wrap a second detail line under each item. If it needs explaining, it goes on the detail page or in a tooltip.
-6. **One loud thing per screen.** Either the lavender hero or a lime primary button leads. Not both fighting.
-7. **No decoration.** No gradients, glows, orbs, sparkles, or mono uppercase eyebrows.
+6. **One loud thing per screen.** Either the pale accent panel or a primary button leads. Not both fighting.
+7. **No decoration beyond the shared light.** The only gradients are the landing page's: the pale lavender-to-mint gradient (primary button, accent panel), a faint mint light at the top of each panel, and the dim drifting mint glow behind the app (`GlowCanvas`, strength 0.5, never under data). No other glows, orbs, sparkles, or mono uppercase eyebrows.
 8. **Tight gutters.** Panels sit **12px** apart (`gap-gutter`), horizontally and vertically. Never 24px+ between panels. The page header sits **16px** above the content (`gap-section`). Content starts **24px** from the sidebar and the top.
 9. **No highlight boxes.** Selected nav items, rows and options don't get a background fill on hover or select. State is shown with text color, the lavender icon, or the checkbox. No focus rings or tap highlights anywhere.
 
@@ -19,13 +19,14 @@ Code lives in `web/src/app/globals.css` (tokens) and `web/src/components/kit/` (
 
 | Token | Value | Use |
 |---|---|---|
-| `bg` | `#010102` | Cobalt Black canvas |
-| `surface-1` / `-2` / `-3` | `#0C0C10` / `#131318` / `#1A1A21` | panels / hover & inputs / menus & modals |
-| `line` / `line-strong` | white 8% / 14% | hairline borders |
-| `text-1` / `-2` / `-3` | `#F4F4F6` / `#A3A3AE` / `#82828E` | primary / secondary / labels |
-| `lavender` | `#AD96F1` | the hero surface, active nav icon, "needs you" marks, dates that matter |
-| `lime` | `#58F6B1` | primary button, money saved, budget meter, "Tested" |
-| `ink` | `#010102` | text and buttons on lavender or lime |
+| `bg` | `#020806` | mint-tinted black canvas (same as the landing page) |
+| `surface-1` / `-2` / `-3` | `#071810` / `#0C2219` / `#122D22` | panels / hover & inputs / menus & modals. Keep them opaque: sticky headers and fades rely on it |
+| `line` / `line-strong` | mint `rgba(170,240,210)` at 9% / 16% | hairline borders |
+| `text-1` / `-2` / `-3` | `#F2F7F4` / `#AAB7B1` / `#84918B` | primary / secondary / labels. All at least 4.5:1 on every surface |
+| `lavender` | `#AD96F1` | active nav icon, "needs you" marks, dates that matter, charts |
+| `lime` | `#58F6B1` | money saved, budget meter, "Tested", the winning bar |
+| pale gradient | `#DDD0FF` → `#FFFDFA` → `#EFFFF8` → `#C9FFE6` | primary button (`.w-btn-primary`, slides on hover over 600ms) and the accent panel |
+| `ink` | `#03140D` | text and buttons on lavender, lime and the pale gradient |
 | `danger` | `#FF6B6B` | errors and destructive confirmations only |
 
 ## Type (Geist)
@@ -62,7 +63,7 @@ Build every page from these. Don't hand-roll new containers.
 | `Stat`, `StatStrip` | Label above a value. Strip = row of stats separated by hairlines. `tone="positive"` = lime value. |
 | `Table`, `Th`, `Tr`, `Td` | One-line rows, hairline dividers, right-aligned numbers. |
 | `List`, `ListItem` | One-line rows: title left, short meta right. `highlight` = lavender mark. |
-| `Button` (`ui/button`), `ButtonLink` | Variants: `primary` (lime), `secondary`, `ghost`, `inverse` (black, on lavender), `inverse-ghost`. Sizes `sm`/`md`/`lg`. |
+| `Button` (`ui/button`), `ButtonLink` | Variants: `primary` (pale gradient), `secondary`, `ghost`, `inverse` (black, on lavender), `inverse-ghost`. Sizes `sm`/`md`/`lg`. |
 | `Tag` | Evidence label: small square mark + word. Tested (lime), Researched (lavender), Your input, Sample data, Unknown. |
 | `Money`, `NumberTicker`, `Meter` | Formatted cents, count-up numbers, thin lime progress bar. |
 | `KeyValue`, `KeyValueRow` | Label left, value right, one line per row. Facts, settings, approval details. |

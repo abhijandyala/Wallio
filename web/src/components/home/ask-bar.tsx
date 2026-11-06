@@ -67,7 +67,7 @@ export function AskBar() {
           type="submit"
           aria-label="Ask"
           disabled={!value.trim()}
-          className="grid size-9 shrink-0 place-items-center rounded-[9px] bg-lime text-ink transition-opacity disabled:opacity-30"
+          className="grid size-9 shrink-0 place-items-center rounded-[9px] w-btn-primary disabled:opacity-30"
         >
           <ArrowUp size={16} weight="bold" />
         </button>

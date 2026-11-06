@@ -95,7 +95,7 @@ export function BlockBarChart({
                 x2={width}
                 y1={yOf(t)}
                 y2={yOf(t)}
-                stroke="rgba(255,255,255,0.08)"
+                stroke="rgba(170,240,210,0.09)"
               />
               <text
                 x={axisW - 12}
@@ -252,7 +252,7 @@ const SEGMENT_FILLS = [
   "var(--w-lavender)",
   hatch("rgba(173,150,241,0.8)", 6),
   "var(--w-lime)",
-  hatch("rgba(130,130,142,0.7)", 6),
+  hatch("rgba(132,145,139,0.7)", 6),
 ];
 
 export function SegmentBar({
@@ -452,7 +452,7 @@ export function RenewalTimeline({
 const PASS = {
   best: { front: "#58f6b1", top: "#a6fbd5", side: "#2fae79" },
   other: BLOCK.now,
-  empty: { front: "#1c1c23", top: "#25252e", side: "#141419" },
+  empty: { front: "#12291f", top: "#1a3a2e", side: "#0b1c15" },
 };
 const D = 4; // block depth in px
 

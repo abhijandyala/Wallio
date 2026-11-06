@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "@/components/landing/landing.css";
 import { wlFont } from "@/components/landing/font";
-import { Background } from "@/components/landing/background";
+import { GlowCanvas } from "@/components/kit/glow-canvas";
 import { SmoothScroll } from "@/components/landing/smooth-scroll";
 import { STATEMENTS } from "@/components/landing/content";
 import { Header } from "@/components/landing/sections/header";
@@ -27,7 +27,7 @@ export default function LandingPage() {
   return (
     <div className={`wl-root ${wlFont.variable} relative`}>
       <SmoothScroll />
-      <Background />
+      <GlowCanvas />
       <Header />
       <main id="main">
         <Hero />

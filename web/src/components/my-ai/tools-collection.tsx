@@ -32,11 +32,11 @@ const FADE_DELAY = 0.3;
 const FADE = 0.22;
 
 // Box looks, as rgba so every value interpolates cleanly.
-const LINE = "rgba(255,255,255,0.08)";
+const LINE = "rgba(170,240,210,0.09)";
 const LAV = "rgba(173,150,241,0.4)";
 const CLEAR = "rgba(255,255,255,0)";
-const SURFACE = "rgba(12,12,16,1)";
-const SURFACE_CLEAR = "rgba(12,12,16,0)";
+const SURFACE = "rgba(7,24,16,1)";
+const SURFACE_CLEAR = "rgba(7,24,16,0)";
 
 type Rect = { x: number; y: number; w: number; h: number };
 type Snapshot = { rects: Map<string, Rect>; height: number };
