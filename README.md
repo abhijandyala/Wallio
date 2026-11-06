@@ -44,7 +44,7 @@ npm run api:dev               # http://localhost:8787 (RUN_MODE=mock by default)
 
 ```bash
 npm run contracts:test        # 33 contract and fixture tests
-npm run api:test              # 94 API tests; needs the wallio_test database from .env.example
+npm run api:test              # 95 API tests; needs the wallio_test database from .env.example
 npm run typecheck
 ```
 

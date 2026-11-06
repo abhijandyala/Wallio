@@ -46,7 +46,14 @@ export class BrowserSession {
           maxScreenshots: Math.max(0, this.policy.maxScreenshots - this.state.screenshotsUsed),
         },
       });
-    } catch {
+    } catch (e) {
+      if (e instanceof RunnerError && e.notSent) {
+        // The connection was refused, so this job can't exist: nothing for cleanup to verify.
+        await ctx.q((q) => q(
+          `UPDATE runs SET runner_job_ids = array_remove(runner_job_ids, $3),
+             runner_job_id = CASE WHEN runner_job_id = $3 THEN (array_remove(runner_job_ids, $3))[cardinality(array_remove(runner_job_ids, $3))] ELSE runner_job_id END
+           WHERE id = $1 AND tenant_id = $2`, [ctx.runId, ctx.tenantId, jobId]));
+      }
       throw new RunFailure("runner_unavailable", "The browser runner isn't reachable right now. Try again in a minute.");
     }
   }

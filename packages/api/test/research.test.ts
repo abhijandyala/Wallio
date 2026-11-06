@@ -357,6 +357,18 @@ test("runner down: FAILED with runner_unavailable, nothing to clean", async () =
   assert.match((await v.events(runId)).find((e) => e.type === "cleanup").message, /No browser was started/);
 });
 
+test("runner stopped (connection refused): FAILED with runner_unavailable and CLEANED, since no job can exist", async () => {
+  runner.refuseConnections = true;
+  const v = new Visitor(app);
+  const { runId } = (await v.startRun()).body;
+  const done = await v.waitFinished(runId);
+  assert.equal(done.status, "CLEANED");
+  assert.equal(done.outcome, "failed");
+  assert.equal(done.error.code, "runner_unavailable");
+  assert.equal(done.recommendationId, null);
+  assert.match((await v.events(runId)).find((e) => e.type === "cleanup").message, /No browser was started/);
+});
+
 test("unusable AI plan falls back to the official pricing pages", async () => {
   await worker.stop();
   inference = fakeInference({ plannerRaw: "I think you should look at many websites!" });

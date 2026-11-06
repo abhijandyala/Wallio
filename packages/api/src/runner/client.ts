@@ -18,11 +18,14 @@ export class RunnerError extends Error {
   readonly code: RunnerErrorCode;
   readonly retryable: boolean;
   readonly status: number | null;
-  constructor(code: RunnerErrorCode, message: string, opts: { retryable?: boolean; status?: number | null } = {}) {
+  /** True only when the connection itself was refused or had no route: the request never reached the runner. */
+  readonly notSent: boolean;
+  constructor(code: RunnerErrorCode, message: string, opts: { retryable?: boolean; status?: number | null; notSent?: boolean } = {}) {
     super(message);
     this.code = code;
     this.retryable = opts.retryable ?? false;
     this.status = opts.status ?? null;
+    this.notSent = opts.notSent ?? false;
   }
 }
 
@@ -35,6 +38,7 @@ export interface RunnerClientOptions {
 }
 
 const MAX_ARTIFACT_BYTES = 5 * 1024 * 1024;
+const NOT_SENT_CODES = new Set(["ECONNREFUSED", "EHOSTUNREACH", "ENETUNREACH"]);
 
 export class RunnerClient {
   private readonly base: string;
@@ -138,7 +142,11 @@ export class RunnerClient {
         signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (e) {
-      throw new RunnerError("unreachable", `runner unreachable (${(e as Error).name})`, { retryable: true });
+      // A refused or unroutable connection means nothing was sent. A timeout or reset does not:
+      // the runner may have acted, so those are never treated as "not sent".
+      const cause = (e as { cause?: { code?: unknown } }).cause?.code;
+      const notSent = typeof cause === "string" && NOT_SENT_CODES.has(cause);
+      throw new RunnerError("unreachable", `runner unreachable (${notSent ? cause : (e as Error).name})`, { retryable: true, notSent });
     }
     if (res.ok) return res;
     let code: RunnerErrorCode = res.status === 401 ? "unauthorized" : res.status === 503 ? "busy" : "bad_request";

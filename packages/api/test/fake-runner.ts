@@ -51,6 +51,8 @@ export class FakeRunner {
   /** Dynamic pages (e.g. the owned eval page), consulted before `pages`. */
   resolve: ((url: string) => Promise<FakePage | undefined>) | null = null;
   failCreate = false;
+  /** The daemon is stopped: every connection is refused before anything is sent. */
+  refuseConnections = false;
   failCleanup = false;
   /** Like the real runner: verifies approval tokens on submit clicks with this key. */
   approvalKey: string | null = null;
@@ -106,7 +108,12 @@ export class FakeRunner {
   }
 
   /** fetch-compatible handler for RunnerClient. */
-  fetch = ((input: string | URL | Request, init?: RequestInit) => this.app.request(String(input), init)) as unknown as typeof fetch;
+  fetch = ((input: string | URL | Request, init?: RequestInit) => {
+    if (this.refuseConnections) {
+      return Promise.reject(new TypeError("fetch failed", { cause: Object.assign(new Error("connect ECONNREFUSED 10.5.96.4:8443"), { code: "ECONNREFUSED" }) }));
+    }
+    return this.app.request(String(input), init);
+  }) as unknown as typeof fetch;
 
   private status(jobId: string): rc.RunnerJobStatus {
     const j = this.jobs.get(jobId)!;
