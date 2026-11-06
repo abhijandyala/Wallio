@@ -1,0 +1,25 @@
+{
+  "actionId": "a2",
+  "stepIndex": 2,
+  "status": "ok",
+  "observation": {
+    "url": "https://fixtures.wallio.test/forbidden",
+    "title": "Forbidden",
+    "httpStatus": 403,
+    "redirectChain": [],
+    "pageFingerprint": "sha256:1bdd3848a606e1a012bcd697751727f855b421169a435f48c1de20fc429508ae",
+    "textExcerpt": "Access denied",
+    "textSha256": "sha256:cc11d415d9326ccc4e749aed6d2d8f12a28e53d001938f6b4cf2c47a2422dad0",
+    "elements": null,
+    "screenshot": null,
+    "blocked": {
+      "reason": "access_denied",
+      "detail": "The server answered 403."
+    },
+    "deniedRequests": [],
+    "capturedAt": "2026-11-05T18:55:24.384Z"
+  },
+  "error": null,
+  "durationMs": 541,
+  "actionsRemaining": 17
+}

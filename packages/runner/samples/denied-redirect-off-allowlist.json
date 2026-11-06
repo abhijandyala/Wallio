@@ -1,0 +1,34 @@
+{
+  "actionId": "a0",
+  "stepIndex": 0,
+  "status": "denied",
+  "observation": {
+    "url": "about:blank",
+    "title": "",
+    "httpStatus": 302,
+    "redirectChain": [],
+    "pageFingerprint": "sha256:401e54e9ce2b2aa1d4757c76f99e15d77ba47e65d4f0521a23ccec34bde53bec",
+    "textExcerpt": null,
+    "textSha256": null,
+    "elements": null,
+    "screenshot": null,
+    "blocked": {
+      "reason": "egress_denied",
+      "detail": "The egress proxy refused other.wallio.test."
+    },
+    "deniedRequests": [
+      {
+        "url": "https://other.wallio.test/",
+        "reason": "host_not_allowed"
+      }
+    ],
+    "capturedAt": "2026-11-05T18:55:21.983Z"
+  },
+  "error": {
+    "code": "egress_denied",
+    "message": "The egress proxy refused fixtures.wallio.test.",
+    "retryable": false
+  },
+  "durationMs": 59,
+  "actionsRemaining": 19
+}

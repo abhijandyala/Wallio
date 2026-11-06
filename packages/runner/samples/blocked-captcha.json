@@ -1,0 +1,30 @@
+{
+  "actionId": "a0",
+  "stepIndex": 0,
+  "status": "ok",
+  "observation": {
+    "url": "https://fixtures.wallio.test/captcha",
+    "title": "Just a moment...",
+    "httpStatus": 200,
+    "redirectChain": [],
+    "pageFingerprint": "sha256:8ecbd55747587442a0e1eb35d214593217bef703f3a290ee14f537cdd4192a9b",
+    "textExcerpt": "Checking your browser",
+    "textSha256": "sha256:6129e1967b0637e2420cc9f6702bd9d75a8efebc70a689dd022650276191ff6f",
+    "elements": null,
+    "screenshot": null,
+    "blocked": {
+      "reason": "captcha",
+      "detail": "The page shows a bot check or CAPTCHA. The runner stops here and does not try to solve it."
+    },
+    "deniedRequests": [
+      {
+        "url": "https://challenges.cloudflare.com/",
+        "reason": "host_not_allowed"
+      }
+    ],
+    "capturedAt": "2026-11-05T18:55:23.302Z"
+  },
+  "error": null,
+  "durationMs": 582,
+  "actionsRemaining": 19
+}

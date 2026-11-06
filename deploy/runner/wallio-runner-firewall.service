@@ -1,0 +1,13 @@
+[Unit]
+Description=Wallio runner host egress rules
+After=docker.service
+Requires=docker.service
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/wallio-runner-firewall
+
+[Install]
+WantedBy=multi-user.target

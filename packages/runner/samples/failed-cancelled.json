@@ -1,0 +1,13 @@
+{
+  "actionId": "a0",
+  "stepIndex": 0,
+  "status": "failed",
+  "observation": null,
+  "error": {
+    "code": "cancelled",
+    "message": "The job was cancelled while this action was running.",
+    "retryable": false
+  },
+  "durationMs": 1639,
+  "actionsRemaining": 19
+}

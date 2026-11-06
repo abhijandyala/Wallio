@@ -1,0 +1,22 @@
+{
+  "actionId": "submit_1",
+  "stepIndex": 5,
+  "status": "ok",
+  "observation": {
+    "url": "https://fixtures.wallio.test/submitted?email=demo-dev%40wallio.example&pw=",
+    "title": "Request received",
+    "httpStatus": 200,
+    "redirectChain": [],
+    "pageFingerprint": "sha256:e7bb5cd20b579f3f5c4384469ca8219e0bffe374fa5e721ee60baf914dfc5074",
+    "textExcerpt": "Request received for demo-dev@wallio.example",
+    "textSha256": "sha256:a45b3026f32b5364a9031d694acb27aa24af1945f2cb7def7ef79aab7fff36d2",
+    "elements": null,
+    "screenshot": null,
+    "blocked": null,
+    "deniedRequests": [],
+    "capturedAt": "2026-11-05T18:55:27.393Z"
+  },
+  "error": null,
+  "durationMs": 1611,
+  "actionsRemaining": 14
+}

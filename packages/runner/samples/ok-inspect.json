@@ -1,0 +1,46 @@
+{
+  "actionId": "a1",
+  "stepIndex": 1,
+  "status": "ok",
+  "observation": {
+    "url": "https://fixtures.wallio.test/pricing?from=redirect",
+    "title": "Fixture pricing",
+    "httpStatus": 200,
+    "redirectChain": [
+      "https://fixtures.wallio.test/redirect-ok",
+      "https://fixtures.wallio.test/pricing?from=redirect"
+    ],
+    "pageFingerprint": "sha256:a91d93deabf5f438cc5c1724377745adb47941c7132fd639b883b85744a5c334",
+    "textExcerpt": "Plans\n\nPro: $10 per month (fixture)\n\nCompareToggle yearly",
+    "textSha256": "sha256:a8ebf796c7bdead77d39ee9f8c97aafcd46e06de74f9d68addbe1f1adb177847",
+    "elements": [
+      {
+        "ref": "e1",
+        "role": "link",
+        "name": "Compare",
+        "tag": "a",
+        "text": "Compare",
+        "href": "https://fixtures.wallio.test/redirect-ok",
+        "inputType": null,
+        "targetHost": "fixtures.wallio.test"
+      },
+      {
+        "ref": "e2",
+        "role": "button",
+        "name": "Toggle yearly",
+        "tag": "button",
+        "text": "Toggle yearly",
+        "href": null,
+        "inputType": "button",
+        "targetHost": null
+      }
+    ],
+    "screenshot": null,
+    "blocked": null,
+    "deniedRequests": [],
+    "capturedAt": "2026-11-05T18:55:15.132Z"
+  },
+  "error": null,
+  "durationMs": 12,
+  "actionsRemaining": 18
+}

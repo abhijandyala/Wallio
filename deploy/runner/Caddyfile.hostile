@@ -1,0 +1,12 @@
+# Add to the control VM's Caddyfile (Anish). Serves the containment fixture as
+# static files on its own subdomain; sslip.io resolves hostile.<ip-dashes>.sslip.io too.
+# Before deploying, write the sentinel URL:
+#   echo 'window.WALLIO_SENTINEL = "http://<control-private-ip>:9099";' > packages/runner/fixtures/hostile/config.js
+hostile.__WALLIO_DOMAIN__ {
+	root * /opt/wallio/current/packages/runner/fixtures/hostile
+	file_server
+	header {
+		Cache-Control "no-store"
+		X-Robots-Tag "noindex, nofollow"
+	}
+}

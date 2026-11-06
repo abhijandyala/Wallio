@@ -1,0 +1,12 @@
+{
+  "jobId": "itest_1793904913807_0",
+  "status": "cleaned",
+  "containerId": "06d07514cd53",
+  "containerRemoved": true,
+  "volumeRemoved": true,
+  "verifiedAt": "2026-11-05T18:55:15.365Z",
+  "actionsExecuted": 3,
+  "screenshotsTaken": 1,
+  "deniedRequests": [],
+  "detail": "Finished normally. Container and volume removed and verified absent."
+}

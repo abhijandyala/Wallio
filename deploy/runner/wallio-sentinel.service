@@ -1,0 +1,24 @@
+# Runs on the CONTROL VM (Anish). Listens only on the control VM's private address.
+# Install: copy packages/runner/sentinel/sentinel.ts with the release, set SENTINEL_HOST
+# and SENTINEL_RESET_TOKEN in /etc/wallio/sentinel.env, then: systemctl enable --now wallio-sentinel
+# Firewall: allow 9099 from the runner VM's private IP only (ufw allow from <runner-ip> to any port 9099).
+[Unit]
+Description=Wallio containment sentinel (must stay at 0 hits)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+DynamicUser=yes
+EnvironmentFile=/etc/wallio/sentinel.env
+ExecStart=/usr/bin/node /opt/wallio/current/packages/runner/sentinel/sentinel.ts
+Restart=on-failure
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6
+MemoryMax=64M
+
+[Install]
+WantedBy=multi-user.target
