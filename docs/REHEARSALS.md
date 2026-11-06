@@ -31,3 +31,4 @@ One row per rehearsal, written by `deploy/rehearse.ts`. Raw results are in `docs
 | 2026-11-06 01:26:53 | r7 | live | CLEANED/succeeded, 22.3s, 3 ev | succeeded, submitted, 7s | contained, 3 refused, 4.1s | pass |
 | 2026-11-06 01:27:27 | r7 | live | CLEANED/succeeded, 23.9s, 3 ev | succeeded, submitted, 6.9s | contained, 3 refused, 4.1s | pass |
 | 2026-11-06 01:28:02 | r7 | live | CLEANED/succeeded, 23.6s, 3 ev | succeeded, submitted, 6.8s | contained, 3 refused, 4.2s | pass |
+| 2026-11-06 01:33:50 | r7-degraded | live | CLEANUP_FAILED/failed, 1.7s, 0 ev, runner_unavailable | – | – | FAIL: comparison ended CLEANUP_FAILED (fixed in 6dfd5bf: a refused connection leaves no job to verify) |
