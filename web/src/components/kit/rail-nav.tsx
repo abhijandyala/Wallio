@@ -11,10 +11,12 @@ import {
   Scales,
   CheckSquareOffset,
   GearSix,
+  Bell,
   type Icon,
 } from "@phosphor-icons/react";
 import { LogoMark } from "./logo-mark";
 import { ScrambleText } from "./scramble-text";
+import { NotifyBadge } from "./notify-badge";
 import { NAV_ITEMS, type NavIcon } from "./nav-items";
 import { cn } from "@/lib/utils";
 
@@ -251,17 +253,17 @@ export function RailNav() {
                         )}
                       />
                       <span
-                        className={cn(
-                          "tnum h-5 text-[13px] font-medium",
-                          active ? "text-ink/70" : "text-lime",
-                        )}
+                        className="grid h-5 place-items-center"
                         aria-label={
                           "count" in item && item.count > 0
                             ? `${item.count} waiting`
                             : undefined
                         }
                       >
-                        {"count" in item && item.count > 0 ? item.count : ""}
+                        <NotifyBadge
+                          count={"count" in item ? item.count : 0}
+                          tone={active ? "ink" : "lime"}
+                        />
                       </span>
                     </Link>
                   </motion.div>
@@ -282,7 +284,13 @@ export function RailNav() {
           }}
           aria-expanded={open}
           aria-controls="rail-menu"
-          aria-label={open ? "Close menu" : "Open menu"}
+          aria-label={
+            open
+              ? "Close menu"
+              : waiting > 0
+                ? `Open menu, ${waiting} waiting`
+                : "Open menu"
+          }
           className="relative z-30 flex h-full flex-col items-center justify-between border-r border-line bg-bg py-6"
           style={{ width: railW }}
         >
@@ -297,11 +305,14 @@ export function RailNav() {
           >
             Wallio
           </span>
-          <span
-            className="tnum h-5 text-[13px] font-medium text-aurora"
-            aria-hidden="true"
-          >
-            {waiting > 0 && !open ? waiting : ""}
+          {/* Waiting items: a bell with a lime count on its corner. */}
+          <span className="relative grid h-6 w-6 place-items-center" aria-hidden="true">
+            {waiting > 0 && !open && (
+              <>
+                <Bell size={wide ? 18 : 16} className="text-text-2" />
+                <NotifyBadge count={waiting} className="absolute -top-2 -right-2.5 scale-90" />
+              </>
+            )}
           </span>
         </button>
       </div>

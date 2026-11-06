@@ -19,22 +19,21 @@ export function Section({
   title: string;
   children: React.ReactNode;
 }) {
+  // The title sits above the box; the box is a list of rows split by hairlines.
   return (
-    <section id={id} className="scroll-mt-6 rounded-[20px] border border-line bg-surface-1">
-      <header className="flex h-14 items-center px-6">
-        <h2 className="text-[15px] font-medium text-text-1">{title}</h2>
-      </header>
-      <div className="border-t border-line">{children}</div>
+    <section id={id} data-section className="scroll-mt-6">
+      <h2 className="mb-3 text-[16px] font-semibold text-text-1">{title}</h2>
+      <div className="overflow-hidden rounded-[12px] border border-line bg-surface-1">{children}</div>
     </section>
   );
 }
 
-/** A small label inside a section, e.g. "Always on". */
+/** A small header strip inside a section, e.g. "Always on". */
 export function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="border-t border-line first:border-t-0">
-      <p className="px-6 pt-4 pb-1 text-[13px] text-text-3">{label}</p>
-      {children}
+    <div data-group className="border-t border-line first:border-t-0">
+      <p className="bg-bg/40 px-6 py-2.5 text-[12px] font-medium text-text-3">{label}</p>
+      <div className="border-t border-line [&>*:first-child]:border-t-0">{children}</div>
     </div>
   );
 }
@@ -57,6 +56,7 @@ export function Row({
   const Label = htmlFor ? "label" : "span";
   return (
     <div
+      data-row
       className={cn(
         "flex min-h-14 gap-x-6 gap-y-3 border-t border-line px-6 py-3 first:border-t-0",
         stack
@@ -87,7 +87,7 @@ export function Row({
 /** A safety rule the server enforces. Shown so people know it exists; not changeable. */
 export function FixedRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex min-h-12 items-center justify-between gap-4 border-t border-line px-6 py-3 first:border-t-0 sm:gap-6">
+    <div data-row className="flex min-h-12 items-center justify-between gap-4 border-t border-line px-6 py-3 first:border-t-0 sm:gap-6">
       <span className="min-w-0 flex-1 text-text-2">{label}</span>
       <span className="flex min-w-0 items-center justify-end gap-2 text-right text-[13px] text-text-1">
         {value}
@@ -100,7 +100,7 @@ export function FixedRow({ label, value }: { label: string; value: string }) {
 /** Needs the backend or an integration. Visible so the plan is honest, but disabled. */
 export function LaterRow({ label }: { label: string }) {
   return (
-    <div className="flex min-h-12 items-center justify-between gap-6 border-t border-line px-6 py-3 first:border-t-0">
+    <div data-row className="flex min-h-12 items-center justify-between gap-6 border-t border-line px-6 py-3 first:border-t-0">
       <span className="min-w-0 text-text-3">{label}</span>
       <span className="shrink-0 text-[13px] text-text-3">Coming later</span>
     </div>

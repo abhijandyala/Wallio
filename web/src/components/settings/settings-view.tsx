@@ -3,7 +3,25 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotionConfig } from "motion/react";
-import { ArrowRight, Check, DownloadSimple, GithubLogo, Warning } from "@phosphor-icons/react";
+import {
+  ArrowRight,
+  Bell,
+  Check,
+  DownloadSimple,
+  Flask,
+  GithubLogo,
+  IdentificationCard,
+  MagnifyingGlass,
+  Palette,
+  PlugsConnected,
+  Robot,
+  ShieldCheck,
+  UserCircle,
+  Wallet,
+  Warning,
+  X,
+  type Icon,
+} from "@phosphor-icons/react";
 import { DEFAULT_SETTINGS, resetSettings, updateSettings, useSettings, type Settings } from "@/lib/settings";
 import { homeSample } from "@/mocks/home";
 import { profileSample } from "@/mocks/my-ai";
@@ -30,21 +48,68 @@ import {
 } from "./controls";
 
 /*
- * Sections are ordered by how often people need them: money and the agent's limits first,
- * then alerts and connections, then profile, account and display, with data controls and the
- * danger zone last (PRD Settings: budgets, integrations, notifications, privacy, export, deletion).
+ * Sections are grouped the way people look for them: the wallet and its agent first, then
+ * their own account, then data. Within a group, most-used first (PRD Settings: budgets,
+ * integrations, notifications, privacy, export, deletion).
  */
-const NAV = [
-  { id: "spending", label: "Spending" },
-  { id: "agent", label: "Agent and runs" },
-  { id: "notifications", label: "Notifications" },
-  { id: "connections", label: "Connections" },
-  { id: "profile", label: "Profile" },
-  { id: "account", label: "Account" },
-  { id: "display", label: "Display" },
-  { id: "privacy", label: "Privacy and data" },
-  { id: "demo", label: "Demo" },
+const NAV: { label: string; items: { id: string; label: string; icon: Icon }[] }[] = [
+  {
+    label: "Wallet",
+    items: [
+      { id: "spending", label: "Spending", icon: Wallet },
+      { id: "agent", label: "Agent and runs", icon: Robot },
+      { id: "connections", label: "Connections", icon: PlugsConnected },
+    ],
+  },
+  {
+    label: "Account",
+    items: [
+      { id: "notifications", label: "Notifications", icon: Bell },
+      { id: "profile", label: "Profile", icon: UserCircle },
+      { id: "account", label: "Account", icon: IdentificationCard },
+      { id: "display", label: "Display", icon: Palette },
+    ],
+  },
+  {
+    label: "Data",
+    items: [
+      { id: "privacy", label: "Privacy and data", icon: ShieldCheck },
+      { id: "demo", label: "Demo", icon: Flask },
+    ],
+  },
 ];
+const NAV_IDS = NAV.flatMap((g) => g.items.map((i) => i.id));
+
+/**
+ * Search works on what's on screen: a section whose title matches stays whole; otherwise only
+ * its matching rows stay, and it hides if none do. Returns the ids of the sections left.
+ */
+function applySearch(root: HTMLElement, query: string): Set<string> | null {
+  const q = query.trim().toLowerCase();
+  const left = new Set<string>();
+  root.querySelectorAll<HTMLElement>("[data-section]").forEach((sec) => {
+    const all = sec.querySelectorAll<HTMLElement>("[data-row],[data-group],[data-extra]");
+    if (!q || (sec.querySelector("h2")?.textContent ?? "").toLowerCase().includes(q)) {
+      all.forEach((el) => (el.hidden = false));
+      sec.hidden = false;
+      left.add(sec.id);
+      return;
+    }
+    let any = false;
+    sec.querySelectorAll<HTMLElement>("[data-row]").forEach((row) => {
+      const hit = (row.textContent ?? "").toLowerCase().includes(q);
+      row.hidden = !hit;
+      any ||= hit;
+    });
+    sec.querySelectorAll<HTMLElement>("[data-extra]").forEach((el) => (el.hidden = true));
+    sec.querySelectorAll<HTMLElement>("[data-group]").forEach((g) => {
+      g.hidden = !g.querySelector("[data-row]:not([hidden])");
+    });
+    sec.hidden = !any;
+    if (any) left.add(sec.id);
+  });
+  return q ? left : null;
+}
 
 const money0 = (c: number) => formatMoney(c).replace(/\.00$/, "");
 const DOMAIN = /^(?!-)[a-z0-9-]+(\.[a-z0-9-]+)+$/;
@@ -77,7 +142,10 @@ export function SettingsView() {
   const s = useSettings();
   const reduce = useReducedMotionConfig();
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
-  const [active, setActive] = useState(NAV[0].id);
+  const [active, setActive] = useState(NAV_IDS[0]);
+  const [query, setQuery] = useState("");
+  const [found, setFound] = useState<Set<string> | null>(null);
+  const body = useRef<HTMLDivElement>(null);
 
   const say = (text: string) => setToast({ id: Date.now(), text });
   const set = (patch: Partial<Settings>, text = "Saved") => {
@@ -91,9 +159,18 @@ export function SettingsView() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  // Re-run search when the query changes or a setting adds or removes rows.
+  useEffect(() => {
+    if (!body.current) return;
+    const left = applySearch(body.current, query);
+    setFound(left);
+    // Keep the highlight on a section that's still showing.
+    if (left && left.size > 0) setActive((a) => (left.has(a) ? a : NAV_IDS.find((id) => left.has(id))!));
+  }, [query, s]);
+
   // Highlight the section in view in the side nav.
   useEffect(() => {
-    const els = NAV.map((n) => document.getElementById(n.id)).filter(Boolean) as HTMLElement[];
+    const els = NAV_IDS.map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
     const io = new IntersectionObserver(
       (entries) => {
         const top = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
@@ -105,6 +182,9 @@ export function SettingsView() {
     return () => io.disconnect();
   }, []);
 
+  const go = (id: string) =>
+    document.getElementById(id)?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+
   return (
     <div className="flex flex-col gap-section">
       <PageHeader title="Settings" subtitle="Saved on this device until your account is connected." />
@@ -112,7 +192,7 @@ export function SettingsView() {
       {s.deletionScheduledFor && (
         <div
           role="status"
-          className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[16px] border border-danger/40 bg-danger/10 px-5 py-3"
+          className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[12px] border border-danger/40 bg-danger/10 px-5 py-3"
         >
           <Warning size={16} className="text-danger" />
           <span className="text-text-1">
@@ -124,43 +204,91 @@ export function SettingsView() {
         </div>
       )}
 
-      <div className="grid grid-cols-12 gap-gutter">
-        {/* Narrow nav on the left; it follows you as you scroll. */}
-        <nav aria-label="Settings sections" className="hidden xl:col-span-3 xl:block">
-          <ul className="sticky top-6 flex flex-col rounded-[20px] border border-line bg-surface-1 py-2">
-            {NAV.map((n) => (
-              <li key={n.id}>
-                <button
-                  type="button"
-                  onClick={() =>
-                    document.getElementById(n.id)?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" })
-                  }
-                  className={cn(
-                    "flex h-10 w-full items-center gap-3 px-6 text-left text-[14px] transition-colors",
-                    active === n.id ? "text-text-1" : "text-text-3 hover:text-text-1",
-                  )}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={cn("size-1.5 rounded-[1px] transition-colors", active === n.id ? "bg-aurora" : "bg-transparent")}
-                  />
-                  {n.label}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
+      <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-14">
+        {/* Search and the grouped section list; it follows you as you scroll. */}
+        <aside className="lg:sticky lg:top-6 lg:self-start">
+          <label className="relative block">
+            <span className="sr-only">Search settings</span>
+            <MagnifyingGlass
+              size={16}
+              className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-text-3"
+              aria-hidden="true"
+            />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Escape" && setQuery("")}
+              placeholder="Search settings"
+              className="h-10 w-full rounded-[8px] border border-line-strong bg-surface-1 pr-9 pl-9 text-[14px] text-text-1 outline-none placeholder:text-text-3 focus:border-aurora/60 [&::-webkit-search-cancel-button]:hidden"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+                className="absolute top-1/2 right-2 grid size-6 -translate-y-1/2 place-items-center rounded-md text-text-3 transition-colors hover:text-text-1"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </label>
 
-        <div className="col-span-12 flex flex-col gap-gutter xl:col-span-9">
+          <nav aria-label="Settings sections" className="mt-7 hidden flex-col gap-6 lg:flex">
+            {NAV.map((g) => {
+              const items = g.items.filter((i) => !found || found.has(i.id));
+              if (items.length === 0) return null;
+              return (
+                <div key={g.label}>
+                  <p className="px-3 pb-2 text-[12px] font-medium text-text-3">{g.label}</p>
+                  <ul className="flex flex-col gap-0.5">
+                    {items.map((n) => {
+                      const on = active === n.id;
+                      const I = n.icon;
+                      return (
+                        <li key={n.id}>
+                          <button
+                            type="button"
+                            onClick={() => go(n.id)}
+                            aria-current={on ? "true" : undefined}
+                            className={cn(
+                              "flex h-10 w-full items-center gap-3 rounded-[8px] px-3 text-left text-[14px] transition-colors",
+                              on ? "bg-surface-2 text-text-1" : "text-text-2 hover:bg-surface-1 hover:text-text-1",
+                            )}
+                          >
+                            <I
+                              size={18}
+                              weight={on ? "fill" : "regular"}
+                              className={cn("shrink-0", on ? "text-aurora" : "text-text-3")}
+                              aria-hidden="true"
+                            />
+                            {n.label}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              );
+            })}
+          </nav>
+        </aside>
+
+        <div ref={body} className="flex min-w-0 flex-col gap-12">
           <SpendingSection s={s} set={set} />
           <AgentSection s={s} set={set} />
-          <NotificationsSection s={s} set={set} say={say} />
           <ConnectionsSection s={s} set={set} />
+          <NotificationsSection s={s} set={set} say={say} />
           <ProfileSection s={s} set={set} />
           <AccountSection s={s} set={set} />
           <DisplaySection s={s} set={set} />
           <PrivacySection s={s} set={set} say={say} />
           <DemoSection s={s} set={set} say={say} />
+          {found && found.size === 0 && (
+            <p className="rounded-[12px] border border-line bg-surface-1 px-6 py-10 text-center text-text-3">
+              No settings match &ldquo;{query.trim()}&rdquo;.
+            </p>
+          )}
         </div>
       </div>
 
@@ -217,7 +345,7 @@ function SpendingSection({ s, set }: P) {
           onSave={(v) => set({ budgetCents: Math.round(Number(v.replace(/[$,]/g, "")) * 100) }, "Budget saved")}
         />
       </Row>
-      <div className="flex flex-col gap-2 border-t border-line px-6 py-4">
+      <div data-extra className="flex flex-col gap-2 border-t border-line px-6 py-4">
         <div className="flex items-center justify-between text-[13px]">
           <span className="text-text-3">This month</span>
           <span className={cn("tnum", pct >= s.warnAtPct ? "text-aurora" : "text-text-1")}>
@@ -244,7 +372,7 @@ function SpendingSection({ s, set }: P) {
         />
       </Row>
       {next && nextDays !== null && (
-        <p className="border-t border-line px-6 py-3 text-[13px] text-text-3">
+        <p data-extra className="border-t border-line px-6 py-3 text-[13px] text-text-3">
           Next: {next.toolName} renews in {nextDays} days.{" "}
           <span className={nextDays <= s.renewalLeadDays ? "text-aurora" : ""}>
             {nextDays <= s.renewalLeadDays ? "Inside your reminder window." : "Outside your reminder window."}
@@ -296,7 +424,7 @@ function AgentSection({ s, set }: P) {
           ]}
         />
       </Row>
-      <div className="flex flex-col gap-2 border-t border-line px-6 py-4">
+      <div data-extra className="flex flex-col gap-2 border-t border-line px-6 py-4">
         <div className="flex items-center justify-between text-[13px]">
           <span className="text-text-3">Runs this month</span>
           <span className="tnum text-text-1">
@@ -457,7 +585,7 @@ function NotificationsSection({ s, set, say }: P & { say: (t: string) => void })
           </div>
         </Row>
       </Group>
-      <div className="flex flex-wrap items-center gap-3 border-t border-line px-6 py-4">
+      <div data-row className="flex flex-wrap items-center gap-3 border-t border-line px-6 py-4">
         <Button
           variant="secondary"
           size="sm"
@@ -767,7 +895,7 @@ function PrivacySection({ s, set, say }: P & { say: (t: string) => void }) {
       </Group>
 
       {/* Danger zone: last, bordered, and behind typed confirmation (destructive-action UX). */}
-      <div className="m-4 rounded-[14px] border border-danger/30">
+      <div data-row className="m-4 rounded-[10px] border border-danger/30">
         <div className="flex min-h-14 flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-text-1">Delete my account and everything in it</span>
           {s.deletionScheduledFor ? (
