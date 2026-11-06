@@ -22,19 +22,35 @@ const dollarsToCents = (v: string) => {
   return Number.isFinite(n) ? Math.round(n * 100) : null;
 };
 
+/** What the live wrapper (my-ai-live.tsx) hands the view when the data comes from the API. */
+export type MyAiLive = {
+  /** Catalog tools you can add (the API only takes catalog tools). */
+  catalog: { id: string; name: string; category: string }[];
+  /** From the server's inventory summary. The view never adds prices up when live. */
+  totalCents: number | null;
+  unknownCount: number;
+  budgetCents: number;
+  saveTool: (s: Subscription, isNew: boolean) => Promise<Subscription>;
+  setStatus: (id: string, status: Subscription["status"]) => Promise<Subscription>;
+  /** Saves the facts and workflows as a new profile version and returns its number. */
+  saveProfile: (fields: ProfileField[], workflows: Workflow[]) => Promise<number>;
+};
+
 /**
- * My AI: the wallet of tools, the workflows they serve, what Wallio reads, and the profile.
- * Edits are local until the API lands. Totals here are display-only; the backend owns them.
- * TODO(api): GET /api/inventory, GET /api/profile, GET /api/connections.
+ * My AI: the wallet of tools, the workflows they serve, and the profile.
+ * With `live`, every change is saved to the Wallio API and the totals are the server's;
+ * without it (the API can't be reached) it runs on sample data, locally.
  */
 export function MyAiView({
   initial,
   profile,
   today,
+  live,
 }: {
   initial: Subscription[];
   profile: Profile;
   today: string;
+  live?: MyAiLive;
 }) {
   const reduce = useReducedMotionConfig();
   const [subs, setSubs] = useState(initial);
@@ -52,35 +68,115 @@ export function MyAiView({
   const [version, setVersion] = useState(profile.version);
   const [savedNote, setSavedNote] = useState<string | null>(null);
 
+  const [toolError, setToolError] = useState<string | null>(null);
+  const [toolBusy, setToolBusy] = useState(false);
+
   const shown = subs.filter((s) => s.status !== "archived");
   const ordered = sortTools(shown, sort);
-  // Display only. TODO(api): the backend returns the authoritative total.
-  const total = shown
-    .filter((s) => s.status === "active")
-    .reduce((n, s) => n + (s.monthlyCents ?? 0), 0);
+  // Live: the server's total. Sample: a display-only sum.
+  const total = live
+    ? (live.totalCents ?? 0)
+    : shown.filter((s) => s.status === "active").reduce((n, s) => n + (s.monthlyCents ?? 0), 0);
   const unknown = shown.filter((s) => s.monthlyCents === null);
-  // The budget lives in Settings; the profile fact shows the same number.
-  const budget = settings.budgetCents;
+  const unknownCount = live ? live.unknownCount : unknown.length;
+  // Live: the profile's budget. Sample: the one in Settings.
+  const budget = live ? live.budgetCents : settings.budgetCents;
   const visibleFields = fields
     .filter(
       (f) =>
         !(f.status === "pending" && fromGitHub(f) && (!settings.githubConnected || !settings.allowGuesses)),
     )
     .map((f) =>
-      f.id === "pf_budget" ? { ...f, value: "$" + (budget / 100).toLocaleString("en-US") } : f,
+      !live && f.id === "pf_budget" ? { ...f, value: "$" + (budget / 100).toLocaleString("en-US") } : f,
     );
 
   const openTool = (s: Subscription | null, name?: string) => {
+    setToolError(null);
     setEditing(s);
     setPreset(name);
     setDrawerOpen(true);
   };
   const close = useCallback(() => setDrawerOpen(false), []);
 
-  const bump = () => {
-    const next = version + 1;
-    setVersion(next);
-    setSavedNote(`Saved as version ${next}. Discover will re-rank with it.`);
+  /** Applies a profile change and, when live, saves it as a new version (undoing it if refused). */
+  const commitProfile = async (nextFields: ProfileField[], nextWorkflows: Workflow[]) => {
+    const prev = { fields, workflows };
+    setFields(nextFields);
+    setWorkflows(nextWorkflows);
+    if (!live) {
+      const next = version + 1;
+      setVersion(next);
+      setSavedNote(`Saved as version ${next}. Discover will re-rank with it.`);
+      return;
+    }
+    setSavedNote("Saving…");
+    try {
+      const v = await live.saveProfile(nextFields, nextWorkflows);
+      setVersion(v);
+      setSavedNote(`Saved as version ${v}. New comparisons use it.`);
+    } catch (e) {
+      setFields(prev.fields);
+      setWorkflows(prev.workflows);
+      setSavedNote(e instanceof Error ? `Not saved: ${e.message}` : "Not saved.");
+    }
+  };
+
+  const saveTool = async (s: Subscription) => {
+    const isNew = !subs.some((p) => p.id === s.id);
+    if (!live) {
+      setSubs((prev) => (isNew ? [...prev, s] : prev.map((p) => (p.id === s.id ? s : p))));
+      setDrawerOpen(false);
+      return;
+    }
+    setToolBusy(true);
+    setToolError(null);
+    try {
+      const saved = await live.saveTool(s, isNew);
+      setSubs((prev) => (isNew ? [...prev, saved] : prev.map((p) => (p.id === s.id ? saved : p))));
+      setDrawerOpen(false);
+    } catch (e) {
+      setToolError(e instanceof Error ? e.message : "Couldn't save it.");
+    } finally {
+      setToolBusy(false);
+    }
+  };
+
+  const removeTool = async (id: string) => {
+    const index = subs.findIndex((p) => p.id === id);
+    if (index < 0) return;
+    if (live) {
+      setToolBusy(true);
+      setToolError(null);
+      try {
+        await live.setStatus(id, "archived");
+      } catch (e) {
+        setToolError(e instanceof Error ? e.message : "Couldn't remove it.");
+        setToolBusy(false);
+        return;
+      }
+      setToolBusy(false);
+    }
+    setRemoved({ sub: subs[index], index });
+    setSubs((prev) => prev.filter((p) => p.id !== id));
+    setDrawerOpen(false);
+  };
+
+  const undoRemove = async () => {
+    if (!removed) return;
+    const { sub, index } = removed;
+    setRemoved(null);
+    if (live) {
+      try {
+        await live.setStatus(sub.id, sub.status === "archived" ? "active" : sub.status);
+      } catch {
+        return;
+      }
+    }
+    setSubs((prev) => {
+      const next = [...prev];
+      next.splice(Math.min(index, next.length), 0, sub);
+      return next;
+    });
   };
 
   // The undo offer fades after a few seconds.
@@ -103,13 +199,13 @@ export function MyAiView({
               <Money cents={total} className="text-text-1" />
               <span>a month</span>
               <BudgetMeter spent={total} budget={budget} warnAtPct={settings.warnAtPct} />
-              {unknown.length > 0 && (
+              {unknownCount > 0 && (
                 <button
                   type="button"
-                  onClick={() => openTool(unknown[0])}
+                  onClick={() => unknown[0] && openTool(unknown[0])}
                   className="rounded-md text-text-3 underline-offset-4 transition-colors hover:text-text-1 hover:underline"
                 >
-                  · {unknown.length} price unknown
+                  · {unknownCount} price unknown
                 </button>
               )}
             </span>
@@ -159,10 +255,7 @@ export function MyAiView({
           <WorkflowsPanel
             workflows={workflows}
             tools={shown.map((s) => s.toolName)}
-            onSave={(next) => {
-              setWorkflows(next);
-              bump();
-            }}
+            onSave={(next) => void commitProfile(fields, next)}
           />
         </div>
         <div className="col-span-12 xl:col-span-8">
@@ -170,23 +263,22 @@ export function MyAiView({
             fields={visibleFields}
             version={version}
             savedNote={savedNote}
-            onConfirm={(id) => {
-              setFields((p) => p.map((f) => (f.id === id ? { ...f, status: "confirmed" } : f)));
-              bump();
-            }}
-            onRemove={(id) => {
-              setFields((p) => p.filter((f) => f.id !== id));
-              bump();
-            }}
+            onConfirm={(id) =>
+              void commitProfile(
+                fields.map((f) => (f.id === id ? { ...f, status: "confirmed" } : f)),
+                workflows,
+              )
+            }
+            onRemove={(id) => void commitProfile(fields.filter((f) => f.id !== id), workflows)}
             onEdit={(id, value) => {
               if (id === "pf_budget") {
                 const cents = dollarsToCents(value);
                 if (cents !== null && cents > 0) updateSettings({ budgetCents: cents });
               }
-              setFields((p) =>
-                p.map((f) => (f.id === id ? { ...f, value, source: "stated", status: "confirmed" } : f)),
+              void commitProfile(
+                fields.map((f) => (f.id === id ? { ...f, value, source: "stated", status: "confirmed" } : f)),
+                workflows,
               );
-              bump();
             }}
           />
         </div>
@@ -196,19 +288,12 @@ export function MyAiView({
         open={drawerOpen}
         tool={editing}
         presetName={preset}
+        catalog={live ? live.catalog.filter((t) => editing?.toolId === t.id || !shown.some((s) => s.toolId === t.id)) : undefined}
+        busy={toolBusy}
+        error={toolError}
         onClose={close}
-        onSave={(s) => {
-          setSubs((prev) =>
-            prev.some((p) => p.id === s.id) ? prev.map((p) => (p.id === s.id ? s : p)) : [...prev, s],
-          );
-          setDrawerOpen(false);
-        }}
-        onRemove={(id) => {
-          const index = subs.findIndex((p) => p.id === id);
-          if (index >= 0) setRemoved({ sub: subs[index], index });
-          setSubs((prev) => prev.filter((p) => p.id !== id));
-          setDrawerOpen(false);
-        }}
+        onSave={(s) => void saveTool(s)}
+        onRemove={(id) => void removeTool(id)}
       />
 
       {/* Undo after removing a tool. */}
@@ -227,15 +312,7 @@ export function MyAiView({
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => {
-                const { sub, index } = removed;
-                setSubs((prev) => {
-                  const next = [...prev];
-                  next.splice(Math.min(index, next.length), 0, sub);
-                  return next;
-                });
-                setRemoved(null);
-              }}
+              onClick={() => void undoRemove()}
             >
               Undo
             </Button>

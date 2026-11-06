@@ -9,7 +9,10 @@ import { ToolMark } from "@/components/kit/tool-mark";
 import { Segmented } from "@/components/kit/segmented";
 import { Button } from "@/components/ui/button";
 
+type CatalogItem = { id: string; name: string; category: string };
+
 type Draft = {
+  toolId: string;
   toolName: string;
   category: string;
   plan: string;
@@ -19,25 +22,32 @@ type Draft = {
   status: Subscription["status"];
 };
 
-const toDraft = (s: Subscription | null, preset?: string): Draft => ({
-  toolName: s?.toolName ?? preset ?? "",
-  category: s?.category ?? "",
+const toDraft = (s: Subscription | null, preset?: string, catalog?: CatalogItem[]): Draft => {
+  // From a suggestion, start on the matching catalog tool if there is one.
+  const match = !s && preset && catalog ? catalog.find((t) => t.name.toLowerCase().includes(preset.toLowerCase())) : undefined;
+  return {
+  toolId: s?.toolId ?? match?.id ?? "",
+  toolName: s?.toolName ?? match?.name ?? preset ?? "",
+  category: s?.category ?? match?.category ?? "",
   plan: s?.plan ?? "",
   price: s?.renewalCents != null ? (s.renewalCents / 100).toFixed(2) : "",
   cadence: s?.cadence === "annual" ? "annual" : "monthly",
   renewsOn: s?.renewsOn ?? "",
   status: s?.status ?? "active",
-});
+  };
+};
 
 /**
- * Side sheet to add or edit a tool.
- * TODO(api): POST/PATCH /api/inventory. The backend computes the monthly equivalent;
- * the value computed here is only for the local preview.
+ * Side sheet to add or edit a tool. With `catalog` (live data), the tool is picked from the
+ * Wallio catalog and the API saves it; the server computes the monthly equivalent and totals.
  */
 export function ToolDrawer({
   open,
   tool,
   presetName,
+  catalog,
+  busy = false,
+  error = null,
   onClose,
   onSave,
   onRemove,
@@ -46,6 +56,10 @@ export function ToolDrawer({
   tool: Subscription | null; // null = adding
   /** When adding from a suggestion, the tool name to start with. */
   presetName?: string;
+  /** Live: the catalog tools that can be added. */
+  catalog?: CatalogItem[];
+  busy?: boolean;
+  error?: string | null;
   onClose: () => void;
   onSave: (s: Subscription) => void;
   onRemove: (id: string) => void;
@@ -57,6 +71,9 @@ export function ToolDrawer({
           key={tool?.id ?? `new-${presetName ?? ""}`}
           tool={tool}
           presetName={presetName}
+          catalog={catalog}
+          busy={busy}
+          error={error}
           onClose={onClose}
           onSave={onSave}
           onRemove={onRemove}
@@ -69,18 +86,24 @@ export function ToolDrawer({
 function DrawerBody({
   tool,
   presetName,
+  catalog,
+  busy,
+  error,
   onClose,
   onSave,
   onRemove,
 }: {
   tool: Subscription | null;
   presetName?: string;
+  catalog?: CatalogItem[];
+  busy: boolean;
+  error: string | null;
   onClose: () => void;
   onSave: (s: Subscription) => void;
   onRemove: (id: string) => void;
 }) {
-  const [d, setD] = useState<Draft>(() => toDraft(tool, presetName));
-  const first = useRef<HTMLInputElement>(null);
+  const [d, setD] = useState<Draft>(() => toDraft(tool, presetName, catalog));
+  const first = useRef<HTMLInputElement & HTMLSelectElement>(null);
   const adding = tool === null;
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) =>
     setD((p) => ({ ...p, [k]: v }));
@@ -98,13 +121,15 @@ function DrawerBody({
   const cents =
     d.price.trim() === "" ? null : Math.round(parseFloat(d.price) * 100);
   const valid =
-    d.toolName.trim() !== "" && (cents === null || Number.isFinite(cents));
+    d.toolName.trim() !== "" && (!catalog || d.toolId !== "") && (cents === null || Number.isFinite(cents));
 
   const save = () => {
     if (!valid) return;
     const renewal = cents !== null && Number.isFinite(cents) ? cents : null;
     onSave({
       id: tool?.id ?? `sub_${Date.now()}`,
+      toolId: d.toolId || undefined,
+      seats: tool?.seats ?? 1,
       toolName: d.toolName.trim(),
       category: d.category.trim() || "Other",
       plan: d.plan.trim() || "Unknown",
@@ -204,22 +229,46 @@ function DrawerBody({
               )}
             </dl>
           )}
-          <Field label="Tool">
-            <input
-              ref={first}
-              value={d.toolName}
-              onChange={(e) => set("toolName", e.target.value)}
-              placeholder="e.g. Cursor"
-              className={input}
-            />
-          </Field>
+          {catalog && adding ? (
+            <Field label="Tool">
+              <select
+                ref={first}
+                value={d.toolId}
+                onChange={(e) => {
+                  const t = catalog.find((x) => x.id === e.target.value);
+                  setD((p) => ({ ...p, toolId: t?.id ?? "", toolName: t?.name ?? "", category: t?.category ?? "" }));
+                }}
+                className={`${input} appearance-none [color-scheme:dark]`}
+              >
+                <option value="">Pick a tool</option>
+                {catalog.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          ) : (
+            !catalog && (
+              <Field label="Tool">
+                <input
+                  ref={first}
+                  value={d.toolName}
+                  onChange={(e) => set("toolName", e.target.value)}
+                  placeholder="e.g. Cursor"
+                  className={input}
+                />
+              </Field>
+            )
+          )}
           <div className="grid grid-cols-2 gap-3">
             <Field label="Category">
               <input
                 value={d.category}
                 onChange={(e) => set("category", e.target.value)}
                 placeholder="Coding"
-                className={input}
+                readOnly={!!catalog}
+                className={`${input} ${catalog ? "text-text-2" : ""}`}
               />
             </Field>
             <Field label="Plan">
@@ -290,6 +339,7 @@ function DrawerBody({
             A blank price stays &ldquo;Unknown&rdquo;. Wallio never counts it as
             $0.
           </p>
+          {error && <p className="text-[13px] text-danger">{error}</p>}
         </form>
 
         <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-line px-6 py-4">
@@ -297,7 +347,8 @@ function DrawerBody({
             <button
               type="button"
               onClick={() => onRemove(tool.id)}
-              className="text-[13px] text-text-3 hover:text-danger"
+              disabled={busy}
+              className="text-[13px] text-text-3 hover:text-danger disabled:opacity-50"
             >
               Remove tool
             </button>
@@ -308,8 +359,8 @@ function DrawerBody({
             <Button variant="ghost" onClick={onClose}>
               Cancel
             </Button>
-            <Button variant="primary" disabled={!valid} onClick={save}>
-              {adding ? "Add tool" : "Save"}
+            <Button variant="primary" disabled={!valid || busy} onClick={save}>
+              {busy ? "Saving…" : adding ? "Add tool" : "Save"}
             </Button>
           </span>
         </footer>

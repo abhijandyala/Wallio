@@ -1,16 +1,8 @@
-import { homeSample } from "@/mocks/home";
-import { profileSample } from "@/mocks/my-ai";
-import { MyAiView } from "@/components/my-ai/my-ai-view";
+import { MyAiLive } from "@/components/my-ai/my-ai-live";
 
 export const metadata = { title: "My AI · Wallio" };
 
+/** My AI comes from the Wallio API: GET /api/inventory, GET /api/profile and GET /api/catalog. */
 export default function MyAiPage() {
-  // TODO(api): replace with GET /api/inventory, GET /api/profile and GET /api/connections.
-  return (
-    <MyAiView
-      initial={homeSample.subscriptions}
-      profile={profileSample}
-      today={homeSample.today}
-    />
-  );
+  return <MyAiLive />;
 }

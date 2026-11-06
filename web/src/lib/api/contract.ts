@@ -47,12 +47,81 @@ export interface CatalogTool {
   pricingUrl: string | null;
 }
 
-export interface ProfileVersion {
-  id: string;
-  version: number;
+export interface ProfileAttribute {
+  key: string;
+  value: string | number | boolean | string[];
+  origin: "user_stated" | "inferred";
+  /** Required when origin is "inferred". */
+  source: string | null;
+  confidence: "low" | "medium" | "high" | null;
+  confirmed: boolean;
+  updatedAt: string;
+}
+
+/** POST /api/profile/versions body. Every save is a new version. */
+export interface ProfileVersionInput {
   primaryRole: string;
+  /** 1 to 3. */
   workflows: { id: string; name: string; description: string; priority: number }[];
   budget: { currency: string; maxMonthlyMinor: number };
+  deploymentPreference: "local" | "cloud" | "either";
+  dataSensitivity: "low" | "medium" | "high";
+  willingnessToSwitch: "low" | "medium" | "high";
+  requiredIntegrations: string[];
+  attributes: ProfileAttribute[];
+}
+
+export interface ProfileVersion extends ProfileVersionInput {
+  id: string;
+  version: number;
+  createdAt: string;
+}
+
+// ───────────────────────── Inventory ─────────────────────────
+
+export type Price = { known: true; amountMinor: number; currency: string } | { known: false; reason: string };
+export type BillingCadence = "monthly" | "annual" | "usage_based" | "free";
+
+export interface ApiSubscription {
+  id: string;
+  toolId: string;
+  plan: string;
+  price: Price;
+  cadence: BillingCadence;
+  seats: number;
+  renewalDate: string | null;
+  taxIncluded: boolean | null;
+  source: "user_entered" | "imported" | "seed";
+  status: "active" | "paused" | "archived";
+  lastVerifiedAt: string | null;
+}
+
+/** POST /api/inventory body (PATCH takes any part of it, plus status). */
+export interface SubscriptionInput {
+  toolId: string;
+  plan: string;
+  price: Price;
+  cadence: BillingCadence;
+  seats: number;
+  renewalDate: string | null;
+  taxIncluded: boolean | null;
+}
+
+/** Computed by the server. The UI never adds prices up itself. */
+export interface InventorySummary {
+  currency: string;
+  /** Sum of known monthly equivalents. Null if every price is unknown. */
+  knownMonthlyEquivalentMinor: number | null;
+  unknownPriceCount: number;
+  upcomingRenewals: { subscriptionId: string; renewalDate: string; amount: { amountMinor: number; currency: string } }[];
+  calculationVersion: string;
+  computedAt: string;
+}
+
+export interface InventoryResponse {
+  subscriptions: ApiSubscription[];
+  tools: CatalogTool[];
+  summary: InventorySummary;
 }
 
 export interface ComparisonRequest {

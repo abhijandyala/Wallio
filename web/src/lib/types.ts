@@ -30,6 +30,9 @@ export interface Subscription {
   lastCheckedOn?: string | null;
   /** The vendor's own page for managing or cancelling the plan. */
   manageUrl?: string | null;
+  /** Live data only: the catalog tool this is a plan of, and how many seats. */
+  toolId?: string;
+  seats?: number;
 }
 
 /** An account Wallio reads from, and exactly what it may read. */

@@ -566,7 +566,8 @@ function RowContent({
 
 /* ── Usage: which workflows a tool serves, and what it overlaps with ── */
 
-type Usage = { names: string[]; overlaps: string[] };
+/** `tracked` = the workflows say which tools they use (the API's workflows don't, yet). */
+type Usage = { names: string[]; overlaps: string[]; tracked: boolean };
 
 // Which workflows use a tool is the user's own input; overlap is judged by the backend.
 const usage = (s: Subscription, workflows: Workflow[], stack: Subscription[]): Usage => ({
@@ -576,13 +577,18 @@ const usage = (s: Subscription, workflows: Workflow[], stack: Subscription[]): U
     .map((w) => w.name),
   // Only overlaps with tools still in the stack.
   overlaps: (s.overlapsWith ?? []).filter((n) => stack.some((x) => x.toolName === n)),
+  tracked: workflows.some((w) => w.tools !== undefined),
 });
 
 const shortName = (n: string) => n.replace(/^GitHub /, "");
 
 function UsageLine({ usage, className }: { usage: Usage; className?: string }) {
   if (usage.names.length === 0)
-    return <span className={cn("truncate text-text-3", className)}>Not in a workflow</span>;
+    return (
+      <span className={cn("truncate text-text-3", className)}>
+        {usage.tracked ? "Not in a workflow" : " "}
+      </span>
+    );
   return (
     <span className={cn("truncate text-text-2", className)}>
       {usage.names.join(", ")}

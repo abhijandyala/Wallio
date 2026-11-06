@@ -6,6 +6,7 @@ import type {
   ApiError,
   ApprovalIntent,
   CatalogTool,
+  ApiSubscription,
   ComparisonRequest,
   Decision,
   DecisionLogEntry,
@@ -13,7 +14,10 @@ import type {
   DecisionsOverview,
   Evidence,
   Health,
+  InventoryResponse,
   ProfileVersion,
+  ProfileVersionInput,
+  SubscriptionInput,
   Recommendation,
   Run,
 } from "./contract";
@@ -76,6 +80,12 @@ export const api = {
   approval: (id: string) => call<ApprovalIntent>(`/api/approvals/${id}`),
   decide: (id: string, decision: "approve" | "decline", intentHash: string) =>
     call<ApprovalIntent>(`/api/approvals/${id}/decision`, { json: { decision, intentHash } }),
+  // My AI
+  inventory: () => call<InventoryResponse>("/api/inventory"),
+  addSubscription: (input: SubscriptionInput) => call<ApiSubscription>("/api/inventory", { json: input }),
+  updateSubscription: (id: string, patch: Partial<SubscriptionInput> & { status?: ApiSubscription["status"] }) =>
+    call<ApiSubscription>(`/api/inventory/${id}`, { method: "PATCH", json: patch }),
+  saveProfile: (input: ProfileVersionInput) => call<ProfileVersion>("/api/profile/versions", { json: input }),
   // Decisions (v0.3)
   decisions: () => call<DecisionsOverview>("/api/decisions"),
   recordDecision: (req: DecisionRequest) => call<Decision>("/api/decisions", { json: req }),
