@@ -9,7 +9,7 @@ import { landMask } from "../land";
  * "Built on Vultr", in the reference's globe card: copy on the left over deep mint, and on
  * the right a huge glowing planet, half off the card, with the land printed on it as a grid
  * of small dark dots. Ours is a real map (Natural Earth, orthographic), turned so the
- * Americas face us, with a lavender pin where the API runs: Los Angeles.
+ * Americas face us, with an aurora pin where the API runs: Los Angeles.
  */
 const LON0 = -55;
 const LAT0 = 30;
@@ -126,7 +126,7 @@ export function Vultr() {
             aria-hidden="true"
             className="pointer-events-none absolute flex -translate-y-1/2 items-center gap-[0.6rem] opacity-0 transition-opacity duration-500 max-md:hidden"
           >
-            <span className="relative size-[0.75rem] -translate-x-1/2 rounded-full bg-[var(--wl-lav)] shadow-[0_0_0_0.35rem_rgba(221,208,255,0.35),0_0_1.5rem_0.4rem_rgba(221,208,255,0.6)]" />
+            <span className="relative size-[0.75rem] -translate-x-1/2 rounded-full bg-[#3fb3a6] shadow-[0_0_0_0.35rem_rgba(98,198,187,0.35),0_0_1.5rem_0.4rem_rgba(98,198,187,0.55)]" />
             <span className="rounded-[0.375rem] bg-[rgba(3,20,13,0.78)] px-[0.6rem] py-[0.35rem] text-[0.75rem] leading-none tracking-[0.09rem] text-white uppercase backdrop-blur-sm">
               {VULTR.pin}
             </span>

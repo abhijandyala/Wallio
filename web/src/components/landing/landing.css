@@ -1,7 +1,7 @@
 /*
  * Landing page system. Layout, type sizes and motion follow the reference measured at
  * 1512 x 944, where 1rem = 16px; the root scales with the viewport the way the reference's
- * fluid type does. Colours are Wallio's: their teal becomes our mint, their pink our lavender.
+ * fluid type does. Colours are Wallio's: their teal becomes our mint, their pink our aurora.
  * Phones get a fixed 16px root.
  */
 html:has(.wl-root) {
@@ -34,10 +34,10 @@ body:has(.wl-root) {
     --wl-mint: #c9ffe6; /* (#cbfffc) */
     --wl-100: #effff8; /* (#edfffe) */
     --wl-cream: #fffdfa;
-    /* Their pink, in our lavender */
-    --wl-lav: #ddd0ff; /* (#fad1ff) */
-    --wl-lav-100: #efe9ff; /* (#fde9ff) */
-    --wl-lav-200: #c9b8f7; /* (#ebcbef) */
+    /* Their pink, in our aurora (the dashboard's hint colour, paled) */
+    --wl-aur: #c2f0ec; /* (#fad1ff) */
+    --wl-aur-100: #e3f8f5; /* (#fde9ff) */
+    --wl-aur-200: #84d8cf; /* (#ebcbef) */
     --wl-silver: #bcc6c2; /* (#bbc7c6) */
 
     background: transparent;
@@ -82,14 +82,14 @@ body:has(.wl-root) {
     text-transform: uppercase;
   }
 
-  /* Eyebrow: wide-tracked caps filled with the mint-to-lavender gradient */
+  /* Eyebrow: wide-tracked caps filled with the mint-to-aurora gradient */
   .wl-eyebrow {
     font-size: 1.25rem;
     line-height: 1.75rem;
     font-weight: 600;
     letter-spacing: 0.3rem;
     text-transform: uppercase;
-    background: linear-gradient(90deg, var(--wl-mint) 0%, var(--wl-100) 26.25%, var(--wl-cream) 47.57%, var(--wl-lav) 88.96%);
+    background: linear-gradient(90deg, var(--wl-mint) 0%, var(--wl-100) 26.25%, var(--wl-cream) 47.57%, var(--wl-aur) 88.96%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -111,7 +111,7 @@ body:has(.wl-root) {
     white-space: nowrap;
   }
   .wl-btn-light {
-    background: linear-gradient(90deg, var(--wl-lav), var(--wl-cream), var(--wl-100), var(--wl-mint), var(--wl-mint), var(--wl-100), var(--wl-cream), var(--wl-lav));
+    background: linear-gradient(90deg, var(--wl-aur), var(--wl-cream), var(--wl-100), var(--wl-mint), var(--wl-mint), var(--wl-100), var(--wl-cream), var(--wl-aur));
     background-size: 200% 100%;
     background-position: 100% 0%;
     transition: background-position 600ms ease;
@@ -121,7 +121,7 @@ body:has(.wl-root) {
     background-position: 0% 0%;
   }
   .wl-btn-mint {
-    background: linear-gradient(90deg, var(--wl-mint), var(--wl-lav), var(--wl-btn), var(--wl-700));
+    background: linear-gradient(90deg, var(--wl-mint), var(--wl-aur), var(--wl-btn), var(--wl-700));
     background-size: 280% 100%;
     background-position: 100% 0%;
     transition:
@@ -179,7 +179,7 @@ body:has(.wl-root) {
     line-height: 1;
     font-weight: 600;
     letter-spacing: -3.479px;
-    background-image: linear-gradient(90deg, var(--wl-100) 0%, var(--wl-lav) 100%);
+    background-image: linear-gradient(90deg, var(--wl-100) 0%, var(--wl-aur) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;

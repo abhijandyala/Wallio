@@ -7,8 +7,9 @@ import { useReducedMotionConfig } from "motion/react";
  * The hero's liquid ball, after the reference's: about 41,000 particles filling a ball, each
  * drawn as a tiny digit in one of four mint shades. The reference runs a real fluid
  * simulation on WebGPU; this is a WebGL stand-in that moves the particles with layered flow
- * so the ball slowly churns and loses its round edge, and pushes them away from the cursor,
- * tinting the pushed ones lavender. Works in world units of CSS pixels.
+ * so the ball slowly churns and loses its round edge. Near the cursor the digits light up in
+ * aurora, fading out over a soft radius, and stay where they are. Works in world units of
+ * CSS pixels.
  *
  * Placement: the canvas covers the hero and the giant text below it. The ball's centre sits
  * 760px down the canvas and 33px right of centre, and sinks about a fifth as fast as the page
@@ -23,7 +24,7 @@ uniform vec3 uCenter;
 uniform vec2 uMouse;
 uniform float uForce;
 uniform vec3 uShades[4];
-uniform vec3 uLav;
+uniform vec3 uGlow, uGlowHi;
 varying vec3 vColor;
 varying float vDigit;
 
@@ -55,12 +56,9 @@ void main() {
   // Surface points shiver a little more than the core.
   p += (aInfo.z - 0.5) * smoothstep(0.75, 1.0, length(q)) * uR * 0.03 * vec3(sin(t * 2.0 + aInfo.z * 40.0), cos(t * 1.7 + aInfo.z * 30.0), 0.0);
 
-  // The cursor pushes particles out of its way.
-  vec2 rel = (p.xy + uCenter.xy) - uMouse;
-  float d = length(rel);
-  float push = uForce * (1.0 - smoothstep(0.0, uR * 0.62, d));
-  p.xy += normalize(rel + 1e-4) * push * uR * 0.28;
-  p.z += push * uR * 0.12;
+  // The cursor lights the digits around it in aurora: brightest at the centre, fading out.
+  float d = length((p.xy + uCenter.xy) - uMouse);
+  float glow = uForce * (1.0 - smoothstep(0.0, uR * 0.5, d));
 
   vec3 world = p + uCenter;
   vec4 mv = modelViewMatrix * vec4(world, 1.0);
@@ -75,9 +73,10 @@ void main() {
   vec3 n = normalize(p + 1e-3);
   float lit = clamp(dot(n, normalize(vec3(-0.65, 0.45, 0.6))) * 0.5 + 0.5, 0.0, 1.0);
   col *= 0.6 + 0.8 * lit;
-  vColor = mix(col, uLav, clamp(push * 1.6, 0.0, 1.0));
+  vec3 lightCol = mix(uGlow, uGlowHi, smoothstep(0.35, 0.9, glow));
+  vColor = mix(col, lightCol, clamp(glow * 1.3, 0.0, 0.9));
   vDigit = aInfo.x;
-  gl_PointSize = 5.4 * uPixel * (uDist / -mv.z);
+  gl_PointSize = 5.4 * uPixel * (uDist / -mv.z) * (1.0 + 0.12 * glow);
 }
 `;
 
@@ -168,7 +167,8 @@ export function DigitBall({ className }: { className?: string }) {
           uMouse: { value: new THREE.Vector2(9999, 9999) },
           uForce: { value: 0 },
           uShades: { value: shades },
-          uLav: { value: new THREE.Color("#ddd0ff") },
+          uGlow: { value: new THREE.Color("#84d8cf") },
+          uGlowHi: { value: new THREE.Color("#b4ece5") },
           uDigits: { value: atlas },
         },
         vertexShader: VERT,

@@ -5,7 +5,7 @@ import { LIMITS } from "../content";
 import { cn } from "@/lib/utils";
 
 /**
- * The numbers, in the reference's bento: a tall pale card on the left (lavender to cream to
+ * The numbers, in the reference's bento: a tall pale card on the left (aurora to cream to
  * mint) and three deep mint cards on the right, one wide over two. Each card hides a faint
  * dot grid that lights up around the cursor, like the reference's card effect.
  */
@@ -40,7 +40,7 @@ function Card({ card, pale, className }: { card: (typeof LIMITS.cards)[number]; 
       className={cn(
         "group relative flex min-h-[18.125rem] flex-col justify-between overflow-hidden rounded-[1rem] p-[2.25rem]",
         pale
-          ? "bg-[radial-gradient(41288.31%_255.77%_at_-42.4%_-22.13%,var(--wl-lav)_0%,var(--wl-cream)_44.72%,var(--wl-100)_85.38%,var(--wl-mint)_100%)] text-[var(--wl-900)]"
+          ? "bg-[radial-gradient(41288.31%_255.77%_at_-42.4%_-22.13%,var(--wl-aur)_0%,var(--wl-cream)_44.72%,var(--wl-100)_85.38%,var(--wl-mint)_100%)] text-[var(--wl-900)]"
           : "bg-[var(--wl-800)]",
         className,
       )}
@@ -64,7 +64,7 @@ function Card({ card, pale, className }: { card: (typeof LIMITS.cards)[number]; 
       <div
         className={cn(
           "relative mt-8 text-[5.67rem] leading-none font-semibold tracking-[-0.25rem] max-md:text-[4rem]",
-          pale ? "text-[var(--wl-900)]" : "text-[var(--wl-lav-100)]",
+          pale ? "text-[var(--wl-900)]" : "text-[var(--wl-aur-100)]",
         )}
       >
         {card.value}

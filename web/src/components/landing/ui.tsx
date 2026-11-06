@@ -25,7 +25,7 @@ export function Arrow({ className }: { className?: string }) {
 
 const external = (href: string) => href.startsWith("http");
 
-/** Button. `light` is the pale mint-to-lavender one, `mint` the deep one that brightens on hover. */
+/** Button. `light` is the pale mint-to-aurora one, `mint` the deep one that brightens on hover. */
 export function Btn({
   href,
   variant = "light",

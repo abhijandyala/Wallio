@@ -7,11 +7,11 @@ import { cn } from "@/lib/utils";
 /**
  * A big statement between sections, as the reference does it: three quarters of a screen
  * tall, the text centred, every line a gradient. As the block crosses 60% of the screen,
- * each line in turn shifts from deep mint into pale mint and lavender. The lines overlap
+ * each line in turn shifts from deep mint into pale mint and aurora. The lines overlap
  * like the reference's stagger: each takes 0.5 of the run and starts 0.3 after the last.
  */
 const FROM = ["#128a5e", "#effff8"];
-const TO = ["#c9ffe6", "#ddd0ff"];
+const TO = ["#c9ffe6", "#a8e6de"];
 
 export function Statement({ lines, className }: { lines: string[]; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
