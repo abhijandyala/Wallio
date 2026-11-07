@@ -79,7 +79,7 @@ export function CategoryPanel({
               <>
                 <Money cents={c.cents} className="text-text-1" />
                 <span className="tnum w-10 text-right text-text-3">
-                  {Math.round((c.cents / totalCents) * 100)}%
+                  {Math.round((c.cents / Math.max(totalCents, 1)) * 100)}%
                 </span>
               </>
             ) : (

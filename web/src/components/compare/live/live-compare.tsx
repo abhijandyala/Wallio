@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import recorded from "@/mocks/recorded-runs.json";
 import type { ApprovalIntent, Evidence as ApiEvidence, Recommendation, Run, RunEvent } from "@/lib/api/contract";
-import { api, ApiFailure, explainFailure, useApiStatus } from "@/lib/api/client";
+import { activeRunId, api, ApiFailure, explainFailure, explainRun, useApiStatus } from "@/lib/api/client";
 import { DecisionBar } from "./decision-bar";
 import { isTerminal, liveSource, recordedSource } from "@/lib/api/run-source";
 import type { Evidence as UiEvidence } from "@/lib/types";
@@ -75,6 +75,7 @@ interface Job {
   error: string | null;
 }
 
+const RUN_KIND = { comparison: "comparison", trial: "trial_request", containment: "containment" } as const;
 const fresh = (source: Source): Job => ({ source, events: [], run: null, error: null });
 /** Rate limits and an offline runner get a plain sentence; see explainFailure. */
 const message = (e: unknown) => explainFailure(e);
@@ -122,7 +123,8 @@ export function LiveCompare({ focus }: { focus: "comparison" | "containment" }) 
     }
     try {
       const run = await api.run(runId);
-      patch(kind, { run });
+      // A run can fail after it was accepted (202): runner_unavailable, timeouts. Say why.
+      patch(kind, { run, error: explainRun(run) });
       if (kind === "comparison" && run.recommendationId) setRec(await api.recommendation(run.recommendationId));
     } catch (e) {
       patch(kind, { error: message(e) });
@@ -194,13 +196,24 @@ export function LiveCompare({ focus }: { focus: "comparison" | "containment" }) 
         if (!rec) return;
         runId = (await api.startTrialRequest(rec.id, GOLDEN.candidate)).runId;
       }
-      stops.current[kind] = liveSource(runId).start(
-        (e) => onEvent(kind, "live", e),
-        (msg) => patch(kind, { error: msg }),
-      );
+      follow(kind, runId);
     } catch (e) {
+      // 409: this workspace already has a run going (say, from before a reload). If it's the
+      // same kind, pick it up instead of refusing.
+      const going = activeRunId(e);
+      if (going) {
+        const run = await api.run(going).catch(() => null);
+        if (run && run.kind === RUN_KIND[kind]) return follow(kind, going);
+      }
       patch(kind, { error: message(e) });
     }
+  }
+
+  function follow(kind: Kind, runId: string) {
+    stops.current[kind] = liveSource(runId).start(
+      (e) => onEvent(kind, "live", e),
+      (msg) => patch(kind, { error: msg }),
+    );
   }
 
   async function decide(d: "approve" | "decline") {
@@ -478,7 +491,8 @@ function successChecks(x: {
   demoContainment: boolean;
 }): Check[] {
   const { calls, comparison, containment, rec, replay, decided } = x;
-  const runFirst = "Run the comparison to check this.";
+  const stopped = !!comparison?.error;
+  const runFirst = stopped ? "The last run stopped before this could be checked." : "Run the comparison to check this.";
 
   const inference: Check = {
     name: "Inference",
@@ -486,7 +500,7 @@ function successChecks(x: {
     state: "waiting",
     note: runFirst,
   };
-  if (comparison?.run) {
+  if (comparison?.run && !stopped) {
     const ok = calls.every((c) => c.type === "inference_call" && c.data.ok);
     if (x.demoComparison) inference.note = "Demo playback makes no model calls. Checked once runs are live.";
     else if (calls.length && ok) Object.assign(inference, { state: "pass", note: `${calls.length} calls, all answered` });
@@ -578,7 +592,7 @@ function successChecks(x: {
     state: "waiting",
     note: runFirst,
   };
-  if (comparison?.run && comparison.events.length > 1) {
+  if (comparison?.run && !stopped && comparison.events.length > 1) {
     const secs = Math.round(
       (new Date(comparison.events.at(-1)!.ts).getTime() - new Date(comparison.events[0].ts).getTime()) / 1000,
     );

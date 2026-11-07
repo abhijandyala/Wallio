@@ -43,12 +43,14 @@ export function DecisionHero({ decision }: { decision: DecisionCard | null }) {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <ButtonLink href="/compare" variant="inverse" size="lg">
+          <ButtonLink href={decision.href ?? "/compare"} variant="inverse" size="lg">
             {decision.primaryCta} <ArrowRight size={16} />
           </ButtonLink>
-          <Button variant="inverse-ghost" size="lg">
-            {decision.secondaryCta}
-          </Button>
+          {decision.secondaryCta && (
+            <Button variant="inverse-ghost" size="lg">
+              {decision.secondaryCta}
+            </Button>
+          )}
         </div>
       </div>
     </Panel>

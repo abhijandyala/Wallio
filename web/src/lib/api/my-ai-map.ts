@@ -180,3 +180,17 @@ export function toProfileInput(base: ProfileVersion, fields: ProfileField[], wor
     attributes,
   };
 }
+
+/** The same profile as a new version with only the monthly budget changed. */
+export function withBudget(p: ProfileVersion, maxMonthlyMinor: number): ProfileVersionInput {
+  return {
+    primaryRole: p.primaryRole,
+    workflows: p.workflows.map(({ id, name, description, priority }) => ({ id, name, description, priority })),
+    budget: { currency: p.budget.currency, maxMonthlyMinor },
+    deploymentPreference: p.deploymentPreference,
+    dataSensitivity: p.dataSensitivity,
+    willingnessToSwitch: p.willingnessToSwitch,
+    requiredIntegrations: p.requiredIntegrations,
+    attributes: p.attributes,
+  };
+}

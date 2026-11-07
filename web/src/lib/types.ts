@@ -69,7 +69,10 @@ export interface DecisionCard {
   estimatedAnnualSavingsCents: number | null;
   dueOn: string | null;
   primaryCta: string;
+  /** Empty hides the second button. */
   secondaryCta: string;
+  /** Where the primary button goes. Defaults to /compare. */
+  href?: string;
 }
 
 /** One line in the Home inbox. Includes approvals, ready results, and changes that touch a decision. */

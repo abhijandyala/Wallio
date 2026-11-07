@@ -97,34 +97,57 @@ export const api = {
     call<DecisionLogEntry>(`/api/decisions/${decisionId}/outcome`, { json: { result } }),
 };
 
-/**
- * A sentence a person can act on, for any failed call. Rate limits say when to try again;
- * an offline browser runner says so plainly instead of a raw error.
- */
-export function explainFailure(e: unknown): string {
-  if (e instanceof ApiFailure) {
-    const { code, message, details } = e.error;
-    if (code === "rate_limited" || e.status === 429) {
-      const wait = Number(details?.retryAfterSeconds);
-      return Number.isFinite(wait) && wait > 0
-        ? `Too many runs at once. Try again in ${Math.ceil(wait)} second${Math.ceil(wait) === 1 ? "" : "s"}.`
-        : "Too many runs at once. Try again in a moment.";
-    }
-    if (code === "runner_unavailable") {
-      return "The sandboxed browser on Vultr isn't available right now, so nothing ran. Try again shortly, or play the recorded run.";
-    }
-    return message;
+/** "in 40 seconds", "in about 12 minutes", "in about an hour". Retry-After can be close to 3600. */
+export function waitPhrase(seconds: number): string {
+  const s = Math.ceil(seconds);
+  if (s < 60) return `in ${s} second${s === 1 ? "" : "s"}`;
+  if (s < 55 * 60) {
+    const m = Math.ceil(s / 60);
+    return `in about ${m} minute${m === 1 ? "" : "s"}`;
   }
+  return "in about an hour";
+}
+
+/**
+ * The API's own error as a sentence a person can act on. The API's messages are already
+ * written for people; rate limits get a readable wait instead of a raw number of seconds.
+ */
+export function explainApiError(err: ApiError, status?: number): string {
+  const { code, message, details } = err;
+  if (code === "rate_limited" || (status === 429 && code !== "quota_exceeded")) {
+    const wait = Number(details?.retryAfterSeconds);
+    const what = message.replace(/\s*Try again[^.]*\.?\s*$/i, "").trim() || "Too many requests.";
+    return Number.isFinite(wait) && wait > 0 ? `${what} Try again ${waitPhrase(wait)}.` : `${what} Try again in a moment.`;
+  }
+  if (code === "quota_exceeded" && typeof details?.limit === "number") {
+    const n = details.limit;
+    return `This workspace has used all ${n} ${n === 1 ? "run" : "runs"} for today. More open up at midnight UTC.`;
+  }
+  return message || "Something went wrong.";
+}
+
+/** Any failed call as a sentence: API errors via explainApiError, a dropped network plainly. */
+export function explainFailure(e: unknown): string {
+  if (e instanceof ApiFailure) return explainApiError(e.error, e.status);
   if (e instanceof TypeError) return "Can't reach the Wallio API. Check your connection and try again.";
   return e instanceof Error ? e.message : "Something went wrong.";
 }
 
-/** Seconds to wait before retrying, when the API said so (429 rate_limited). */
-export function retryAfter(e: unknown): number | null {
-  if (!(e instanceof ApiFailure)) return null;
-  if (e.error.code !== "rate_limited" && e.status !== 429) return null;
-  const wait = Number(e.error.details?.retryAfterSeconds);
-  return Number.isFinite(wait) && wait > 0 ? Math.ceil(wait) : null;
+/** A finished run that didn't succeed, as a sentence; null when it worked. */
+export function explainRun(run: Run): string | null {
+  if (run.outcome === "succeeded" || run.outcome === "partial") return null;
+  if (run.error) return explainApiError(run.error);
+  if (run.outcome === "cancelled") return "The run was cancelled.";
+  if (run.outcome === "timed_out") return "The run took too long and was stopped. Nothing was left running.";
+  if (run.outcome === "failed") return "The run failed. Nothing was left running.";
+  return null;
+}
+
+/** The run that's already going, when a start was refused with 409 conflict. */
+export function activeRunId(e: unknown): string | null {
+  if (!(e instanceof ApiFailure) || e.error.code !== "conflict") return null;
+  const id = e.error.details?.runId;
+  return typeof id === "string" ? id : null;
 }
 
 /** Forget this browser's guest workspace. The next API call starts a fresh one. */

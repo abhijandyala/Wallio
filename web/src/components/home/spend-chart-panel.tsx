@@ -13,8 +13,11 @@ const COUNT: Record<Range, number> = { "3m": 3, "6m": 6, "1y": 12 };
 /** The Home centerpiece: spend over time, with the Ask bar attached underneath. */
 export function SpendChartPanel({
   history,
+  sample = false,
 }: {
   history: HomeSummary["spendHistory"];
+  /** No spend history from the API yet: tag the chart so its numbers aren't read as yours. */
+  sample?: boolean;
 }) {
   const [range, setRange] = useState<Range>("6m");
   const data = history
@@ -28,8 +31,13 @@ export function SpendChartPanel({
     <section className="flex h-full flex-col overflow-hidden rounded-[20px] border border-line bg-surface-1">
       <header className="flex flex-wrap items-start justify-between gap-4 px-6 pt-6">
         <div>
-          <h2 className="text-[15px] font-medium text-text-1">
+          <h2 className="flex items-center gap-2 text-[15px] font-medium text-text-1">
             AI spend over time
+            {sample && (
+              <span className="rounded-[6px] border border-line-strong px-1.5 py-0.5 text-[11px] font-normal text-text-3">
+                Sample data
+              </span>
+            )}
           </h2>
           <p className="display mt-3 text-[36px] leading-[40px] font-medium text-text-1">
             <Money cents={last} />

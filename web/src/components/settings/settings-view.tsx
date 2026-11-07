@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { daysUntil, formatMoney, formatShortDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { resetGuestSession, useApiStatus } from "@/lib/api/client";
+import { useLiveBudget } from "@/lib/api/use-live-budget";
 import {
   ChipList,
   FixedRow,
@@ -313,16 +314,35 @@ type P = { s: Settings; set: (patch: Partial<Settings>, text?: string) => void }
 /* ── Spending ─────────────────────────────────────────────────────────── */
 
 function SpendingSection({ s, set }: P) {
-  const spent = homeSample.totals.monthlyCents;
-  const pct = Math.round((spent / Math.max(s.budgetCents, 1)) * 100);
-  const next = useMemo(
+  // The budget lives in the profile on the Wallio API; the local setting is the fallback.
+  const live = useLiveBudget();
+  const [budgetError, setBudgetError] = useState<string | null>(null);
+  const budgetCents = live.state === "live" ? live.budgetCents : s.budgetCents;
+  const spent = live.state === "live" ? live.spentCents : homeSample.totals.monthlyCents;
+  const pct = Math.round((spent / Math.max(budgetCents, 1)) * 100);
+  const sampleNext = useMemo(
     () =>
       homeSample.subscriptions
         .filter((x) => x.renewsOn && daysUntil(x.renewsOn, homeSample.today) >= 0)
         .sort((a, b) => a.renewsOn!.localeCompare(b.renewsOn!))[0],
     [],
   );
-  const nextDays = next?.renewsOn ? daysUntil(next.renewsOn, homeSample.today) : null;
+  const next =
+    live.state === "live"
+      ? live.next
+      : sampleNext?.renewsOn
+        ? { toolName: sampleNext.toolName, days: daysUntil(sampleNext.renewsOn, homeSample.today) }
+        : null;
+  const nextDays = next?.days ?? null;
+
+  const saveBudget = async (v: string) => {
+    const cents = Math.round(Number(v.replace(/[$,]/g, "")) * 100);
+    setBudgetError(null);
+    if (live.state !== "live") return set({ budgetCents: cents }, "Budget saved");
+    const err = await live.save(cents);
+    if (err) setBudgetError(`Not saved. ${err}`);
+    else set({ budgetCents: cents }, "Budget saved to your profile");
+  };
 
   return (
     <Section id="spending" title="Spending">
@@ -333,19 +353,24 @@ function SpendingSection({ s, set }: P) {
           prefix="$"
           width="w-32"
           inputMode="decimal"
-          value={String(s.budgetCents / 100)}
+          value={String(budgetCents / 100)}
           validate={(v) => {
             const n = Number(v.replace(/[$,]/g, ""));
             return Number.isFinite(n) && n > 0 && n < 100000 ? null : "Enter an amount above $0";
           }}
-          onSave={(v) => set({ budgetCents: Math.round(Number(v.replace(/[$,]/g, "")) * 100) }, "Budget saved")}
+          onSave={(v) => void saveBudget(v)}
         />
       </Row>
+      {budgetError && (
+        <p role="alert" className="border-t border-line px-6 py-3 text-[13px] text-danger">
+          {budgetError}
+        </p>
+      )}
       <div data-extra className="flex flex-col gap-2 border-t border-line px-6 py-4">
         <div className="flex items-center justify-between text-[13px]">
           <span className="text-text-3">This month</span>
           <span className={cn("tnum", pct >= s.warnAtPct ? "text-aurora" : "text-text-1")}>
-            {money0(spent)} of {money0(s.budgetCents)} · {pct}%
+            {money0(spent)} of {money0(budgetCents)} · {pct}%
             {pct >= s.warnAtPct && " · over your warning line"}
           </span>
         </div>

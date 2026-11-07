@@ -79,21 +79,23 @@ const isDemo = (events: RunEvent[]) =>
 
 /* ── stage bar + timeline ────────────────────────────────────────────── */
 
-export function StageBar({ events }: { events: RunEvent[] }) {
+export function StageBar({ events, failed = false }: { events: RunEvent[]; failed?: boolean }) {
   const last = events.at(-1);
   const now = last?.stage ?? "planning";
-  const idx = now === "done" ? STAGES.length : STAGES.findIndex((s) => s.id === now);
+  // A failed run ends on "done" too; show where it actually stopped instead of a full bar.
+  const reached = Math.max(0, ...events.map((e) => STAGES.findIndex((s) => s.id === e.stage)));
+  const idx = failed ? reached : now === "done" ? STAGES.length : STAGES.findIndex((s) => s.id === now);
   return (
-    <div className="grid grid-cols-5 gap-1.5 px-6 py-4" aria-label={`Stage: ${now}`}>
+    <div className="grid grid-cols-5 gap-1.5 px-6 py-4" aria-label={failed ? `Stopped at: ${STAGES[idx]?.label}` : `Stage: ${now}`}>
       {STAGES.map((s, i) => (
         <div key={s.id} className="flex min-w-0 flex-col gap-2">
           <span
             className={cn(
               "h-1 rounded-[1px] transition-colors duration-300",
-              i < idx ? "bg-lime" : i === idx && last ? "bg-aurora" : "bg-surface-3",
+              i < idx ? "bg-lime" : i === idx && last ? (failed ? "bg-danger" : "bg-aurora") : "bg-surface-3",
             )}
           />
-          <span className={cn("truncate text-[12px]", i === idx && last ? "text-text-1" : "text-text-3")}>
+          <span className={cn("truncate text-[12px]", i === idx && last ? (failed ? "text-danger" : "text-text-1") : "text-text-3")}>
             {s.label}
           </span>
         </div>
@@ -203,7 +205,7 @@ export function RunCard({
         )
       }
     >
-      <StageBar events={events} />
+      <StageBar events={events} failed={!!error} />
       {events.length === 0 && !error && (
         <p className="flex min-h-12 items-center gap-3 border-t border-line px-6 text-text-3">
           <span className="size-1.5 animate-pulse rounded-[1px] bg-aurora" /> Starting the run
