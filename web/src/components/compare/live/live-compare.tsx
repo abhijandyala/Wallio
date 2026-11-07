@@ -6,6 +6,8 @@ import recorded from "@/mocks/recorded-runs.json";
 import type { ApprovalIntent, Evidence as ApiEvidence, Recommendation, Run, RunEvent } from "@/lib/api/contract";
 import { activeRunId, api, ApiFailure, explainFailure, explainRun } from "@/lib/api/client";
 import { invalidate, useApiStatus } from "@/lib/api/cache";
+import { runnerSamples } from "@/mocks/runner";
+import { SignupFlow } from "./signup-cards";
 import { DecisionBar } from "./decision-bar";
 import { isTerminal, liveSource, recordedSource } from "@/lib/api/run-source";
 import type { Evidence as UiEvidence } from "@/lib/types";
@@ -97,6 +99,7 @@ export function LiveCompare({ focus }: { focus: "comparison" | "containment" }) 
   const [drawer, setDrawer] = useState<UiEvidence | null>(null);
   const [trialEvidence, setTrialEvidence] = useState<ApiEvidence | null>(null);
   const [healthy, setHealthy] = useState<boolean | null>(null);
+  const [signup, setSignup] = useState(0);
 
   const stops = useRef<Partial<Record<Kind, () => void>>>({});
   useEffect(() => {
@@ -386,6 +389,9 @@ export function LiveCompare({ focus }: { focus: "comparison" | "containment" }) 
               >
                 Run the containment test
               </Button>
+              <Button variant="secondary" onClick={() => setSignup((n) => n + 1)}>
+                Prepare a signup
+              </Button>
               {source === "recorded" && (
                 <span className="text-[13px] text-text-3">
                   Recorded from the API on{" "}
@@ -394,6 +400,9 @@ export function LiveCompare({ focus }: { focus: "comparison" | "containment" }) 
               )}
             </div>
           </Card>
+
+          {/* Prepare, then confirm, then hand back what only you can do (runner samples for now). */}
+          {signup > 0 && <SignupFlow key={signup} samples={runnerSamples} />}
 
           {order.map((k) =>
             k === "comparison" && jobs.comparison ? (
