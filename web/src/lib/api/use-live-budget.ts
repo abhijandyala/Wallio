@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api, explainFailure } from "./client";
-import type { InventoryResponse, ProfileVersion } from "./contract";
+import { prime, useApi } from "./cache";
 import { withBudget } from "./my-ai-map";
 
 export type LiveBudget =
@@ -26,50 +26,38 @@ const DAY = 86_400_000;
  * posting a new one (POST /api/profile/versions). "offline" means use the local setting.
  */
 export function useLiveBudget(): LiveBudget {
-  const [profile, setProfile] = useState<ProfileVersion | null>(null);
-  const [inv, setInv] = useState<InventoryResponse | null>(null);
-  const [offline, setOffline] = useState(false);
-  const [loadedAt, setLoadedAt] = useState(0);
+  const profile = useApi("profile");
+  const inv = useApi("inventory");
+  // "Now" for day counts, taken once instead of during every render.
+  const [now] = useState(() => Date.now());
 
-  useEffect(() => {
-    let alive = true;
-    Promise.all([api.profile(), api.inventory()]).then(
-      ([p, i]) => {
-        if (!alive) return;
-        setProfile(p);
-        setInv(i);
-        setLoadedAt(Date.now());
-      },
-      () => alive && setOffline(true),
-    );
-    return () => {
-      alive = false;
-    };
-  }, []);
+  if (!profile.data || !inv.data) {
+    const failed = (profile.error || inv.error) && !profile.loading && !inv.loading;
+    return failed ? { state: "offline" } : { state: "loading" };
+  }
 
-  if (offline) return { state: "offline" };
-  if (!profile || !inv) return { state: "loading" };
-
-  const names = new Map(inv.tools.map((t) => [t.id, t.name]));
-  const subs = new Map(inv.subscriptions.map((s) => [s.id, s]));
-  const upcoming = [...inv.summary.upcomingRenewals].sort((a, b) => a.renewalDate.localeCompare(b.renewalDate))[0];
+  const p = profile.data;
+  const i = inv.data;
+  const names = new Map(i.tools.map((t) => [t.id, t.name]));
+  const subs = new Map(i.subscriptions.map((s) => [s.id, s]));
+  const upcoming = [...i.summary.upcomingRenewals].sort((a, b) => a.renewalDate.localeCompare(b.renewalDate))[0];
   const sub = upcoming ? subs.get(upcoming.subscriptionId) : undefined;
 
   return {
     state: "live",
-    budgetCents: profile.budget.maxMonthlyMinor,
-    spentCents: inv.summary.knownMonthlyEquivalentMinor ?? 0,
+    budgetCents: p.budget.maxMonthlyMinor,
+    spentCents: i.summary.knownMonthlyEquivalentMinor ?? 0,
     next:
       upcoming && sub
         ? {
             toolName: names.get(sub.toolId) ?? sub.toolId,
-            days: Math.max(0, Math.ceil((new Date(upcoming.renewalDate).getTime() - loadedAt) / DAY)),
+            days: Math.max(0, Math.ceil((new Date(upcoming.renewalDate).getTime() - now) / DAY)),
           }
         : null,
-    version: profile.version,
+    version: p.version,
     save: async (cents) => {
       try {
-        setProfile(await api.saveProfile(withBudget(profile, cents)));
+        prime("profile", await api.saveProfile(withBudget(p, cents)));
         return null;
       } catch (e) {
         return explainFailure(e);

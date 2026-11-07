@@ -30,7 +30,8 @@ import { Meter } from "@/components/kit/meter";
 import { Button } from "@/components/ui/button";
 import { daysUntil, formatMoney, formatShortDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { resetGuestSession, useApiStatus } from "@/lib/api/client";
+import { resetGuestSession } from "@/lib/api/client";
+import { useApiStatus } from "@/lib/api/cache";
 import { useLiveBudget } from "@/lib/api/use-live-budget";
 import {
   ChipList,
@@ -330,7 +331,7 @@ function SpendingSection({ s, set }: P) {
   const next =
     live.state === "live"
       ? live.next
-      : sampleNext?.renewsOn
+      : live.state === "offline" && sampleNext?.renewsOn
         ? { toolName: sampleNext.toolName, days: daysUntil(sampleNext.renewsOn, homeSample.today) }
         : null;
   const nextDays = next?.days ?? null;
@@ -347,19 +348,23 @@ function SpendingSection({ s, set }: P) {
   return (
     <Section id="spending" title="Spending">
       <Row label="Monthly AI budget" htmlFor="budget">
-        <TextField
-          id="budget"
-          label="Monthly AI budget"
-          prefix="$"
-          width="w-32"
-          inputMode="decimal"
-          value={String(budgetCents / 100)}
-          validate={(v) => {
-            const n = Number(v.replace(/[$,]/g, ""));
-            return Number.isFinite(n) && n > 0 && n < 100000 ? null : "Enter an amount above $0";
-          }}
-          onSave={(v) => void saveBudget(v)}
-        />
+        {live.state === "loading" ? (
+          <span aria-busy="true" aria-label="Loading your budget" className="h-9 w-32 animate-pulse rounded-md bg-surface-2" />
+        ) : (
+          <TextField
+            id="budget"
+            label="Monthly AI budget"
+            prefix="$"
+            width="w-32"
+            inputMode="decimal"
+            value={String(budgetCents / 100)}
+            validate={(v) => {
+              const n = Number(v.replace(/[$,]/g, ""));
+              return Number.isFinite(n) && n > 0 && n < 100000 ? null : "Enter an amount above $0";
+            }}
+            onSave={(v) => void saveBudget(v)}
+          />
+        )}
       </Row>
       {budgetError && (
         <p role="alert" className="border-t border-line px-6 py-3 text-[13px] text-danger">
@@ -369,12 +374,20 @@ function SpendingSection({ s, set }: P) {
       <div data-extra className="flex flex-col gap-2 border-t border-line px-6 py-4">
         <div className="flex items-center justify-between text-[13px]">
           <span className="text-text-3">This month</span>
-          <span className={cn("tnum", pct >= s.warnAtPct ? "text-aurora" : "text-text-1")}>
-            {money0(spent)} of {money0(budgetCents)} · {pct}%
-            {pct >= s.warnAtPct && " · over your warning line"}
-          </span>
+          {live.state === "loading" ? (
+            <span className="h-4 w-36 animate-pulse rounded-[6px] bg-surface-2" />
+          ) : (
+            <span className={cn("tnum", pct >= s.warnAtPct ? "text-aurora" : "text-text-1")}>
+              {money0(spent)} of {money0(budgetCents)} · {pct}%
+              {pct >= s.warnAtPct && " · over your warning line"}
+            </span>
+          )}
         </div>
-        <Meter value={pct} label="Budget used" />
+        {live.state === "loading" ? (
+          <span className="h-1.5 w-full animate-pulse rounded-full bg-surface-2" />
+        ) : (
+          <Meter value={pct} label="Budget used" />
+        )}
       </div>
       <Row label="Warn me when spending reaches">
         <Segmented

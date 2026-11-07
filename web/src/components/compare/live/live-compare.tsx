@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import recorded from "@/mocks/recorded-runs.json";
 import type { ApprovalIntent, Evidence as ApiEvidence, Recommendation, Run, RunEvent } from "@/lib/api/contract";
-import { activeRunId, api, ApiFailure, explainFailure, explainRun, useApiStatus } from "@/lib/api/client";
+import { activeRunId, api, ApiFailure, explainFailure, explainRun } from "@/lib/api/client";
+import { invalidate, useApiStatus } from "@/lib/api/cache";
 import { DecisionBar } from "./decision-bar";
 import { isTerminal, liveSource, recordedSource } from "@/lib/api/run-source";
 import type { Evidence as UiEvidence } from "@/lib/types";
@@ -123,6 +124,7 @@ export function LiveCompare({ focus }: { focus: "comparison" | "containment" }) 
     }
     try {
       const run = await api.run(runId);
+      invalidate("decisions");
       // A run can fail after it was accepted (202): runner_unavailable, timeouts. Say why.
       patch(kind, { run, error: explainRun(run) });
       if (kind === "comparison" && run.recommendationId) setRec(await api.recommendation(run.recommendationId));
@@ -140,6 +142,7 @@ export function LiveCompare({ focus }: { focus: "comparison" | "containment" }) 
       } else {
         api.approval(e.data.approvalId).then(
           (i) => {
+            invalidate("decisions");
             setIntent(i);
             api.evidence(i.screenshotEvidenceId).then(setTrialEvidence, () => {});
           },
@@ -234,6 +237,7 @@ export function LiveCompare({ focus }: { focus: "comparison" | "containment" }) 
     }
     try {
       const next = await api.decide(intent.id, d, intent.intentHash);
+      invalidate("decisions");
       setIntent(next);
       setDecided(d === "approve" ? "approved" : "declined");
     } catch (e) {

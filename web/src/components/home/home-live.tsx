@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api, explainFailure } from "@/lib/api/client";
+import { explainFailure } from "@/lib/api/client";
+import { load, useApi } from "@/lib/api/cache";
 import type { CatalogTool, DecisionsOverview, InventoryResponse, ProfileVersion, Recommendation } from "@/lib/api/contract";
 import { toUiSubscription } from "@/lib/api/my-ai-map";
 import type { DecisionCard, HomeSummary, InboxItem } from "@/lib/types";
@@ -46,34 +46,37 @@ function toDecision(rec: Recommendation): DecisionCard {
  * has no data for yet keep the sample, and the page says which.
  */
 export function HomeLive() {
-  const [data, setData] = useState<Loaded | null>(null);
-  const [failed, setFailed] = useState<string | null>(null);
-  const [attempt, setAttempt] = useState(0);
+  // Shared with the other pages and prefetched by the app shell, so this is usually instant.
+  const inv = useApi("inventory");
+  const profile = useApi("profile");
+  const catalog = useApi("catalog");
+  const decisions = useApi("decisions");
+  const failure = inv.error ?? profile.error ?? catalog.error;
 
-  useEffect(() => {
-    let alive = true;
-    Promise.all([api.inventory(), api.profile(), api.decisions().catch(() => null), api.catalog()]).then(
-      ([inv, profile, decisions, catalog]) => {
-        if (!alive) return;
-        setFailed(null);
-        setData({ inv, profile, decisions, catalog });
-      },
-      (e) => alive && setFailed(explainFailure(e)),
+  if (inv.data && profile.data && catalog.data) {
+    return (
+      <HomeView
+        data={toHome({ inv: inv.data, profile: profile.data, catalog: catalog.data, decisions: decisions.data ?? null })}
+        budgetCents={profile.data.budget.maxMonthlyMinor}
+        live
+        sampleNote={SAMPLE_NOTE}
+      />
     );
-    return () => {
-      alive = false;
-    };
-  }, [attempt]);
-
-  if (failed && !data) {
+  }
+  if (failure && !inv.loading && !profile.loading && !catalog.loading) {
     return (
       <HomeView
         data={homeSample}
         banner={
           <div role="status" className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[12px] border border-line bg-surface-1 px-5 py-3">
-            <span className="text-text-1">{failed}</span>
+            <span className="text-text-1">{explainFailure(failure)}</span>
             <span className="text-text-3">Showing sample data meanwhile.</span>
-            <Button variant="secondary" size="sm" className="ml-auto" onClick={() => setAttempt((n) => n + 1)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="ml-auto"
+              onClick={() => (["inventory", "profile", "catalog"] as const).forEach((k) => load(k, { force: true }).catch(() => {}))}
+            >
               Try again
             </Button>
           </div>
@@ -81,9 +84,7 @@ export function HomeLive() {
       />
     );
   }
-  if (!data) return <HomeSkeleton />;
-
-  return <HomeView data={toHome(data)} budgetCents={data.profile.budget.maxMonthlyMinor} live sampleNote={SAMPLE_NOTE} />;
+  return <HomeSkeleton />;
 }
 
 function toHome({ inv, decisions, catalog }: Loaded): HomeSummary {

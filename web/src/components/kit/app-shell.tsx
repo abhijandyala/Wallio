@@ -1,5 +1,6 @@
 import { RailNav } from "./rail-nav";
 import { GlowCanvas } from "./glow-canvas";
+import { Prefetch } from "./prefetch";
 
 /**
  * The app frame: full-width content with the Wallio bar along the bottom edge.
@@ -11,6 +12,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* The landing page's mint light, dimmed, behind everything. */}
       <GlowCanvas strength={0.5} className="z-0" />
       <RailNav />
+      <Prefetch />
       {/* Bottom padding = bar height (44 / 56) + room to finish scrolling (64). */}
       <main
         id="main"

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react";
-import { useApiStatus } from "@/lib/api/client";
+import { useApiStatus } from "@/lib/api/cache";
 
 /** On the sample Compare screen: a one-line way into the real run. */
 export function LiveApiStrip() {

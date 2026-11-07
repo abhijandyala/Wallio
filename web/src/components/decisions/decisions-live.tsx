@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { load as loadKey, useApi } from "@/lib/api/cache";
+import { DecisionsSkeleton } from "./decisions-skeleton";
 import { CaretDown, Check, X } from "@phosphor-icons/react";
 import { api, explainFailure } from "@/lib/api/client";
-import type { ApprovalIntent, DecisionLogEntry, DecisionsOverview, Recommendation } from "@/lib/api/contract";
+import type { ApprovalIntent, DecisionLogEntry, Recommendation } from "@/lib/api/contract";
 import { PageHeader } from "@/components/kit/page-header";
 import { Panel } from "@/components/kit/panel";
 import { KeyValue, KeyValueRow } from "@/components/kit/key-value";
@@ -31,29 +33,18 @@ const CHOICE: Record<DecisionLogEntry["choice"], string> = {
  * check-ins. If the API can't be reached, the sample screen shows instead, labelled as such.
  */
 export function DecisionsLive() {
-  const [data, setData] = useState<DecisionsOverview | null>(null);
-  const [failed, setFailed] = useState<string | null>(null);
+  // Shared with Home and prefetched by the app shell, so this is usually instant.
+  const decisions = useApi("decisions");
+  const data = decisions.data ?? null;
+  const failed = decisions.error && !decisions.loading ? explainFailure(decisions.error) : null;
   const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      setData(await api.decisions());
-      setFailed(null);
-    } catch (e) {
-      setFailed(explainFailure(e));
+      await loadKey("decisions", { force: true });
+    } catch {
+      // Shown through `failed`.
     }
-  }, []);
-
-  // First load. State is set from the promise, never synchronously in the effect.
-  useEffect(() => {
-    let alive = true;
-    api.decisions().then(
-      (d) => alive && setData(d),
-      (e) => alive && setFailed(explainFailure(e)),
-    );
-    return () => {
-      alive = false;
-    };
   }, []);
 
   /** Run a write, then refetch so the page shows what the API now holds. */
@@ -82,13 +73,7 @@ export function DecisionsLive() {
     );
   }
 
-  if (!data) {
-    return (
-      <div className="flex flex-col gap-section">
-        <PageHeader title="Decisions" subtitle="Loading from the Wallio API…" />
-      </div>
-    );
-  }
+  if (!data) return <DecisionsSkeleton />;
 
   const waiting = data.approvals.length;
   const open = data.recommendations.length;

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check } from "@phosphor-icons/react";
 import { api, explainFailure } from "@/lib/api/client";
+import { invalidate } from "@/lib/api/cache";
 import { Button } from "@/components/ui/button";
 
 type Choice = "accept" | "defer" | "disagree";
@@ -34,6 +35,7 @@ export function DecisionBar({ recommendationId, recorded }: { recommendationId: 
     try {
       if (c === "defer") await api.defer(recommendationId);
       else await api.recordDecision({ recommendationId, choice: c });
+      invalidate("decisions");
       setDone(c);
     } catch (e) {
       setError(explainFailure(e));

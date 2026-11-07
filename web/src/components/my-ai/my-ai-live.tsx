@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import { api, explainFailure } from "@/lib/api/client";
-import type { ApiSubscription, CatalogTool, InventorySummary, ProfileVersion } from "@/lib/api/contract";
+import { load, prime, useApi } from "@/lib/api/cache";
+import type { CatalogTool } from "@/lib/api/contract";
 import {
   categoryLabel,
   ProfileInputError,
@@ -12,19 +13,11 @@ import {
   toUiSubscription,
 } from "@/lib/api/my-ai-map";
 import type { Subscription } from "@/lib/types";
-import { PageHeader } from "@/components/kit/page-header";
 import { Button } from "@/components/ui/button";
 import { homeSample } from "@/mocks/home";
 import { profileSample } from "@/mocks/my-ai";
 import { MyAiView, type MyAiLive as Live } from "./my-ai-view";
-
-type Loaded = {
-  subscriptions: ApiSubscription[];
-  tools: Map<string, CatalogTool>;
-  catalog: CatalogTool[];
-  summary: InventorySummary;
-  profile: ProfileVersion;
-};
+import { MyAiSkeleton } from "./my-ai-skeleton";
 
 /** API errors as a sentence; profile input problems keep their own message. */
 const plain = (e: unknown) => new Error(e instanceof ProfileInputError ? e.message : explainFailure(e));
@@ -35,45 +28,36 @@ const plain = (e: unknown) => new Error(e instanceof ProfileInputError ? e.messa
  * If the API can't be reached, the sample screen shows, labelled as such.
  */
 export function MyAiLive() {
-  const [data, setData] = useState<Loaded | null>(null);
-  const [failed, setFailed] = useState<string | null>(null);
-  const [summary, setSummary] = useState<InventorySummary | null>(null);
-  const [budget, setBudget] = useState<number | null>(null);
-  const profile = useRef<ProfileVersion | null>(null);
-  const [attempt, setAttempt] = useState(0);
+  // Shared with the other pages and prefetched by the app shell, so this is usually instant.
+  const inv = useApi("inventory");
+  const prof = useApi("profile");
+  const cat = useApi("catalog");
+  const failure = inv.error ?? prof.error ?? cat.error;
 
-  useEffect(() => {
-    let alive = true;
-    Promise.all([api.inventory(), api.profile(), api.catalog()]).then(
-      ([inv, prof, catalog]) => {
-        if (!alive) return;
-        const tools = new Map<string, CatalogTool>([...catalog, ...inv.tools].map((t) => [t.id, t]));
-        profile.current = prof;
-        setSummary(inv.summary);
-        setBudget(prof.budget.maxMonthlyMinor);
-        setFailed(null);
-        setData({ subscriptions: inv.subscriptions, tools, catalog, summary: inv.summary, profile: prof });
-      },
-      (e) => alive && setFailed(explainFailure(e)),
-    );
-    return () => {
-      alive = false;
-    };
-  }, [attempt]);
-
-  const initial = useMemo(
-    () => (data ? data.subscriptions.map((s) => toUiSubscription(s, data.tools)) : []),
-    [data],
+  const tools = useMemo(
+    () => new Map<string, CatalogTool>([...(cat.data ?? []), ...(inv.data?.tools ?? [])].map((t) => [t.id, t])),
+    [cat.data, inv.data],
   );
-  const uiProfile = useMemo(() => (data ? toUiProfile(data.profile) : null), [data]);
+  const initial = useMemo(
+    () => (inv.data ? inv.data.subscriptions.map((s) => toUiSubscription(s, tools)) : []),
+    [inv.data, tools],
+  );
+  // The profile the screen was first drawn from; later saves build on the latest version.
+  const uiProfile = useMemo(() => (prof.data ? toUiProfile(prof.data) : null), [prof.data]);
 
-  if (failed && !data) {
+  const ready = inv.data && prof.data && cat.data && uiProfile;
+  if (failure && !ready && !inv.loading && !prof.loading && !cat.loading) {
     return (
       <div className="flex flex-col gap-gutter">
         <div role="status" className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[12px] border border-line bg-surface-1 px-5 py-3">
-          <span className="text-text-1">{failed}</span>
+          <span className="text-text-1">{explainFailure(failure)}</span>
           <span className="text-text-3">Showing sample data meanwhile. Changes here aren&apos;t saved.</span>
-          <Button variant="secondary" size="sm" className="ml-auto" onClick={() => setAttempt((n) => n + 1)}>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="ml-auto"
+            onClick={() => (["inventory", "profile", "catalog"] as const).forEach((k) => load(k, { force: true }).catch(() => {}))}
+          >
             Try again
           </Button>
         </div>
@@ -81,29 +65,25 @@ export function MyAiLive() {
       </div>
     );
   }
+  if (!inv.data || !prof.data || !cat.data || !uiProfile) return <MyAiSkeleton />;
 
-  if (!data || !uiProfile || !summary || budget === null) {
-    return (
-      <div className="flex flex-col gap-section">
-        <PageHeader title="My AI" subtitle="Loading from the Wallio API…" />
-      </div>
-    );
-  }
+  const summary = inv.data.summary;
+  const profile = prof.data;
 
-  /** After any write, take the server's fresh totals. */
+  /** After any write, take the server's fresh inventory (and its totals) into the shared copy. */
   const refreshSummary = async () => {
     try {
-      setSummary((await api.inventory()).summary);
+      await load("inventory", { force: true });
     } catch {
       // Keep the last totals; the next load will correct them.
     }
   };
 
   const live: Live = {
-    catalog: data.catalog.map((t) => ({ id: t.id, name: t.name, category: categoryLabel(t.category) })),
+    catalog: cat.data.map((t) => ({ id: t.id, name: t.name, category: categoryLabel(t.category) })),
     totalCents: summary.knownMonthlyEquivalentMinor,
     unknownCount: summary.unknownPriceCount,
-    budgetCents: budget,
+    budgetCents: profile.budget.maxMonthlyMinor,
     saveTool: async (s: Subscription, isNew: boolean) => {
       try {
         const input = toSubscriptionInput(s);
@@ -111,7 +91,7 @@ export function MyAiLive() {
           ? await api.addSubscription(input)
           : await api.updateSubscription(s.id, { ...input, status: s.status });
         await refreshSummary();
-        return toUiSubscription(saved, data.tools);
+        return toUiSubscription(saved, tools);
       } catch (e) {
         throw plain(e);
       }
@@ -120,17 +100,15 @@ export function MyAiLive() {
       try {
         const saved = await api.updateSubscription(id, { status });
         await refreshSummary();
-        return toUiSubscription(saved, data.tools);
+        return toUiSubscription(saved, tools);
       } catch (e) {
         throw plain(e);
       }
     },
     saveProfile: async (fields, workflows) => {
       try {
-        const base = profile.current ?? data.profile;
-        const next = await api.saveProfile(toProfileInput(base, fields, workflows));
-        profile.current = next;
-        setBudget(next.budget.maxMonthlyMinor);
+        const next = await api.saveProfile(toProfileInput(profile, fields, workflows));
+        prime("profile", next);
         return next.version;
       } catch (e) {
         throw plain(e);

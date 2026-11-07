@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import type {
   Accepted,
   ApiError,
@@ -155,24 +154,3 @@ export async function resetGuestSession(): Promise<void> {
   await fetch("/session/reset", { method: "POST" });
 }
 
-export type ApiStatus =
-  | { state: "checking" }
-  | { state: "online"; runMode: Health["runMode"] }
-  | { state: "offline" };
-
-/** Is the Wallio API reachable, and is it playing demo runs or running live ones? */
-export function useApiStatus(): ApiStatus {
-  const [status, setStatus] = useState<ApiStatus>({ state: "checking" });
-  useEffect(() => {
-    let alive = true;
-    const timeout = AbortSignal.timeout(6000);
-    fetch("/api/health", { cache: "no-store", signal: timeout })
-      .then((r) => (r.ok ? (r.json() as Promise<Health>) : Promise.reject()))
-      .then((h) => alive && setStatus(h.ok ? { state: "online", runMode: h.runMode } : { state: "offline" }))
-      .catch(() => alive && setStatus({ state: "offline" }));
-    return () => {
-      alive = false;
-    };
-  }, []);
-  return status;
-}
