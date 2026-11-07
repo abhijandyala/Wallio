@@ -115,7 +115,9 @@ export function explainApiError(err: ApiError, status?: number): string {
   const { code, message, details } = err;
   if (code === "rate_limited" || (status === 429 && code !== "quota_exceeded")) {
     const wait = Number(details?.retryAfterSeconds);
-    const what = message.replace(/\s*Try again[^.]*\.?\s*$/i, "").trim() || "Too many requests.";
+    // Drop the API's own "try again later" (also ", or try again later") and say when instead.
+    let what = message.replace(/[,;]?\s*(?:or\s+)?try again[^.]*\.?\s*$/i, "").trim() || "Too many requests";
+    if (!/[.!?]$/.test(what)) what += ".";
     return Number.isFinite(wait) && wait > 0 ? `${what} Try again ${waitPhrase(wait)}.` : `${what} Try again in a moment.`;
   }
   if (code === "quota_exceeded" && typeof details?.limit === "number") {
