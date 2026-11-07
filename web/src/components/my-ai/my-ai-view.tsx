@@ -306,7 +306,7 @@ export function MyAiView({
             exit={{ opacity: 0, y: reduce ? 0 : 12 }}
             transition={{ duration: reduce ? 0 : 0.22, ease: [0.16, 1, 0.3, 1] }}
             role="status"
-            className="fixed bottom-6 left-1/2 z-[70] flex -translate-x-1/2 items-center gap-4 rounded-[12px] border border-line-strong bg-surface-3 py-2.5 pr-2.5 pl-4 text-[14px] text-text-1"
+            className="fixed bottom-[64px] left-1/2 sm:bottom-[80px] z-[70] flex -translate-x-1/2 items-center gap-4 rounded-[12px] border border-line-strong bg-surface-3 py-2.5 pr-2.5 pl-4 text-[14px] text-text-1"
           >
             Removed {removed.sub.toolName}
             <Button

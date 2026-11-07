@@ -30,11 +30,11 @@ const ICONS: Record<NavIcon, Icon> = {
   settings: GearSix,
 };
 
-/** Rail and card widths. Cards overlap the next one slightly so they read as a stack. */
-export const RAIL_WIDTH = { wide: 56, narrow: 44 };
+/** Bar and card heights. Each card tucks under the one below it so they read as a stack. */
+export const BAR_HEIGHT = { wide: 56, narrow: 44 };
 const CARD = {
-  wide: { w: 132, overlap: 16 },
-  narrow: { w: 54, overlap: 8 },
+  wide: { h: 92, overlap: 16 },
+  narrow: { h: 62, overlap: 8 },
 };
 
 // Graded darks, lightest on top of the stack, so every card edge reads. Current page is aurora.
@@ -63,9 +63,9 @@ function useIsWide() {
 }
 
 /**
- * Navigation: a slim rail on the left edge with the vertical Wallio wordmark.
- * Hover it (or click/tap it) and every section slides out as a full-height card,
- * layered left to right, each labelled sideways.
+ * Navigation: a slim bar along the bottom edge with the Wallio wordmark.
+ * Hover it (or click/tap it) and every section slides up as a full-width card,
+ * stacked bottom to top.
  */
 export function RailNav() {
   const pathname = usePathname();
@@ -78,14 +78,14 @@ export function RailNav() {
     setOpenOn(next ? window.location.pathname : null);
   const reduce = useReducedMotionConfig();
   const wide = useIsWide();
-  const railW = wide ? RAIL_WIDTH.wide : RAIL_WIDTH.narrow;
+  const barH = wide ? BAR_HEIGHT.wide : BAR_HEIGHT.narrow;
   const card = wide ? CARD.wide : CARD.narrow;
   const railRef = useRef<HTMLButtonElement>(null);
   const activeRef = useRef<HTMLAnchorElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const openedByClick = useRef(false);
   // After picking a card, ignore hover for a moment so the menu doesn't pop back open
-  // while the pointer is still near the rail.
+  // while the pointer is still near the bar.
   const hoverLockUntil = useRef(0);
   const [hovered, setHovered] = useState<number | null>(null);
 
@@ -145,7 +145,8 @@ export function RailNav() {
       </AnimatePresence>
 
       <div
-        className="fixed inset-y-0 left-0 z-50"
+        className="fixed inset-x-0 bottom-0 z-50"
+        style={{ height: barH }}
         onMouseEnter={() => {
           if (performance.now() < hoverLockUntil.current) return;
           schedule(true, OPEN_DELAY);
@@ -155,34 +156,34 @@ export function RailNav() {
           schedule(false, CLOSE_DELAY);
         }}
       >
-        {/* The cards. They start tucked behind the rail and slide out to the right. */}
+        {/* The cards. They start tucked behind the bar and slide up. */}
         <nav
           aria-label="Primary"
           id="rail-menu"
-          className="absolute inset-y-0 left-0"
+          className="absolute inset-x-0 bottom-0"
         >
           <AnimatePresence>
             {open &&
               NAV_ITEMS.map((item, i) => {
                 const I = ICONS[item.icon];
                 const active = isActive(item.href);
-                const left = railW - card.overlap + i * (card.w - card.overlap);
+                const bottom = barH - card.overlap + i * (card.h - card.overlap);
                 return (
                   <motion.div
                     key={item.href}
-                    className="absolute inset-y-0"
+                    className="absolute inset-x-0"
                     style={{
-                      left,
-                      width: card.w,
+                      bottom,
+                      height: card.h,
                       zIndex: 20 - i,
                       willChange: "transform",
                     }}
-                    initial={reduce ? { opacity: 0 } : { x: -(left + card.w) }}
+                    initial={reduce ? { opacity: 0 } : { y: bottom + card.h }}
                     animate={
                       reduce
                         ? { opacity: 1, transition: { duration: 0.12 } }
                         : {
-                            x: 0,
+                            y: 0,
                             transition: {
                               duration: 0.42,
                               ease: [0.16, 1, 0.3, 1],
@@ -190,12 +191,12 @@ export function RailNav() {
                             },
                           }
                     }
-                    // Closing: one smooth ease-in, rightmost card leaves first.
+                    // Closing: one smooth ease-in, the top card leaves first.
                     exit={
                       reduce
                         ? { opacity: 0, transition: { duration: 0.1 } }
                         : {
-                            x: -(left + card.w),
+                            y: bottom + card.h,
                             transition: {
                               duration: 0.26,
                               ease: [0.5, 0, 0.75, 0],
@@ -218,10 +219,14 @@ export function RailNav() {
                       onMouseLeave={() => setHovered(null)}
                       aria-current={active ? "page" : undefined}
                       aria-description={item.hint}
-                      style={active ? undefined : { backgroundColor: TONES[i] }}
+                      style={{
+                        ...(active ? {} : { backgroundColor: TONES[i] }),
+                        // The bottom strip is hidden under the card below; centre the content in what shows.
+                        paddingBottom: card.overlap,
+                      }}
                       className={cn(
-                        "flex h-full w-full flex-col items-center justify-between group rounded-r-[18px] shadow-[6px_0_18px_rgba(0,0,0,0.35)]",
-                        wide ? "py-6 pl-4" : "py-4 pl-2",
+                        "group flex h-full w-full items-center gap-4 rounded-t-[18px] shadow-[0_-6px_18px_rgba(0,0,0,0.35)]",
+                        wide ? "px-8" : "px-5",
                         active ? "bg-aurora text-ink" : "text-text-1",
                       )}
                     >
@@ -260,7 +265,7 @@ export function RailNav() {
                         duration={650}
                         instant={hovered !== i}
                         className={cn(
-                          "rotate-180 whitespace-nowrap [writing-mode:vertical-rl]",
+                          "min-w-0 truncate whitespace-nowrap",
                           hovered === i
                             ? cn(
                                 "font-mono tracking-[0.08em]",
@@ -269,18 +274,18 @@ export function RailNav() {
                               )
                             : cn(
                                 "font-medium tracking-[0.01em]",
-                                wide ? "text-[20px]" : "text-[15px]",
+                                wide ? "text-[22px]" : "text-[17px]",
                               ),
                         )}
                       />
-                      {/* Spelled out at the foot of the card too, in lime. */}
-                      <span className="flex min-h-5 items-end">
+                      {/* Spelled out at the end of the card too, in lime. */}
+                      <span className="ml-auto flex shrink-0 items-center">
                         {"count" in item && item.count > 0 && (
                           <span
                             aria-hidden="true"
                             className={cn(
-                              "rotate-180 font-medium tracking-[0.04em] whitespace-nowrap [writing-mode:vertical-rl]",
-                              wide ? "text-[12px]" : "text-[10px]",
+                              "font-medium tracking-[0.04em] whitespace-nowrap",
+                              wide ? "text-[13px]" : "text-[11px]",
                               active ? "text-ink/70" : "text-lime",
                             )}
                           >
@@ -314,21 +319,20 @@ export function RailNav() {
                 ? `Open menu, ${waiting} waiting`
                 : "Open menu"
           }
-          // Glossy deep mint: a soft mint light at the top and bottom, a lit inner edge, a
-          // faint glow into the page, and a thin aurora line down the right edge.
-          className="group/rail relative z-30 flex h-full flex-col items-center justify-between bg-[#04100a] bg-[radial-gradient(150%_20%_at_50%_0%,rgba(88,246,177,0.13),transparent_70%),radial-gradient(150%_24%_at_50%_100%,rgba(88,246,177,0.15),transparent_70%),linear-gradient(180deg,#081c13_0%,#030c08_50%,#081c13_100%)] py-6 shadow-[inset_1px_0_0_rgba(255,255,255,0.03),8px_0_28px_-14px_rgba(34,176,124,0.45)]"
-          style={{ width: railW }}
+          // Glossy deep mint: a soft mint light at each end, a lit inner edge, a faint glow
+          // up into the page, and a thin aurora line along the top edge.
+          className="group/rail relative z-30 flex h-full w-full items-center justify-between bg-[#04100a] bg-[radial-gradient(20%_150%_at_0%_50%,rgba(88,246,177,0.13),transparent_70%),radial-gradient(24%_150%_at_100%_50%,rgba(88,246,177,0.15),transparent_70%),linear-gradient(90deg,#081c13_0%,#030c08_50%,#081c13_100%)] px-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_-8px_28px_-14px_rgba(34,176,124,0.45)]"
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 right-0 w-px bg-[linear-gradient(180deg,transparent_0%,rgba(201,255,230,0.4)_22%,rgba(255,255,255,0.35)_50%,rgba(226,210,255,0.4)_78%,transparent_100%)] opacity-60 transition-opacity duration-300 group-hover/rail:opacity-100"
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent_0%,rgba(201,255,230,0.4)_22%,rgba(255,255,255,0.35)_50%,rgba(226,210,255,0.4)_78%,transparent_100%)] opacity-60 transition-opacity duration-300 group-hover/rail:opacity-100"
           />
-          {/* Room for the logo, which is its own link (below), laid over the rail. */}
-          <span aria-hidden="true" className={wide ? "h-[14px]" : "h-[11px]"} />
+          {/* Room for the logo, which is its own link (below), laid over the bar. */}
+          <span aria-hidden="true" className={wide ? "w-[22px]" : "w-[18px]"} />
           <span
             className={cn(
               // The wordmark in the aurora: green at the W, white, violet at the o.
-              "relative font-brand rotate-180 bg-[linear-gradient(180deg,#c9ffe6_0%,#ffffff_50%,#e2d2ff_100%)] bg-clip-text font-bold whitespace-nowrap text-transparent [writing-mode:vertical-rl]",
+              "font-brand bg-[linear-gradient(90deg,#c9ffe6_0%,#ffffff_50%,#e2d2ff_100%)] bg-clip-text font-bold whitespace-nowrap text-transparent",
               wide ? "text-[22px]" : "text-[18px]",
             )}
           >
@@ -354,8 +358,8 @@ export function RailNav() {
               cancel();
               setOpen(false);
             }}
-            className="group/logo absolute top-0 left-0 z-40 flex justify-center pt-6 pb-3"
-            style={{ width: railW }}
+            className="group/logo absolute bottom-0 left-0 z-40 flex items-center pr-3 pl-6"
+            style={{ height: barH }}
           >
             <LogoMark
               className={cn(
@@ -364,7 +368,7 @@ export function RailNav() {
               )}
             />
           </TooltipTrigger>
-          <TooltipContent side="right" sideOffset={10} className="bg-surface-3 text-[12px] text-text-1 [&_svg]:hidden [&>*:last-child]:hidden">
+          <TooltipContent side="top" sideOffset={10} className="bg-surface-3 text-[12px] text-text-1 [&_svg]:hidden [&>*:last-child]:hidden">
             Back to the main page
           </TooltipContent>
         </Tooltip>

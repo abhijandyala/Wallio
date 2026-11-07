@@ -298,7 +298,7 @@ export function SettingsView() {
             exit={{ opacity: 0, y: reduce ? 0 : 10 }}
             transition={{ duration: 0.2 }}
             role="status"
-            className="fixed bottom-6 left-1/2 z-[70] flex max-w-[calc(100vw-32px)] -translate-x-1/2 items-center gap-2 rounded-[12px] border border-line-strong bg-surface-3 px-4 py-2.5 text-[14px] text-text-1"
+            className="fixed bottom-[64px] left-1/2 sm:bottom-[80px] z-[70] flex max-w-[calc(100vw-32px)] -translate-x-1/2 items-center gap-2 rounded-[12px] border border-line-strong bg-surface-3 px-4 py-2.5 text-[14px] text-text-1"
           >
             <Check size={14} weight="bold" className="shrink-0 text-lime" />
             {toast.text}

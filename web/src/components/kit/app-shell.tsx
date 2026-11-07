@@ -2,7 +2,7 @@ import { RailNav } from "./rail-nav";
 import { GlowCanvas } from "./glow-canvas";
 
 /**
- * The app frame: the Wallio rail on the left edge and full-width content beside it.
+ * The app frame: full-width content with the Wallio bar along the bottom edge.
  * Every page renders inside this. Pages never build their own frame.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -11,10 +11,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* The landing page's mint light, dimmed, behind everything. */}
       <GlowCanvas strength={0.5} className="z-0" />
       <RailNav />
-      {/* Left padding = rail width (44 / 56) + page inset (16 / 24). */}
+      {/* Bottom padding = bar height (44 / 56) + room to finish scrolling (64). */}
       <main
         id="main"
-        className="relative z-[1] pt-6 pr-4 pb-16 pl-[60px] sm:pr-6 sm:pl-[80px]"
+        className="relative z-[1] px-4 pt-6 pb-[108px] sm:px-6 sm:pb-[120px]"
       >
         {children}
       </main>
