@@ -1,0 +1,56 @@
+{
+  "actionId": "act_9",
+  "stepIndex": 9,
+  "status": "ok",
+  "observation": {
+    "url": "https://signup.candidate.example/signup/password?plan=pro&billing=yearly",
+    "title": "Choose a password",
+    "httpStatus": 200,
+    "redirectChain": [],
+    "pageFingerprint": "sha256:726a02c56beaf4903919b5b16b5dcae4a0c61aaad4781dc0da96987be915d499",
+    "textExcerpt": "Choose a passwordCreate account",
+    "textSha256": "sha256:21c65e95c9285e85cfa4ef90e324cc4a8e542ea9df08ef8f3c797892b615fc4f",
+    "elements": null,
+    "screenshot": null,
+    "blocked": {
+      "reason": "login_required",
+      "detail": "The page asks for a password. The runner never signs in."
+    },
+    "handoff": {
+      "reason": "login_required",
+      "url": "https://signup.candidate.example/signup/password?plan=pro&billing=yearly",
+      "host": "signup.candidate.example",
+      "prepared": [
+        {
+          "label": "Work email",
+          "kind": "email",
+          "value": "dev@wallio.example"
+        },
+        {
+          "label": "Full name",
+          "kind": "name",
+          "value": "Demo Dev"
+        },
+        {
+          "label": "Billing period",
+          "kind": "plan_choice",
+          "value": "Yearly (save 20%)"
+        },
+        {
+          "label": "I agree to the Terms of Service",
+          "kind": "consent",
+          "value": "ticked"
+        }
+      ],
+      "remaining": [
+        "Sign in or create your account on signup.candidate.example.",
+        "Check the details Wallio prepared, then continue."
+      ]
+    },
+    "deniedRequests": [],
+    "capturedAt": "2026-11-07T01:43:20.236Z"
+  },
+  "error": null,
+  "durationMs": 1572,
+  "actionsRemaining": 8
+}

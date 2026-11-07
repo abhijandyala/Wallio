@@ -13,10 +13,11 @@
     "elements": null,
     "screenshot": null,
     "blocked": null,
+    "handoff": null,
     "deniedRequests": [],
-    "capturedAt": "2026-11-05T18:55:32.836Z"
+    "capturedAt": "2026-11-07T01:43:13.334Z"
   },
   "error": null,
-  "durationMs": 4108,
+  "durationMs": 4153,
   "actionsRemaining": 17
 }

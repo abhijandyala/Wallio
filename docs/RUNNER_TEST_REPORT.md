@@ -45,3 +45,17 @@ Not yet tested:
 - The control VM calling the runner over the VPC with the pinned certificate. This needs Anish to run `push-runner-secrets.sh`.
 - The eval page: `eval.149-28-76-16.sslip.io` returned 404, because it isn't deployed yet.
 - The 10 deployed rehearsals (R7).
+
+## Prepare-then-confirm, 7 Nov 2026 (local, Docker Desktop arm64)
+
+The runner can now prepare a vendor signup up to the step that needs the user, then stop and hand over.
+
+| Check | Result | Notes |
+|---|---|---|
+| Unit (fake driver) | 40/40 pass | 3 new tests: fields, `select`, `fillKinds` limits, approval for "Continue", handoff at the password page; research jobs fill nothing; payment and verification stops; re-create with different `fillKinds` is refused |
+| Contract tests | 31/31 pass | New `result-handoff-login.json` fixture, taken from a real test run |
+| Docker integration | 16/16 pass | 3 new tests in real Chromium. (1) The plans → signup → password flow: every field classified correctly, dropdown chosen, a non-allowed field refused, JS "Continue" refused without a token and accepted with one, handoff with the right link and 4 prepared values. (2) A step with no `<form>`: once the job has typed, "Next" needs approval, checked live. (3) Card field and visible Stripe frame stop as `payment_required`; a hidden Stripe frame on a pricing page doesn't; "check your email" stops as `verification_required`. All 13 earlier tests still pass, including containment |
+| Live smoke (real Copilot + Zed) | 12/12 pass | Neither page is flagged by the new payment or verification checks |
+| Live handoff (real Copilot) | pass | "Get started" on Copilot Pro stopped at GitHub sign-in with `login_required`. The handoff link is `github.com/login?return_to=…/github-copilot/pro/signup`, so after signing in the user lands back on the Pro signup. Cleanup was verified |
+
+Not tested yet: the new runner build on the Vultr VM. It is deployed only after Anish's API accepts the new contract fields, because the two new block reasons would fail his current parser.

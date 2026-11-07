@@ -16,14 +16,15 @@
       "reason": "egress_denied",
       "detail": "The egress proxy refused 169.254.169.254."
     },
+    "handoff": null,
     "deniedRequests": [],
-    "capturedAt": "2026-11-05T18:55:37.371Z"
+    "capturedAt": "2026-11-07T01:43:28.911Z"
   },
   "error": {
     "code": "egress_denied",
     "message": "The click tried to open 169.254.169.254, which the egress proxy refused.",
     "retryable": false
   },
-  "durationMs": 1586,
+  "durationMs": 1589,
   "actionsRemaining": 15
 }

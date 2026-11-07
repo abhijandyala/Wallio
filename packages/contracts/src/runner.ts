@@ -22,6 +22,18 @@ export const RUNNER_LIMITS = {
   maxTextExcerptChars: 4_000,
 } as const;
 
+/**
+ * What kind of value a form field takes. Lets the control plane map remembered
+ * preferences onto fields without guessing, and lets each job say what it may fill.
+ * `consent` = a terms, privacy or marketing box. `sensitive` = password, payment,
+ * one-time code, government or bank number: never filled, whatever the job allows.
+ */
+export const FieldKind = z.enum([
+  "email", "name", "given_name", "family_name", "organization", "tel",
+  "plan_choice", "quantity", "choice", "free_text", "checkbox", "consent", "sensitive",
+]);
+export type FieldKind = z.infer<typeof FieldKind>;
+
 const Hostname = z
   .string()
   .regex(/^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/, "lower-case public hostname, no scheme or port");
@@ -43,6 +55,12 @@ export const RunnerJobCreate = z.object({
     maxActions: z.int().positive().max(RUNNER_LIMITS.maxActions),
     maxScreenshots: z.int().nonnegative().max(RUNNER_LIMITS.maxScreenshots),
   }),
+  /**
+   * Field kinds this job may fill, select or tick. The runner enforces it.
+   * Omitted: any non-sensitive field. `[]`: nothing (research jobs).
+   * Sensitive fields are refused whatever this says.
+   */
+  fillKinds: z.array(FieldKind.exclude(["sensitive"])).max(12).optional(),
 });
 export type RunnerJobCreate = z.infer<typeof RunnerJobCreate>;
 
@@ -80,6 +98,8 @@ export const RunnerAction = z.discriminatedUnion("type", [
     approvalToken: z.string().min(16).optional(),
   }),
   z.object({ type: z.literal("fill"), elementRef: ElementRef, value: z.string().max(500) }),
+  /** Choose a dropdown option by its value, or by its visible label. */
+  z.object({ type: z.literal("select"), elementRef: ElementRef, value: z.string().max(200) }),
   z.object({ type: z.literal("scroll"), direction: z.enum(["up", "down"]), pixels: z.int().positive().max(5000) }),
   z.object({ type: z.literal("screenshot"), fullPage: z.boolean().default(false) }),
   z.object({ type: z.literal("finish") }),
@@ -107,6 +127,21 @@ export const VisibleElement = z.object({
   inputType: z.string().nullable(),
   /** Host the click would navigate to or submit to, if determinable. Lets policy reject before dispatch. */
   targetHost: z.string().nullable(),
+  /** Form fields only. Labels and values come from the page: untrusted. */
+  field: z.object({
+    kind: FieldKind,
+    label: z.string().max(200),
+    required: z.boolean(),
+    /** Current value. Checkboxes and radios: "true" or "false". Always null for sensitive fields. */
+    value: z.string().max(200).nullable(),
+    /** Dropdown options, for `select`. */
+    options: z.array(z.object({ value: z.string().max(200), label: z.string().max(200), selected: z.boolean() })).max(30).nullable(),
+  }).nullable().optional(),
+  /**
+   * A click needs an approval token: a form submit, any button in a form that has
+   * fields, or any button once this page has been filled. The runner re-checks live.
+   */
+  needsApproval: z.boolean().optional(),
 });
 
 /** Why a page could not be used. These are stopping conditions, never things to bypass (PRD F04). */
@@ -118,7 +153,28 @@ export const BlockReason = z.enum([
   "http_error",
   "egress_denied",
   "download_blocked",
+  /** Card or checkout fields, or a payment provider's frame. The user pays in their own browser. */
+  "payment_required",
+  /** "Check your email" and similar: only the user can open that link. */
+  "verification_required",
 ]);
+
+/**
+ * Set when the job stopped at a step only the user can do (sign-in, code,
+ * human check, payment, email link): where to continue and what the job had
+ * prepared. Everything here comes from the page or was filled by the job.
+ */
+export const Handoff = z.object({
+  reason: BlockReason,
+  /** The page to continue on: https and one of the job's allowed hosts, or null if it failed that check. */
+  url: z.string().max(2000).nullable(),
+  host: z.string().max(253),
+  /** What this job filled, chose or ticked before stopping, latest value per field. Never sensitive fields. */
+  prepared: z.array(z.object({ label: z.string().max(200), kind: FieldKind, value: z.string().max(200) })).max(20),
+  /** Short steps left for the user, in order. */
+  remaining: z.array(z.string().max(200)).max(5),
+});
+export type Handoff = z.infer<typeof Handoff>;
 
 export const Screenshot = z.object({
   artifactId: Id,
@@ -146,6 +202,7 @@ export const Observation = z.object({
   elements: z.array(VisibleElement).nullable(),
   screenshot: Screenshot.nullable(),
   blocked: z.object({ reason: BlockReason, detail: z.string() }).nullable(),
+  handoff: Handoff.nullable().optional(),
   /** Requests the egress proxy refused during this step (containment evidence). */
   deniedRequests: z.array(z.object({ url: z.string(), reason: z.string() })),
   capturedAt: Timestamp,

@@ -16,19 +16,20 @@
       "reason": "egress_denied",
       "detail": "The egress proxy refused 169.254.169.254."
     },
+    "handoff": null,
     "deniedRequests": [
       {
         "url": "https://169.254.169.254/",
         "reason": "private_range"
       }
     ],
-    "capturedAt": "2026-11-05T18:55:21.999Z"
+    "capturedAt": "2026-11-07T01:43:02.465Z"
   },
   "error": {
     "code": "egress_denied",
     "message": "The egress proxy refused fixtures.wallio.test.",
     "retryable": false
   },
-  "durationMs": 13,
+  "durationMs": 15,
   "actionsRemaining": 18
 }

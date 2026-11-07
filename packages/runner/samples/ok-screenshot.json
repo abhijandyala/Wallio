@@ -15,7 +15,7 @@
     "textSha256": "sha256:a8ebf796c7bdead77d39ee9f8c97aafcd46e06de74f9d68addbe1f1adb177847",
     "elements": null,
     "screenshot": {
-      "artifactId": "art_28e9f49787b5cb51d909fa58",
+      "artifactId": "art_73257717e9b7d8e9f160ad8d",
       "sha256": "sha256:ca0fcb453701127774ca03bce52115b60743e03dbeb56cd4593874ad49797ac6",
       "width": 1280,
       "height": 800,
@@ -23,10 +23,11 @@
       "mimeType": "image/png"
     },
     "blocked": null,
+    "handoff": null,
     "deniedRequests": [],
-    "capturedAt": "2026-11-05T18:55:15.186Z"
+    "capturedAt": "2026-11-07T01:42:54.041Z"
   },
   "error": null,
-  "durationMs": 51,
+  "durationMs": 48,
   "actionsRemaining": 17
 }

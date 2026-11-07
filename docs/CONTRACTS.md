@@ -69,12 +69,13 @@ API: POST /jobs/:id/finish                    runner: teardown + verify → Clea
 ```
 
 ### Rules both sides enforce
-- Vocabulary: `navigate` (https only), `inspect`, `click`, `fill`, `scroll`, `screenshot`, `finish`. Nothing else.
+- Vocabulary: `navigate` (https only), `inspect`, `click`, `fill`, `select` (dropdown option), `scroll`, `screenshot`, `finish`. Nothing else.
 - Limits: deadline ≤ 180 s, ≤ 20 actions, ≤ 12 screenshots. Runner enforces its own copy; the hard deadline runs outside the container.
 - `actionId` is idempotent: re-sending returns the stored result and never re-executes.
-- A `click` with external effect needs a single-use `approvalToken` issued by the API after the user approves. Runner rejects reuse.
+- A `click` with external effect needs a single-use `approvalToken` issued by the API after the user approves. Runner rejects reuse. `inspect` marks these clicks with `needsApproval`: submits, buttons in a form that has fields, and any button once the job has typed on that page.
+- Each job can limit what it fills with `fillKinds` (`[]` for research). Inspected fields carry `field.kind`, label, required, value and options; sensitive fields (password, payment, one-time code) are never filled.
 - Egress denials come back as `status: "denied"` with the `deniedRequests` list, not as an HTTP error.
-- Captcha, MFA, login walls → `observation.blocked`. Stop, don't bypass.
+- Captcha, MFA, login walls, payment pages, "check your email" → `observation.blocked`. Stop, don't bypass. For the steps only the user can do, `observation.handoff` gives the page to continue on (https, allowed host only), what the job prepared, and what is left.
 - `CleanupReport.status = "cleaned"` only after container **and** volume are verified absent.
 
 ---

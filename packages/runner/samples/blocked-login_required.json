@@ -16,10 +16,19 @@
       "reason": "login_required",
       "detail": "The page asks for a password. The runner never signs in."
     },
+    "handoff": {
+      "reason": "login_required",
+      "url": "https://fixtures.wallio.test/login",
+      "host": "fixtures.wallio.test",
+      "prepared": [],
+      "remaining": [
+        "Sign in or create your account on fixtures.wallio.test."
+      ]
+    },
     "deniedRequests": [],
-    "capturedAt": "2026-11-05T18:55:23.841Z"
+    "capturedAt": "2026-11-07T01:43:04.241Z"
   },
   "error": null,
-  "durationMs": 538,
+  "durationMs": 521,
   "actionsRemaining": 18
 }

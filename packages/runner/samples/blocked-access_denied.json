@@ -16,10 +16,11 @@
       "reason": "access_denied",
       "detail": "The server answered 403."
     },
+    "handoff": null,
     "deniedRequests": [],
-    "capturedAt": "2026-11-05T18:55:24.384Z"
+    "capturedAt": "2026-11-07T01:43:04.760Z"
   },
   "error": null,
-  "durationMs": 541,
+  "durationMs": 517,
   "actionsRemaining": 17
 }

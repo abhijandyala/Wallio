@@ -16,15 +16,24 @@
       "reason": "captcha",
       "detail": "The page shows a bot check or CAPTCHA. The runner stops here and does not try to solve it."
     },
+    "handoff": {
+      "reason": "captcha",
+      "url": "https://fixtures.wallio.test/captcha",
+      "host": "fixtures.wallio.test",
+      "prepared": [],
+      "remaining": [
+        "Complete fixtures.wallio.test's human check."
+      ]
+    },
     "deniedRequests": [
       {
         "url": "https://challenges.cloudflare.com/",
         "reason": "host_not_allowed"
       }
     ],
-    "capturedAt": "2026-11-05T18:55:23.302Z"
+    "capturedAt": "2026-11-07T01:43:03.712Z"
   },
   "error": null,
-  "durationMs": 582,
+  "durationMs": 547,
   "actionsRemaining": 19
 }

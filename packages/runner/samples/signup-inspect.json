@@ -1,0 +1,155 @@
+{
+  "actionId": "a3",
+  "stepIndex": 3,
+  "status": "ok",
+  "observation": {
+    "url": "https://fixtures.wallio.test/signup?plan=pro",
+    "title": "Create your account",
+    "httpStatus": 200,
+    "redirectChain": [],
+    "pageFingerprint": "sha256:2b551140e291fc88bbdba8d69e890ff0b05020c4397f839d96ad4655d0be126f",
+    "textExcerpt": "Create your account\nWork email Full name Company Billing period\nMonthly\nYearly (save 20%)\n Seats I agree to the Terms of Service Continue",
+    "textSha256": "sha256:70f50040b88932ab929156384fca3512b49fc3f1d74ce4ba99dc3cdd2064ab9c",
+    "elements": [
+      {
+        "ref": "e1",
+        "role": "textbox",
+        "name": "email",
+        "tag": "input",
+        "text": "",
+        "href": null,
+        "inputType": "email",
+        "targetHost": null,
+        "field": {
+          "kind": "email",
+          "label": "Work email",
+          "required": true,
+          "value": "",
+          "options": null
+        },
+        "needsApproval": false
+      },
+      {
+        "ref": "e2",
+        "role": "textbox",
+        "name": "fullname",
+        "tag": "input",
+        "text": "",
+        "href": null,
+        "inputType": "text",
+        "targetHost": null,
+        "field": {
+          "kind": "name",
+          "label": "Full name",
+          "required": true,
+          "value": "",
+          "options": null
+        },
+        "needsApproval": false
+      },
+      {
+        "ref": "e3",
+        "role": "textbox",
+        "name": "company",
+        "tag": "input",
+        "text": "",
+        "href": null,
+        "inputType": "text",
+        "targetHost": null,
+        "field": {
+          "kind": "organization",
+          "label": "Company",
+          "required": false,
+          "value": "",
+          "options": null
+        },
+        "needsApproval": false
+      },
+      {
+        "ref": "e4",
+        "role": "combobox",
+        "name": "Monthly Yearly (save 20%)",
+        "tag": "select",
+        "text": "Monthly Yearly (save 20%)",
+        "href": null,
+        "inputType": null,
+        "targetHost": null,
+        "field": {
+          "kind": "plan_choice",
+          "label": "Billing period",
+          "required": false,
+          "value": "monthly",
+          "options": [
+            {
+              "value": "monthly",
+              "label": "Monthly",
+              "selected": true
+            },
+            {
+              "value": "yearly",
+              "label": "Yearly (save 20%)",
+              "selected": false
+            }
+          ]
+        },
+        "needsApproval": false
+      },
+      {
+        "ref": "e5",
+        "role": "textbox",
+        "name": "seats",
+        "tag": "input",
+        "text": "",
+        "href": null,
+        "inputType": "number",
+        "targetHost": null,
+        "field": {
+          "kind": "quantity",
+          "label": "Seats",
+          "required": false,
+          "value": "1",
+          "options": null
+        },
+        "needsApproval": false
+      },
+      {
+        "ref": "e6",
+        "role": "checkbox",
+        "name": "tos",
+        "tag": "input",
+        "text": "",
+        "href": null,
+        "inputType": "checkbox",
+        "targetHost": null,
+        "field": {
+          "kind": "consent",
+          "label": "I agree to the Terms of Service",
+          "required": true,
+          "value": "false",
+          "options": null
+        },
+        "needsApproval": false
+      },
+      {
+        "ref": "e7",
+        "role": "button",
+        "name": "Continue",
+        "tag": "button",
+        "text": "Continue",
+        "href": null,
+        "inputType": "button",
+        "targetHost": null,
+        "field": null,
+        "needsApproval": true
+      }
+    ],
+    "screenshot": null,
+    "blocked": null,
+    "handoff": null,
+    "deniedRequests": [],
+    "capturedAt": "2026-11-07T01:43:16.486Z"
+  },
+  "error": null,
+  "durationMs": 13,
+  "actionsRemaining": 16
+}

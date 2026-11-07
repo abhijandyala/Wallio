@@ -10,8 +10,9 @@
 export type AgentOp =
   | { op: "navigate"; url: string }
   | { op: "inspect"; maxElements: number }
-  | { op: "click"; ref: string; approved: boolean; expectedFingerprint: string | null }
-  | { op: "fill"; ref: string; value: string }
+  | { op: "click"; ref: string; approved: boolean; expectedFingerprint: string | null; allowedKinds: FieldKind[] | null }
+  | { op: "fill"; ref: string; value: string; allowedKinds: FieldKind[] | null }
+  | { op: "select"; ref: string; value: string; allowedKinds: FieldKind[] | null }
   | { op: "scroll"; direction: "up" | "down"; pixels: number }
   | { op: "screenshot"; fullPage: boolean }
   | { op: "observe" }
@@ -30,7 +31,29 @@ export type AgentErrorCode =
   | "browser_crashed"
   | "internal";
 
-export type BlockReason = "captcha" | "mfa" | "login_required" | "access_denied" | "http_error" | "egress_denied" | "download_blocked";
+export type BlockReason =
+  | "captcha" | "mfa" | "login_required" | "access_denied" | "http_error" | "egress_denied" | "download_blocked"
+  | "payment_required" | "verification_required";
+
+export type FieldKind =
+  | "email" | "name" | "given_name" | "family_name" | "organization" | "tel"
+  | "plan_choice" | "quantity" | "choice" | "free_text" | "checkbox" | "consent" | "sensitive";
+
+export interface AgentField {
+  kind: FieldKind;
+  label: string;
+  required: boolean;
+  value: string | null;
+  options: Array<{ value: string; label: string; selected: boolean }> | null;
+}
+
+export interface AgentHandoff {
+  reason: BlockReason;
+  url: string;
+  host: string;
+  prepared: Array<{ label: string; kind: FieldKind; value: string }>;
+  remaining: string[];
+}
 
 export interface AgentElement {
   ref: string;
@@ -45,6 +68,9 @@ export interface AgentElement {
   submits: boolean;
   /** Field refuses `fill` (password, file, payment, one-time code). Stripped before leaving the runner. */
   sensitive: boolean;
+  field: AgentField | null;
+  /** A click needs an approval token (see the contract's VisibleElement.needsApproval). */
+  needsApproval: boolean;
 }
 
 export interface AgentObservation {
@@ -59,6 +85,7 @@ export interface AgentObservation {
   /** Base64 PNG, only for `screenshot`. */
   screenshotPng: string | null;
   blocked: { reason: BlockReason; detail: string } | null;
+  handoff: AgentHandoff | null;
   /** The main-frame navigation this action caused was refused by the egress proxy. */
   navigationDenied: string | null;
   capturedAt: string;
