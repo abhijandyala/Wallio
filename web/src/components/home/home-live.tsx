@@ -88,11 +88,12 @@ export function HomeLive() {
 }
 
 function toHome({ inv, decisions, catalog }: Loaded): HomeSummary {
-  const today = new Date().toISOString().slice(0, 10);
+  // "Today" is when the server computed the summary, so rendering stays pure.
+  const today = inv.summary.computedAt.slice(0, 10);
   const tools = new Map([...catalog, ...inv.tools].map((t) => [t.id, t]));
   const subscriptions = inv.subscriptions.filter((s) => s.status !== "archived").map((s) => toUiSubscription(s, tools));
   const active = subscriptions.filter((s) => s.status === "active");
-  const now = Date.now();
+  const now = new Date(inv.summary.computedAt).getTime();
   const renewalsNext30 = inv.summary.upcomingRenewals.filter((r) => {
     const d = (new Date(r.renewalDate).getTime() - now) / DAY;
     return d >= -1 && d <= 30;

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { api, explainFailure } from "./client";
 import { prime, useApi } from "./cache";
 import { withBudget } from "./my-ai-map";
@@ -28,8 +27,6 @@ const DAY = 86_400_000;
 export function useLiveBudget(): LiveBudget {
   const profile = useApi("profile");
   const inv = useApi("inventory");
-  // "Now" for day counts, taken once instead of during every render.
-  const [now] = useState(() => Date.now());
 
   if (!profile.data || !inv.data) {
     const failed = (profile.error || inv.error) && !profile.loading && !inv.loading;
@@ -42,6 +39,8 @@ export function useLiveBudget(): LiveBudget {
   const subs = new Map(i.subscriptions.map((s) => [s.id, s]));
   const upcoming = [...i.summary.upcomingRenewals].sort((a, b) => a.renewalDate.localeCompare(b.renewalDate))[0];
   const sub = upcoming ? subs.get(upcoming.subscriptionId) : undefined;
+  // Days counted from when the server computed the summary, so rendering stays pure.
+  const now = new Date(i.summary.computedAt).getTime();
 
   return {
     state: "live",
