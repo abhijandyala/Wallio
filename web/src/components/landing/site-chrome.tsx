@@ -31,19 +31,19 @@ export function TopBar() {
         <Wordmark className="[&_span]:text-[17px] [&_svg]:h-[15px]" />
       </Link>
       <nav className="flex items-center gap-6 text-[14px]">
-        <Link href="/#how" className={`${navLink} md:block`}>
+        <Link href="/#steps" className={`${navLink} md:block`}>
           How it works
         </Link>
-        <Link href="/#safety" className={`${navLink} md:block`}>
+        <Link href="/#limits" className={`${navLink} md:block`}>
           Safety
         </Link>
         <Link href="/#vultr" className={`${navLink} lg:block`}>
           Built on Vultr
         </Link>
-        <Link href="/#questions" className={`${navLink} lg:block`}>
-          Questions
+        <Link href="/#explore" className={`${navLink} lg:block`}>
+          Product
         </Link>
-        <Link href="/#judges" className={`${navLink} md:block`}>
+        <Link href="/#proof" className={`${navLink} md:block`}>
           For judges
         </Link>
         <ButtonLink href="/start" variant="secondary" size="sm">

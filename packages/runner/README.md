@@ -170,6 +170,8 @@ Label it a **controlled containment test, not proof of invulnerability**.
 
 ## Deploying on Vultr
 
+> **Deploy order:** deploy the API from `main` *before* deploying a runner build that has the prepare-then-confirm changes. An older API rejects the `payment_required` and `verification_required` block reasons, and would fail the whole run as `runner_unavailable` instead of marking that one page blocked.
+
 Prerequisites: runner VM (Ubuntu 24.04, 2 vCPU / 4 GB), same region and VPC as the control VM. Firewall group: SSH from your IP only, nothing else public.
 
 ```bash

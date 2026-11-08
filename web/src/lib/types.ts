@@ -104,6 +104,8 @@ export interface HomeSummary {
   monthlyBudgetCents: number;
   totals: {
     monthlyCents: number;
+    /** True when no price is known, so monthlyCents is not a real figure (never show it as $0). */
+    monthlyUnknown?: boolean;
     unknownPriceCount: number;
     activeTools: number;
     renewalsNext30: number;

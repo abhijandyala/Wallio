@@ -47,7 +47,7 @@ export function HomeView({
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="display text-[40px] leading-[44px] font-medium text-text-1 sm:text-[52px] sm:leading-[56px]">
-            Welcome back, <DisplayName />
+            Welcome back<DisplayName />
           </h1>
           <p className="mt-2 text-[15px] text-text-2">
             {needsYou > 0

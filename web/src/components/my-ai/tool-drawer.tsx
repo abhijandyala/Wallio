@@ -140,7 +140,8 @@ function DrawerBody({
           : d.cadence === "annual"
             ? Math.round(renewal / 12)
             : renewal,
-      cadence: renewal === null ? "unknown" : d.cadence,
+      // Keep the billing period even when the price is blank, so a yearly plan stays yearly.
+      cadence: d.cadence,
       renewsOn: d.renewsOn || null,
       source: tool?.source ?? "manual",
       status: d.status,
