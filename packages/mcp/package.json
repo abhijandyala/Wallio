@@ -1,0 +1,24 @@
+{
+  "name": "@wallio/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "description": "Wallio connector: an MCP server that lets an AI assistant read a person's Wallio wallet.",
+  "bin": {
+    "wallio-mcp": "src/server.ts"
+  },
+  "scripts": {
+    "start": "node src/server.ts",
+    "test": "node --test --test-concurrency=1 --test-timeout=180000 \"test/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "^4.6.7"
+  }
+}

@@ -25,6 +25,10 @@ What it saves and where:
 - The first decision is the golden-path comparison (`wf_debugging`, Copilot vs Zed). That's why debugging is offered back if it isn't one of the person's tasks. The decision step hands off to `/compare?live=1`.
 - A browser that finished setup goes straight to Home. To run setup again, use Settings → "Set up again" (`/start?again=1`), which loads the current answers so saving edits them rather than adding copies. Settings → Reset demo also clears the flag.
 
+**Connectors.**
+- **GitHub** (`/connect/github?repo=owner/name`, optional in setup): reads a *public* repository's metadata, languages, file names and root `package.json` through GitHub's REST API. From those it suggests languages, frameworks, the AI coding tools set up in the repo (each with the file that shows it, e.g. `.cursor/` or `CLAUDE.md`), and main tasks. It never reads other file contents or private repositories, and nothing is saved until the person keeps it on the review step. Kept facts are saved as inferred profile attributes, with the repository as the source and a confidence band. Setting `GITHUB_TOKEN` on the server only raises GitHub's rate limit.
+- **MCP** (`packages/mcp`): lets Claude, Claude Code or Cursor read the wallet. See its README.
+
 To run against a local API instead of the deployed one, put `WALLIO_API_ORIGIN=http://localhost:8787` in `web/.env.local`, and start the API with `APP_ORIGIN=http://localhost:8787`. The proxy presents itself to the API with that origin.
 
 ```bash
