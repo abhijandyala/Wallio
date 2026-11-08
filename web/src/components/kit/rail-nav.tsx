@@ -90,7 +90,7 @@ export function RailNav() {
   const [hovered, setHovered] = useState<number | null>(null);
 
   const isActive = (href: string) =>
-    pathname.startsWith(href);
+    pathname.startsWith(href.split("?")[0]!);
   const waiting = NAV_ITEMS.reduce(
     (n, i) => n + ("count" in i ? i.count : 0),
     0,

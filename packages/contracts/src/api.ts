@@ -152,7 +152,27 @@ export const ComparisonRequest = z.object({
 });
 export type ComparisonRequest = z.infer<typeof ComparisonRequest>;
 
-/** 202 Accepted from POST /api/comparisons */
+/** What a run does. Trial requests and containment runs are created by their own endpoints. */
+export const RunKind = z.enum(["comparison", "trial_request", "containment"]);
+export type RunKind = z.infer<typeof RunKind>;
+
+/**
+ * POST /api/trial-requests. Prepares a SYNTHETIC trial request on Wallio's own form
+ * (forms.<domain>) for a candidate from a recommendation. Nothing is submitted until
+ * the user approves the exact intent; no vendor ever receives it.
+ */
+export const TrialRequestCreate = z.object({
+  idempotencyKey: z.uuid(),
+  recommendationId: Id,
+  toolId: Id,
+});
+export type TrialRequestCreate = z.infer<typeof TrialRequestCreate>;
+
+/** POST /api/containment-runs. Opens Wallio's own hostile test page in the isolated browser. */
+export const ContainmentRunCreate = z.object({ idempotencyKey: z.uuid() });
+export type ContainmentRunCreate = z.infer<typeof ContainmentRunCreate>;
+
+/** 202 Accepted from POST /api/comparisons, /api/trial-requests and /api/containment-runs */
 export const ComparisonAccepted = z.object({
   runId: Id,
   status: z.literal("QUEUED"),
@@ -163,6 +183,9 @@ export const ComparisonAccepted = z.object({
 /** GET /api/runs/:id */
 export const Run = z.object({
   id: Id,
+  kind: RunKind,
+  /** Ties the run's request, runner jobs, model calls, evidence, approvals and logs together. Quote it in support requests. */
+  correlationId: Id,
   status: RunStatus,
   outcome: RunOutcome,
   stage: RunStage,
@@ -220,7 +243,7 @@ export const RunEvent = z.discriminatedUnion("type", [
   }),
   EventBase.extend({
     type: z.literal("inference_call"),
-    data: z.object({ purpose: z.enum(["plan", "extract", "verify", "explain"]), model: z.string(), latencyMs: z.int().nonnegative(), ok: z.boolean() }),
+    data: z.object({ purpose: z.enum(["plan", "extract", "verify", "explain", "task"]), model: z.string(), latencyMs: z.int().nonnegative(), ok: z.boolean() }),
   }),
   EventBase.extend({
     type: z.literal("policy_denied"),
@@ -230,6 +253,23 @@ export const RunEvent = z.discriminatedUnion("type", [
   EventBase.extend({
     type: z.literal("approval_resolved"),
     data: z.object({ approvalId: Id, result: z.enum(["approved", "declined", "expired", "invalidated"]) }),
+  }),
+  /** Trial request: what happened to the approved action. "simulated" only in demo playback. */
+  EventBase.extend({
+    type: z.literal("action_result"),
+    data: z.object({ approvalId: Id, result: z.enum(["submitted", "uncertain", "refused", "simulated"]), evidenceId: Id.nullable() }),
+  }),
+  /** Containment run summary. sentinel is null when the sentinel couldn't be read (or in demo playback). */
+  EventBase.extend({
+    type: z.literal("containment_result"),
+    data: z.object({
+      contained: z.boolean(),
+      deniedRequests: z.int().nonnegative(),
+      refusedActions: z.int().nonnegative(),
+      sentinel: z.object({ before: z.int().nonnegative(), after: z.int().nonnegative() }).nullable(),
+      cleanupVerified: z.boolean(),
+      evidenceId: Id.nullable(),
+    }),
   }),
   EventBase.extend({ type: z.literal("warning"), data: z.object({ detail: z.string() }) }),
   EventBase.extend({ type: z.literal("error"), data: z.object({ error: ApiError }) }),
@@ -393,6 +433,8 @@ export const ApprovalDecisionRequest = z.object({
   intentHash: Sha256,
 });
 
+export type ApprovalDecisionRequest = z.infer<typeof ApprovalDecisionRequest>;
+
 // ───────────────────────── Decisions ─────────────────────────
 
 /** POST /api/decisions */
@@ -409,5 +451,59 @@ export const Decision = DecisionRequest.extend({
   evidenceSnapshotIds: z.array(Id),
   createdAt: Timestamp,
 });
+export type Decision = z.infer<typeof Decision>;
+
+/** POST /api/recommendations/:id/defer. Hides it until `until` (default: 14 days from today). */
+export const DeferRequest = z.object({
+  until: z.iso.date().optional(),
+  reason: z.string().max(1000).optional(),
+});
+export type DeferRequest = z.infer<typeof DeferRequest>;
+
+/** POST /api/recommendations/:id/dismiss */
+export const DismissRequest = z.object({ reason: z.string().max(1000).optional() });
+export type DismissRequest = z.infer<typeof DismissRequest>;
+
+/** POST /api/decisions/:id/outcome. The check-in answer, for accepted recommendations only. */
+export const DecisionOutcomeRequest = z.object({ result: z.enum(["helped", "no_change"]) });
+export type DecisionOutcomeRequest = z.infer<typeof DecisionOutcomeRequest>;
+
+/** One line of the decision history: the latest decision on a recommendation. */
+export const DecisionLogEntry = z.object({
+  /** The decision's id (use it for POST /api/decisions/:id/outcome). */
+  id: Id,
+  recommendationId: Id,
+  runId: Id,
+  choice: z.enum(["accept", "dismiss", "disagree"]),
+  action: RecommendationAction,
+  targetToolId: Id.nullable(),
+  targetToolName: z.string().nullable(),
+  headline: z.string(),
+  decidedAt: Timestamp,
+  /** When Wallio asks whether it helped. Accepted decisions only. */
+  checkInOn: z.iso.date().nullable(),
+  /** `pending` until the user answers the check-in; null when there is nothing to check (dismissed, disagreed). */
+  result: z.enum(["helped", "no_change", "pending"]).nullable(),
+  resultAt: Timestamp.nullable(),
+  /**
+   * The recommendation's own estimate: 12 × the monthly saving of its first scenario with a known,
+   * negative monthly change. Null if accepted-but-unknown or not accepted. An estimate, never a measured saving.
+   */
+  estimatedAnnualSavingMinor: z.int().nonnegative().nullable(),
+});
+export type DecisionLogEntry = z.infer<typeof DecisionLogEntry>;
+
+/** GET /api/decisions: everything the Decisions page shows, for this workspace only. */
+export const DecisionsOverview = z.object({
+  /** Approvals still waiting on the user (pending and unexpired), newest first. */
+  approvals: z.array(ApprovalIntent),
+  /** Recommendations with no decision yet, or deferred until today or earlier. Newest first, at most 20. */
+  recommendations: z.array(Recommendation),
+  /** Recommendations deferred to a future date. */
+  deferred: z.array(z.object({ recommendationId: Id, headline: z.string(), until: z.iso.date() })),
+  /** Latest decision per recommendation (except deferrals), newest first, at most 50. */
+  history: z.array(DecisionLogEntry),
+});
+export type DecisionsOverview = z.infer<typeof DecisionsOverview>;
 
 export { ApiError };

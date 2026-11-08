@@ -7,6 +7,19 @@
       "minLength": 1,
       "maxLength": 128
     },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "comparison",
+        "trial_request",
+        "containment"
+      ]
+    },
+    "correlationId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
     "status": {
       "type": "string",
       "enum": [
@@ -218,6 +231,8 @@
   },
   "required": [
     "id",
+    "kind",
+    "correlationId",
     "status",
     "outcome",
     "stage",
@@ -232,5 +247,5 @@
     "recommendationId",
     "error"
   ],
-  "$id": "wallio/api/Run@0.1.0"
+  "$id": "wallio/api/Run@0.3.0"
 }

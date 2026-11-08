@@ -1,17 +1,82 @@
 {
   "subscriptions": [
-    { "id": "sub_1", "toolId": "tool_incumbent", "plan": "Individual", "price": { "known": true, "amountMinor": 1000, "currency": "USD" }, "cadence": "monthly", "seats": 1, "renewalDate": "2026-11-20", "taxIncluded": null, "source": "seed", "status": "active", "lastVerifiedAt": null },
-    { "id": "sub_2", "toolId": "tool_chat", "plan": "Plus", "price": { "known": true, "amountMinor": 2000, "currency": "USD" }, "cadence": "monthly", "seats": 1, "renewalDate": "2026-11-28", "taxIncluded": null, "source": "seed", "status": "active", "lastVerifiedAt": null },
-    { "id": "sub_3", "toolId": "tool_writer", "plan": "Annual", "price": { "known": false, "reason": "User did not enter the annual amount" }, "cadence": "annual", "seats": 1, "renewalDate": "2027-03-01", "taxIncluded": null, "source": "seed", "status": "active", "lastVerifiedAt": null }
+    {
+      "id": "sub_1",
+      "toolId": "tool_copilot",
+      "plan": "Pro",
+      "price": {
+        "known": true,
+        "amountMinor": 1000,
+        "currency": "USD"
+      },
+      "cadence": "monthly",
+      "seats": 1,
+      "renewalDate": "2026-11-20",
+      "taxIncluded": null,
+      "source": "seed",
+      "status": "active",
+      "lastVerifiedAt": null
+    },
+    {
+      "id": "sub_2",
+      "toolId": "tool_chat",
+      "plan": "Plus",
+      "price": {
+        "known": true,
+        "amountMinor": 2000,
+        "currency": "USD"
+      },
+      "cadence": "monthly",
+      "seats": 1,
+      "renewalDate": "2026-11-28",
+      "taxIncluded": null,
+      "source": "seed",
+      "status": "active",
+      "lastVerifiedAt": null
+    },
+    {
+      "id": "sub_3",
+      "toolId": "tool_writer",
+      "plan": "Annual",
+      "price": {
+        "known": false,
+        "reason": "User did not enter the annual amount"
+      },
+      "cadence": "annual",
+      "seats": 1,
+      "renewalDate": "2027-03-01",
+      "taxIncluded": null,
+      "source": "seed",
+      "status": "active",
+      "lastVerifiedAt": null
+    }
   ],
   "tools": [
-    { "id": "tool_incumbent", "name": "Incumbent Assistant", "provider": "Incumbent Co", "category": "coding_assistant", "homepageUrl": "https://incumbent.example", "pricingUrl": "https://pricing.incumbent.example/plans", "claims": [], "reviewStatus": "curated" }
+    {
+      "id": "tool_copilot",
+      "name": "GitHub Copilot",
+      "provider": "GitHub",
+      "category": "coding_assistant",
+      "homepageUrl": "https://github.com/features/copilot",
+      "pricingUrl": "https://github.com/features/copilot/plans",
+      "claims": [],
+      "reviewStatus": "curated"
+    }
   ],
   "summary": {
     "currency": "USD",
     "knownMonthlyEquivalentMinor": 3000,
     "unknownPriceCount": 1,
-    "upcomingRenewals": [ { "subscriptionId": "sub_1", "renewalDate": "2026-11-20", "amount": { "amountMinor": 1000, "currency": "USD" } } ],
+    "upcomingRenewals": [
+      {
+        "subscriptionId": "sub_1",
+        "renewalDate": "2026-11-20",
+        "amount": {
+          "amountMinor": 1000,
+          "currency": "USD"
+        }
+      }
+    ],
     "calculationVersion": "spend-v1",
     "computedAt": "2026-11-06T15:00:00Z"
   }

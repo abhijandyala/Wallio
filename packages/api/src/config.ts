@@ -1,0 +1,122 @@
+export interface WorkerConfig {
+  /** Lease length. The worker renews it every third of this while a run executes. */
+  leaseSecs: number;
+  /** Hard execution deadline from claim to finish (PRD §14: 180 s). */
+  execDeadlineSecs: number;
+  /** A run that waits in the queue longer than this fails with a clear message. */
+  queueMaxWaitSecs: number;
+  /** New comparisons are refused while this many are already queued. */
+  maxQueued: number;
+  /** CLEANING longer than this is marked CLEANUP_FAILED. */
+  cleanupMaxSecs: number;
+  /** Concurrent runs per mode on this worker. Live runs share one browser runner. */
+  concurrency: { mock: number; live: number };
+  /** How often the worker looks for work and stale runs. */
+  pollMs: number;
+}
+
+export interface AppConfig {
+  /** App role (wallio_app, not a superuser) so row-level security applies. */
+  databaseUrl: string;
+  port: number;
+  /** Interface to listen on. Localhost by default: only Caddy talks to the API. */
+  host: string;
+  /** "mock" plays a scripted run; "live" uses the real planner and browser runner. */
+  runMode: "mock" | "live";
+  cookieSecure: boolean;
+  /** If set, mutating requests with an Origin header must match it. */
+  appOrigin: string | null;
+  sessionTtlHours: number;
+  /** Per-run execution spend ceiling in USD cents, enforced server-side. */
+  runSpendCapMinor: number;
+  /** Amount reserved per live run before dispatch, in USD cents. */
+  runEstimateMinor: number;
+  /** Kill switch: no new runs once today's committed spend reaches this, in USD cents. */
+  dailySpendCapMinor: number;
+  /** Delay between mock run steps. */
+  mockStepMs: number;
+  /** Abuse limits for the public guest demo. */
+  limits: {
+    /** API requests per client IP per minute. */
+    requestsPerMinutePerIp: number;
+    /** New guest workspaces per client IP per hour. */
+    guestsPerHourPerIp: number;
+    /** Runs (any kind) a workspace may start per UTC day. */
+    runsPerDayPerWorkspace: number;
+    /** Runs started per client IP per hour, across workspaces. */
+    runsPerHourPerIp: number;
+  };
+  worker: WorkerConfig;
+  /**
+   * Adhvik's runner daemon on the private network. Live mode needs url and token.
+   * approvalKey signs approval tokens the runner verifies before any submit click.
+   * caFile is the runner's self-signed certificate; Node trusts it through
+   * NODE_EXTRA_CA_CERTS (set in deploy/wallio-api.service).
+   */
+  runner: { url: string | null; token: string | null; timeoutMs: number; approvalKey: string | null; caFile: string | null };
+  /** https origin of the owned eval page, a separate subdomain so the eval job can't reach the API. */
+  evalOrigin: string | null;
+  /** https origin of the owned synthetic trial form (forms.<domain>). */
+  formsOrigin: string | null;
+  /** https origin of the owned hostile containment page (hostile.<domain>). */
+  hostileOrigin: string | null;
+  /** Containment sentinel on the control VM's private IP (GET /count). Optional. */
+  sentinelUrl: string | null;
+  /** How long a user has to approve an intent. The runner caps tokens at 600 s. */
+  approvalTtlSecs: number;
+}
+
+export function loadAppConfig(env: Record<string, string | undefined> = process.env): AppConfig {
+  const databaseUrl = env.DATABASE_URL?.trim();
+  if (!databaseUrl) throw new Error("DATABASE_URL is not set (see .env.example).");
+  const runMode = (env.RUN_MODE ?? "mock").trim();
+  if (runMode !== "mock" && runMode !== "live") throw new Error(`RUN_MODE must be mock or live, got ${runMode}`);
+  const n = (v: string | undefined, d: number) => (v && Number.isFinite(Number(v)) ? Number(v) : d);
+  return {
+    databaseUrl,
+    port: n(env.PORT, 8787),
+    host: env.HOST?.trim() || "127.0.0.1",
+    runMode,
+    cookieSecure: env.COOKIE_SECURE === "true",
+    appOrigin: env.APP_ORIGIN?.trim() || null,
+    sessionTtlHours: n(env.SESSION_TTL_HOURS, 72),
+    runSpendCapMinor: n(env.RUN_SPEND_CAP_MINOR, 50),
+    runEstimateMinor: n(env.RUN_ESTIMATE_MINOR, 5),
+    dailySpendCapMinor: n(env.DAILY_SPEND_CAP_MINOR, 500),
+    mockStepMs: n(env.MOCK_STEP_MS, 700),
+    limits: {
+      requestsPerMinutePerIp: n(env.RATE_LIMIT_PER_MINUTE, 300),
+      guestsPerHourPerIp: n(env.GUESTS_PER_HOUR_PER_IP, 20),
+      runsPerDayPerWorkspace: n(env.RUNS_PER_DAY_PER_WORKSPACE, 12),
+      runsPerHourPerIp: n(env.RUNS_PER_HOUR_PER_IP, 30),
+    },
+    worker: {
+      leaseSecs: n(env.WORKER_LEASE_SECS, 15),
+      execDeadlineSecs: n(env.RUN_DEADLINE_SECS, 180),
+      queueMaxWaitSecs: n(env.QUEUE_MAX_WAIT_SECS, 120),
+      maxQueued: n(env.MAX_QUEUED_RUNS, 5),
+      cleanupMaxSecs: n(env.CLEANUP_MAX_SECS, 60),
+      concurrency: { mock: n(env.MOCK_CONCURRENCY, 4), live: n(env.LIVE_CONCURRENCY, 1) },
+      pollMs: n(env.WORKER_POLL_MS, 500),
+    },
+    runner: {
+      url: env.RUNNER_URL?.trim() || null,
+      token: env.RUNNER_SHARED_TOKEN?.trim() || null,
+      // navigate may take 30 s in the browser + 5 s runner watchdog; the runner asks for >= 50 s.
+      timeoutMs: Math.max(50_000, n(env.RUNNER_TIMEOUT_MS, 60_000)),
+      approvalKey: env.RUNNER_APPROVAL_KEY?.trim() || null,
+      caFile: env.RUNNER_CA_FILE?.trim() || null,
+    },
+    evalOrigin: env.EVAL_ORIGIN?.trim() || derivedOrigin("eval", env.APP_ORIGIN?.trim()),
+    formsOrigin: env.FORMS_ORIGIN?.trim() || derivedOrigin("forms", env.APP_ORIGIN?.trim()),
+    hostileOrigin: env.HOSTILE_ORIGIN?.trim() || derivedOrigin("hostile", env.APP_ORIGIN?.trim()),
+    sentinelUrl: env.SENTINEL_URL?.trim() || null,
+    approvalTtlSecs: Math.min(300, Math.max(30, n(env.APPROVAL_TTL_SECS, 120))),
+  };
+}
+
+/** ("eval", https://example.com) → https://eval.example.com. Only for https origins. */
+function derivedOrigin(sub: string, appOrigin: string | undefined): string | null {
+  if (!appOrigin?.startsWith("https://")) return null;
+  return `https://${sub}.${new URL(appOrigin).hostname}`;
+}

@@ -1,0 +1,47 @@
+{
+  "base": "https://149-28-76-16.sslip.io",
+  "rows": [
+    {
+      "n": 1,
+      "label": "post-runner-merge",
+      "at": "2026-11-06T00:39:36.637Z",
+      "comparison": {
+        "runId": "251e0c82-eb7d-4b97-9d76-736887fa8794",
+        "correlationId": "corr_6de8a1f2d21e4148",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 7.9,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "compare_further",
+        "confidence": "low",
+        "statements": 3,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 2.5,
+        "actionResults": [
+          "simulated"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 3.1,
+        "contained": true,
+        "refused": 3,
+        "denied": 0,
+        "sentinel": null,
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    }
+  ]
+}

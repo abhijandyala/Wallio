@@ -1,0 +1,91 @@
+# Public entry point. Only Caddy listens publicly (443); the API and Postgres
+# listen on localhost. TLS certificates are automatic.
+__WALLIO_DOMAIN__ {
+	encode zstd gzip
+
+	request_body {
+		max_size 1MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		-Server
+	}
+
+	# The owned evaluation page lives only on eval.<domain> (below).
+	handle /eval/* {
+		respond 404
+	}
+
+	handle /api/* {
+		# flush_interval -1 streams SSE run events immediately
+		reverse_proxy 127.0.0.1:8787 {
+			flush_interval -1
+		}
+	}
+
+	handle {
+		root * /opt/wallio/current/deploy/web
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+# Owned evaluation page, opened by the runner's isolated browser in its own job.
+# A separate host so that job's allowlist never includes the API. Only /eval/<token>
+# is served; everything else is 404.
+eval.__WALLIO_DOMAIN__ {
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Robots-Tag "noindex, nofollow"
+		Cache-Control "no-store"
+		-Server
+	}
+	handle /eval/* {
+		reverse_proxy 127.0.0.1:8787
+	}
+	handle {
+		respond 404
+	}
+}
+
+# Wallio's own synthetic trial-request form, opened by the runner's browser in its own
+# job (approval-gated submit). Only /trial/<token> is served.
+forms.__WALLIO_DOMAIN__ {
+	request_body {
+		max_size 16KB
+	}
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Robots-Tag "noindex, nofollow"
+		Cache-Control "no-store"
+		-Server
+	}
+	handle /trial/* {
+		reverse_proxy 127.0.0.1:8787
+	}
+	handle {
+		respond 404
+	}
+}
+
+# Containment fixture (Adhvik's packages/runner/fixtures/hostile), static files only.
+# config.js is generated here so the page targets this deployment's private sentinel.
+hostile.__WALLIO_DOMAIN__ {
+	header {
+		Cache-Control "no-store"
+		X-Robots-Tag "noindex, nofollow"
+		-Server
+	}
+	handle /config.js {
+		header Content-Type "application/javascript; charset=utf-8"
+		respond `window.WALLIO_SENTINEL = "__SENTINEL_URL__";` 200
+	}
+	handle {
+		root * /opt/wallio/current/packages/runner/fixtures/hostile
+		file_server
+	}
+}

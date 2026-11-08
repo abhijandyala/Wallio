@@ -1,0 +1,111 @@
+{
+  "testedAt": "2026-11-05T22:55:40.079Z",
+  "baseUrl": "https://api.vultrinference.com/v1",
+  "chatModelsAvailable": [
+    "deepseek-v4.1-flash-1017",
+    "glm-5.2",
+    "glm-5.3",
+    "glm-5.3-flash",
+    "mimo-v2.6-flash",
+    "mimo-v2.6-pro",
+    "minimax-m3.1-flash",
+    "muse-glimmer-30b",
+    "nemotron-3-nano-omni-30b-a3b-reasoning",
+    "qwen3.8-27b",
+    "qwen3.8-flash-next",
+    "raon-1-mini-preview"
+  ],
+  "textCandidates": [
+    "glm-5.3-flash",
+    "qwen3.8-flash-next",
+    "deepseek-v4.1-flash-1017"
+  ],
+  "visionCandidates": [
+    "glm-5.3-flash",
+    "qwen3.8-flash-next",
+    "deepseek-v4.1-flash-1017"
+  ],
+  "textModel": "glm-5.3-flash",
+  "visionModel": "glm-5.3-flash",
+  "jsonMode": true,
+  "pricesUsdPerMTok": {
+    "glm-5.3-flash": {
+      "inputPerMTokUsd": 0.1,
+      "outputPerMTokUsd": 0.35
+    }
+  },
+  "gatePassed": true,
+  "checks": [
+    {
+      "name": "text",
+      "model": "glm-5.3-flash",
+      "pass": true,
+      "latencyMs": 718,
+      "detail": "tokens 24/172; reply \"WALLIO-OK\""
+    },
+    {
+      "name": "structured (prompt only)",
+      "model": "glm-5.3-flash",
+      "pass": true,
+      "latencyMs": 4341,
+      "detail": "8 steps; stayed on allowed URLs"
+    },
+    {
+      "name": "structured (json mode)",
+      "model": "glm-5.3-flash",
+      "pass": true,
+      "latencyMs": 4875,
+      "detail": "8 steps; stayed on allowed URLs"
+    },
+    {
+      "name": "text",
+      "model": "qwen3.8-flash-next",
+      "pass": true,
+      "latencyMs": 743,
+      "detail": "tokens 64/42; reply \"WALLIO-OK\""
+    },
+    {
+      "name": "structured (prompt only)",
+      "model": "qwen3.8-flash-next",
+      "pass": true,
+      "latencyMs": 1965,
+      "detail": "7 steps; stayed on allowed URLs"
+    },
+    {
+      "name": "structured (json mode)",
+      "model": "qwen3.8-flash-next",
+      "pass": true,
+      "latencyMs": 2988,
+      "detail": "7 steps; stayed on allowed URLs"
+    },
+    {
+      "name": "text",
+      "model": "deepseek-v4.1-flash-1017",
+      "pass": true,
+      "latencyMs": 1512,
+      "detail": "tokens 43/22; reply \"WALLIO-OK\""
+    },
+    {
+      "name": "structured (prompt only)",
+      "model": "deepseek-v4.1-flash-1017",
+      "pass": true,
+      "latencyMs": 2360,
+      "detail": "7 steps; stayed on allowed URLs"
+    },
+    {
+      "name": "structured (json mode)",
+      "model": "deepseek-v4.1-flash-1017",
+      "pass": true,
+      "latencyMs": 2476,
+      "detail": "7 steps; stayed on allowed URLs"
+    },
+    {
+      "name": "vision",
+      "model": "glm-5.3-flash",
+      "pass": true,
+      "latencyMs": 816,
+      "detail": "expected AXXP, got \"AXXP\""
+    }
+  ],
+  "note": "Prices come from the /v1/models catalog at test time. Rate limits are not exposed by the API; confirm them in the Vultr console."
+}

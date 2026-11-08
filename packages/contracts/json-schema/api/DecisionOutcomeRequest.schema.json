@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "result": {
+      "type": "string",
+      "enum": [
+        "helped",
+        "no_change"
+      ]
+    }
+  },
+  "required": [
+    "result"
+  ],
+  "$id": "wallio/api/DecisionOutcomeRequest@0.3.0"
+}

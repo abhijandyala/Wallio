@@ -1,0 +1,341 @@
+{
+  "base": "https://149-28-76-16.sslip.io",
+  "rows": [
+    {
+      "n": 1,
+      "label": "standard",
+      "at": "2026-11-05T22:29:55.043Z",
+      "comparison": {
+        "runId": "42f01758-19d0-47f9-be1d-9238b514769c",
+        "correlationId": "corr_8f175fcaa6c34bda",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 8.4,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "compare_further",
+        "confidence": "low",
+        "statements": 3,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 2.5,
+        "actionResults": [
+          "simulated"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 2.9,
+        "contained": true,
+        "refused": 3,
+        "denied": 0,
+        "sentinel": null,
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    },
+    {
+      "n": 2,
+      "label": "standard",
+      "at": "2026-11-05T22:30:08.956Z",
+      "comparison": {
+        "runId": "da20a885-b674-4407-bf4f-28d6181943fe",
+        "correlationId": "corr_2ae347656f5645b5",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 7.7,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "compare_further",
+        "confidence": "low",
+        "statements": 3,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 2.5,
+        "actionResults": [
+          "simulated"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 2.9,
+        "contained": true,
+        "refused": 3,
+        "denied": 0,
+        "sentinel": null,
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    },
+    {
+      "n": 3,
+      "label": "standard",
+      "at": "2026-11-05T22:30:22.275Z",
+      "comparison": {
+        "runId": "f503fb63-cc54-46b3-928d-3b936759693a",
+        "correlationId": "corr_be71a5adf9f448a9",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 7.3,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "compare_further",
+        "confidence": "low",
+        "statements": 3,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 2,
+        "actionResults": [
+          "simulated"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 2.9,
+        "contained": true,
+        "refused": 3,
+        "denied": 0,
+        "sentinel": null,
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    },
+    {
+      "n": 4,
+      "label": "standard",
+      "at": "2026-11-05T22:30:34.866Z",
+      "comparison": {
+        "runId": "695051f8-b771-41f1-8eef-5fa0a1f681c2",
+        "correlationId": "corr_a5dd3301b25e405f",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 7.8,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "compare_further",
+        "confidence": "low",
+        "statements": 3,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 2,
+        "actionResults": [
+          "simulated"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 2.4,
+        "contained": true,
+        "refused": 3,
+        "denied": 0,
+        "sentinel": null,
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    },
+    {
+      "n": 5,
+      "label": "standard",
+      "at": "2026-11-05T22:30:47.211Z",
+      "comparison": {
+        "runId": "a3eefaab-2972-4656-9836-aef55eea2f1d",
+        "correlationId": "corr_d1030dcd8ceb4be8",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 7.5,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "compare_further",
+        "confidence": "low",
+        "statements": 3,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 2.4,
+        "actionResults": [
+          "simulated"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 2.5,
+        "contained": true,
+        "refused": 3,
+        "denied": 0,
+        "sentinel": null,
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    },
+    {
+      "n": 6,
+      "label": "standard",
+      "at": "2026-11-05T22:30:59.741Z",
+      "comparison": {
+        "runId": "e4af7e54-57ff-448d-9482-589a18130c98",
+        "correlationId": "corr_961c179b5b194333",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 8,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "compare_further",
+        "confidence": "low",
+        "statements": 3,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 2.3,
+        "actionResults": [
+          "simulated"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 3,
+        "contained": true,
+        "refused": 3,
+        "denied": 0,
+        "sentinel": null,
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    },
+    {
+      "n": 7,
+      "label": "standard",
+      "at": "2026-11-05T22:31:13.263Z",
+      "comparison": {
+        "runId": "36640533-ec79-4dd4-bee3-4f5f73710b79",
+        "correlationId": "corr_ac3a992957a348c2",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 7.8,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "compare_further",
+        "confidence": "low",
+        "statements": 3,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 2.6,
+        "actionResults": [
+          "simulated"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 3.2,
+        "contained": true,
+        "refused": 3,
+        "denied": 0,
+        "sentinel": null,
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    },
+    {
+      "n": 8,
+      "label": "standard",
+      "at": "2026-11-05T22:31:27.188Z",
+      "comparison": {
+        "runId": "ed600e93-8d2a-4489-908b-272d29058bf7",
+        "correlationId": "corr_997c9c1a7d95434c",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 7.5,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "compare_further",
+        "confidence": "low",
+        "statements": 3,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 2.5,
+        "actionResults": [
+          "simulated"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 3,
+        "contained": true,
+        "refused": 3,
+        "denied": 0,
+        "sentinel": null,
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    }
+  ]
+}

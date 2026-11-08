@@ -314,3 +314,75 @@ test("config refuses unsafe settings", () => {
   assert.throws(() => loadRunnerConfig({ ...base, NODE_ENV: "production" }), /TLS/);
   assert.throws(() => loadRunnerConfig({ ...base, RUNNER_BIND_HOST: "0.0.0.0" }));
 });
+
+// ───────────── prepare-then-confirm (fake vendor signup) ─────────────
+
+const SIGNUP = "signup.vendor.example";
+type El = NonNullable<C.Observation["elements"]>[number];
+
+test("prepare then confirm: fields described, select, fill limits, Continue needs approval, handoff at the password page", async () => {
+  const spec = job({ allowedHosts: [SIGNUP], fillKinds: ["email", "name", "plan_choice"] });
+  assert.equal((await call("POST", "/jobs", spec)).status, 201);
+  await act(spec.jobId, { type: "navigate", url: `https://${SIGNUP}/signup?plan=pro` });
+  const els = (await act(spec.jobId, { type: "inspect" })).body.observation.elements as El[];
+  const by = (label: string) => els.find((e) => e.field?.label === label || e.name === label)!;
+  assert.equal(by("Work email").field!.kind, "email");
+  assert.equal(by("Work email").field!.required, true);
+  assert.equal(by("Company").field!.kind, "organization");
+  assert.deepEqual(by("Billing period").field!.options!.map((o) => o.label), ["Monthly", "Yearly (save 20%)"]);
+  assert.equal(by("I agree to the Terms of Service").field!.kind, "consent");
+  assert.equal(by("Continue").needsApproval, true);
+
+  assert.equal((await act(spec.jobId, { type: "fill", elementRef: by("Work email").ref, value: "dev@wallio.example" })).body.status, "ok");
+  assert.equal((await act(spec.jobId, { type: "fill", elementRef: by("Full name").ref, value: "Demo Dev" })).body.status, "ok");
+  const org = await act(spec.jobId, { type: "fill", elementRef: by("Company").ref, value: "Acme" });
+  assert.equal(org.body.error.code, "invalid_action");
+  assert.match(org.body.error.message, /organization/);
+  const notDropdown = await act(spec.jobId, { type: "select", elementRef: by("Full name").ref, value: "x" });
+  assert.equal(notDropdown.body.error.code, "invalid_action");
+  const consent = await act(spec.jobId, { type: "click", elementRef: by("I agree to the Terms of Service").ref });
+  assert.equal(consent.body.error.code, "invalid_action", "consent is not in this job's fillKinds");
+  const sel = await act(spec.jobId, { type: "select", elementRef: by("Billing period").ref, value: "Yearly (save 20%)" });
+  assert.equal(sel.body.status, "ok");
+
+  const noToken = await act(spec.jobId, { type: "click", elementRef: by("Continue").ref });
+  assert.equal(noToken.body.status, "denied");
+  assert.equal(noToken.body.error.code, "approval_token_invalid");
+
+  const token = signApprovalToken(KEY, { jobId: spec.jobId, actionId: "continue_1", elementRef: by("Continue").ref, pageFingerprint: sel.body.observation.pageFingerprint });
+  const next = await act(spec.jobId, { type: "click", elementRef: by("Continue").ref, approvalToken: token }, "continue_1");
+  assert.equal(next.body.status, "ok", JSON.stringify(next.body.error));
+  const obs = next.body.observation as C.Observation;
+  assert.equal(obs.blocked!.reason, "login_required");
+  assert.equal(obs.handoff!.url, `https://${SIGNUP}/signup/password?plan=pro&billing=yearly`);
+  assert.deepEqual(obs.handoff!.prepared, [
+    { label: "Work email", kind: "email", value: "dev@wallio.example" },
+    { label: "Full name", kind: "name", value: "Demo Dev" },
+    { label: "Billing period", kind: "plan_choice", value: "Yearly (save 20%)" },
+  ]);
+  assert.equal(obs.handoff!.remaining.length, 2);
+  await call("POST", `/jobs/${spec.jobId}/finish`);
+});
+
+test("research jobs (fillKinds []) fill nothing; payment and email-verification pages stop with a handoff", async () => {
+  const spec = job({ allowedHosts: [SIGNUP, "forms.wallio.example"], fillKinds: [] });
+  assert.equal((await call("POST", "/jobs", spec)).status, 201);
+  await act(spec.jobId, { type: "navigate", url: "https://forms.wallio.example/" });
+  const email = ((await act(spec.jobId, { type: "inspect" })).body.observation.elements as El[]).find((e) => e.field?.kind === "email")!;
+  assert.equal((await act(spec.jobId, { type: "fill", elementRef: email.ref, value: "x@y.example" })).body.error.code, "invalid_action");
+  for (const [path, reason] of [["/checkout", "payment_required"], ["/verify", "verification_required"]] as const) {
+    const r = await act(spec.jobId, { type: "navigate", url: `https://${SIGNUP}${path}` });
+    assert.equal(r.body.observation.blocked.reason, reason);
+    assert.equal(r.body.observation.handoff.reason, reason);
+    assert.equal(r.body.observation.handoff.url, `https://${SIGNUP}${path}`);
+  }
+  await call("POST", `/jobs/${spec.jobId}/finish`);
+});
+
+test("re-creating a job with different fillKinds is refused", async () => {
+  const spec = job({ fillKinds: ["email"] });
+  assert.equal((await call("POST", "/jobs", spec)).status, 201);
+  assert.equal((await call("POST", "/jobs", spec)).status, 201);
+  assert.equal((await call("POST", "/jobs", { ...spec, fillKinds: ["email", "name"] })).status, 409);
+  await call("POST", `/jobs/${spec.jobId}/finish`);
+});

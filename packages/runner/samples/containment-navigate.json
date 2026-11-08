@@ -13,6 +13,7 @@
     "elements": null,
     "screenshot": null,
     "blocked": null,
+    "handoff": null,
     "deniedRequests": [
       {
         "url": "http://172.31.0.10:9099/hit?via=fetch-http",
@@ -23,16 +24,16 @@
         "reason": "private_range"
       },
       {
+        "url": "http://169.254.169.254/latest/meta-data/",
+        "reason": "non_https"
+      },
+      {
         "url": "https://169.254.169.254/",
         "reason": "private_range"
       },
       {
         "url": "https://localhost:8443/",
         "reason": "bad_port"
-      },
-      {
-        "url": "http://169.254.169.254/latest/meta-data/",
-        "reason": "non_https"
       },
       {
         "url": "https://127.0.0.1/",
@@ -51,9 +52,9 @@
         "reason": "host_not_allowed"
       }
     ],
-    "capturedAt": "2026-11-05T18:55:34.206Z"
+    "capturedAt": "2026-11-07T01:43:25.737Z"
   },
   "error": null,
-  "durationMs": 559,
+  "durationMs": 564,
   "actionsRemaining": 19
 }

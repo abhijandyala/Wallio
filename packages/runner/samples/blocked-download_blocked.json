@@ -16,14 +16,15 @@
       "reason": "download_blocked",
       "detail": "The page tried to start a download. Downloads are disabled in the runner."
     },
+    "handoff": null,
     "deniedRequests": [],
-    "capturedAt": "2026-11-05T18:55:24.407Z"
+    "capturedAt": "2026-11-07T01:43:04.770Z"
   },
   "error": {
     "code": "navigation_failed",
     "message": "page.goto: Download is starting",
     "retryable": true
   },
-  "durationMs": 19,
+  "durationMs": 9,
   "actionsRemaining": 16
 }

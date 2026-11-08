@@ -1,0 +1,22 @@
+{
+  "base": "https://149-28-76-16.sslip.io",
+  "rows": [
+    {
+      "n": 1,
+      "label": "degraded-runner-down",
+      "at": "2026-11-05T22:32:23.502Z",
+      "comparison": {
+        "runId": "acba6063-4d1a-40bc-a28c-5547053e3408",
+        "correlationId": "corr_9f69061ed94c4b3b",
+        "status": "CLEANED",
+        "outcome": "failed",
+        "seconds": 1.1,
+        "evidence": 0,
+        "error": "runner_unavailable"
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    }
+  ]
+}

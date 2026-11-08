@@ -5,7 +5,7 @@
   "observation": null,
   "error": {
     "code": "approval_token_invalid",
-    "message": "This control submits a form, so it needs an approval token from the control plane.",
+    "message": "This control submits or continues a form, so it needs an approval token from the control plane.",
     "retryable": false
   },
   "durationMs": 0,

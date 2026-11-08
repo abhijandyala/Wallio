@@ -1,6 +1,18 @@
 {
-  "jobId": "job_01", "runId": "run_01HZX3", "correlationId": "corr_9f2",
-  "purpose": "Research official pricing for two coding assistants",
-  "allowedHosts": ["pricing.incumbent.example", "docs.candidate.example", "eval.wallio.example", "forms.wallio.example"],
-  "limits": { "deadlineMs": 180000, "maxActions": 20, "maxScreenshots": 12 }
+  "jobId": "job_01",
+  "runId": "run_01HZX3",
+  "correlationId": "corr_9f2",
+  "purpose": "Research GitHub Copilot and Zed pricing pages",
+  "allowedHosts": [
+    "github.com",
+    "zed.dev",
+    "eval.wallio.example",
+    "forms.wallio.example"
+  ],
+  "limits": {
+    "deadlineMs": 180000,
+    "maxActions": 20,
+    "maxScreenshots": 12
+  },
+  "fillKinds": []
 }

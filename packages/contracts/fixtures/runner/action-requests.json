@@ -1,9 +1,10 @@
 [
-  { "actionId": "act_0", "stepIndex": 0, "action": { "type": "navigate", "url": "https://pricing.incumbent.example/plans" } },
+  { "actionId": "act_0", "stepIndex": 0, "action": { "type": "navigate", "url": "https://github.com/features/copilot/plans" } },
   { "actionId": "act_1", "stepIndex": 1, "action": { "type": "inspect", "maxElements": 40 } },
   { "actionId": "act_2", "stepIndex": 2, "action": { "type": "screenshot", "fullPage": false } },
   { "actionId": "act_3", "stepIndex": 3, "action": { "type": "fill", "elementRef": "e12", "value": "demo-dev@wallio.example" } },
-  { "actionId": "act_4", "stepIndex": 4, "action": { "type": "click", "elementRef": "e14", "approvalToken": "apt_7c1d9e0b4a2f8e61" } },
-  { "actionId": "act_5", "stepIndex": 5, "action": { "type": "scroll", "direction": "down", "pixels": 800 } },
-  { "actionId": "act_6", "stepIndex": 6, "action": { "type": "finish" } }
+  { "actionId": "act_3b", "stepIndex": 4, "action": { "type": "select", "elementRef": "e13", "value": "yearly" } },
+  { "actionId": "act_4", "stepIndex": 5, "action": { "type": "click", "elementRef": "e14", "approvalToken": "apt_7c1d9e0b4a2f8e61" } },
+  { "actionId": "act_5", "stepIndex": 6, "action": { "type": "scroll", "direction": "down", "pixels": 800 } },
+  { "actionId": "act_6", "stepIndex": 7, "action": { "type": "finish" } }
 ]

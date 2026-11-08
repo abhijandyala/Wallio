@@ -26,10 +26,12 @@ type CleanupReport = C.CleanupReport;
 type ErrorCode = NonNullable<ActionResult["error"]>["code"];
 type HttpErrorCode = z.infer<typeof C.RunnerHttpError>["code"];
 type CancelReason = z.infer<typeof C.RunnerCancelRequest>["reason"];
+type FieldKind = C.FieldKind;
+const FIELD_KINDS: ReadonlySet<string> = new Set(C.FieldKind.options);
 
 const LIMITS = C.RUNNER_LIMITS;
 /** Agent-side timeout per op, plus slack before the daemon declares the browser hung. */
-const AGENT_TIMEOUT_MS: Record<string, number> = { navigate: 40_000, click: 20_000, screenshot: 20_000, inspect: 15_000, fill: 15_000, scroll: 15_000, observe: 15_000, shutdown: 5_000 };
+const AGENT_TIMEOUT_MS: Record<string, number> = { navigate: 40_000, click: 20_000, screenshot: 20_000, inspect: 15_000, fill: 15_000, select: 15_000, scroll: 15_000, observe: 15_000, shutdown: 5_000 };
 const WATCHDOG_SLACK_MS = 5_000;
 const ENDED: ReadonlySet<JobState> = new Set(["cleaned", "cleanup_failed"]);
 const STOPPED: ReadonlySet<JobState> = new Set(["cancelled", "timed_out", "failed"]);
@@ -50,6 +52,8 @@ interface JobRecord {
   correlationId: string;
   purpose: string;
   allowedHosts: string[];
+  /** Field kinds this job may fill, choose or tick; null = any non-sensitive field. */
+  fillKinds: FieldKind[] | null;
   limits: { deadlineMs: number; maxActions: number; maxScreenshots: number };
   state: JobState;
   startedAt: string;
@@ -176,7 +180,9 @@ export class JobService {
   async create(input: C.RunnerJobCreate): Promise<C.RunnerJobStatus> {
     const existing = this.jobs.get(input.jobId);
     if (existing) {
-      const same = existing.purpose === input.purpose && existing.allowedHosts.join() === [...new Set(input.allowedHosts)].join();
+      const kinds = input.fillKinds ? [...new Set(input.fillKinds)] : null;
+      const same = existing.purpose === input.purpose && existing.allowedHosts.join() === [...new Set(input.allowedHosts)].join() &&
+        JSON.stringify(existing.fillKinds ?? null) === JSON.stringify(kinds);
       if (same) return this.status(input.jobId);
       throw new RunnerHttpError(409, "bad_request", `Job ${input.jobId} already exists with a different specification.`);
     }
@@ -192,7 +198,7 @@ export class JobService {
     const started = Date.now();
     const job: JobRecord = {
       jobId: input.jobId, runId: input.runId, correlationId: input.correlationId, purpose: input.purpose,
-      allowedHosts: [...new Set(input.allowedHosts)], limits, state: "starting",
+      allowedHosts: [...new Set(input.allowedHosts)], fillKinds: input.fillKinds ? [...new Set(input.fillKinds)] : null, limits, state: "starting",
       startedAt: new Date(started).toISOString(), deadlineAt: new Date(started + limits.deadlineMs).toISOString(),
       imageDigest: this.driver.imageDigest(), ref: null, actionsUsed: 0, screenshotsUsed: 0, lastStepIndex: -1,
       results: {}, deniedRequests: [], stopReason: null, stoppedAs: null, peak: null, cleanup: null,
@@ -317,6 +323,11 @@ export class JobService {
     }
 
     // Runner-side policy (independent of the control plane's checks).
+    const allowedKinds = job.fillKinds ?? null;
+    const kindRefused = (ref: string, verb: string) => {
+      const kind = rt.lastInspect.get(ref)?.field?.kind;
+      return kind && kind !== "sensitive" && allowedKinds && !allowedKinds.includes(kind) ? `This job may not ${verb} ${kind.replace("_", " ")} fields.` : null;
+    };
     let op: AgentOp;
     switch (a.type) {
       case "navigate": {
@@ -351,11 +362,11 @@ export class JobService {
           }
           approved = true;
           expectedFingerprint = v.fingerprintHex;
-        } else if (rt.lastInspect.get(a.elementRef)?.submits) {
+        } else if (rt.lastInspect.get(a.elementRef)?.needsApproval) {
           count();
-          return done("denied", E("approval_token_invalid", "This control submits a form, so it needs an approval token from the control plane."));
+          return done("denied", E("approval_token_invalid", "This control submits or continues a form, so it needs an approval token from the control plane."));
         }
-        op = { op: "click", ref: a.elementRef, approved, expectedFingerprint };
+        op = { op: "click", ref: a.elementRef, approved, expectedFingerprint, allowedKinds };
         break;
       }
       case "fill":
@@ -363,8 +374,22 @@ export class JobService {
           count();
           return done("failed", E("invalid_action", "Refusing to fill a password, payment, one-time-code or file field."));
         }
-        op = { op: "fill", ref: a.elementRef, value: a.value };
+        if (kindRefused(a.elementRef, "fill")) {
+          count();
+          return done("failed", E("invalid_action", kindRefused(a.elementRef, "fill")!));
+        }
+        op = { op: "fill", ref: a.elementRef, value: a.value, allowedKinds };
         break;
+      case "select": {
+        const el = rt.lastInspect.get(a.elementRef);
+        const refused = el && el.tag !== "select" ? `${a.elementRef} is not a dropdown.` : kindRefused(a.elementRef, "choose");
+        if (refused) {
+          count();
+          return done("failed", E("invalid_action", refused));
+        }
+        op = { op: "select", ref: a.elementRef, value: a.value, allowedKinds };
+        break;
+      }
       case "scroll":
         op = { op: "scroll", direction: a.direction, pixels: a.pixels };
         break;
@@ -404,9 +429,9 @@ export class JobService {
     const png = reply.ok ? reply.observation?.screenshotPng : null;
     if (png) {
       shot = this.artifacts.put(job.jobId, Buffer.from(png, "base64"));
-      if (!shot) return done("failed", E("internal", "The screenshot failed validation (not a PNG, or too large)."), this.toObservation(reply.observation!, denials, null));
+      if (!shot) return done("failed", E("internal", "The screenshot failed validation (not a PNG, or too large)."), this.toObservation(job, reply.observation!, denials, null));
     }
-    const observation = reply.observation ? this.toObservation(reply.observation, denials, shot) : null;
+    const observation = reply.observation ? this.toObservation(job, reply.observation, denials, shot) : null;
 
     if (reply.ok) {
       if (op.op === "inspect") rt.lastInspect = new Map((reply.observation?.elements ?? []).map((e) => [e.ref, e]));
@@ -420,7 +445,7 @@ export class JobService {
   }
 
   /** Converts untrusted agent output into a contract Observation, re-applying every cap. */
-  private toObservation(o: AgentObservation, denials: Denial[], shot: ScreenshotMeta | null): C.Observation {
+  private toObservation(job: JobRecord, o: AgentObservation, denials: Denial[], shot: ScreenshotMeta | null): C.Observation {
     const str = (v: unknown, n: number) => (typeof v === "string" ? v : "").slice(0, n);
     const url = str(o.url, 2000);
     const excerpt = typeof o.textExcerpt === "string" && o.textExcerpt ? o.textExcerpt.slice(0, LIMITS.maxTextExcerptChars) : null;
@@ -438,12 +463,50 @@ export class JobService {
         ? o.elements.slice(0, LIMITS.maxElementsPerInspect).filter((e) => /^e\d{1,4}$/.test(e.ref)).map((e) => ({
             ref: e.ref, role: str(e.role, 50), name: str(e.name, 200), tag: str(e.tag, 20), text: str(e.text, 300),
             href: e.href ? str(e.href, 2000) : null, inputType: e.inputType ? str(e.inputType, 30) : null, targetHost: e.targetHost ? str(e.targetHost, 253) : null,
+            field: this.toField(e.field), needsApproval: e.needsApproval === true,
           }))
         : null,
       screenshot: shot ? { artifactId: shot.artifactId, sha256: shot.sha256, width: shot.width, height: shot.height, bytes: shot.bytes, mimeType: "image/png" } : null,
       blocked: o.blocked ? { reason: o.blocked.reason, detail: str(o.blocked.detail, 300) } : navHost ? { reason: "egress_denied", detail: `The egress proxy refused ${navHost}.` } : null,
+      handoff: this.toHandoff(job, o),
       deniedRequests: denials.map((d) => ({ url: str(d.url, 500), reason: String(d.reason) })),
       capturedAt: captured,
+    };
+  }
+
+  private toField(f: AgentElement["field"] | undefined): NonNullable<C.Observation["elements"]>[number]["field"] {
+    if (!f || typeof f !== "object" || !FIELD_KINDS.has(f.kind)) return null;
+    const str = (v: unknown) => (typeof v === "string" ? v : "").slice(0, 200);
+    return {
+      kind: f.kind,
+      label: str(f.label),
+      required: f.required === true,
+      value: f.kind === "sensitive" || typeof f.value !== "string" ? null : str(f.value),
+      options: Array.isArray(f.options) ? f.options.slice(0, 30).map((x) => ({ value: str(x?.value), label: str(x?.label), selected: x?.selected === true })) : null,
+    };
+  }
+
+  /** The continue link is passed on only if it is https and on one of the job's allowed hosts. */
+  private toHandoff(job: JobRecord, o: AgentObservation): C.Handoff | null {
+    const h = o.handoff;
+    if (!h || !o.blocked || h.reason !== o.blocked.reason) return null;
+    const str = (v: unknown, n: number) => (typeof v === "string" ? v : "").slice(0, n);
+    let url: string | null = null;
+    let host = "";
+    try {
+      const u = new URL(h.url);
+      host = u.hostname;
+      if (u.protocol === "https:" && job.allowedHosts.includes(u.hostname) && u.href.length <= 2000) url = u.href;
+    } catch {}
+    return {
+      reason: h.reason,
+      url,
+      host: str(host, 253),
+      prepared: (Array.isArray(h.prepared) ? h.prepared : [])
+        .filter((p) => FIELD_KINDS.has(p?.kind) && p.kind !== "sensitive")
+        .slice(-20)
+        .map((p) => ({ label: str(p.label, 200), kind: p.kind, value: str(p.value, 200) })),
+      remaining: (Array.isArray(h.remaining) ? h.remaining : []).slice(0, 5).map((r) => str(r, 200)),
     };
   }
 

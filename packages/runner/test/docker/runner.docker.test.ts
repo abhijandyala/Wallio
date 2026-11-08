@@ -56,7 +56,7 @@ const sentinelHits = async () => (await (await fetch("http://127.0.0.1:19099/cou
 
 let n = 0;
 let lastJobId: string | null = null;
-async function newJob(hosts: string[], limits = { deadlineMs: 120_000, maxActions: 20, maxScreenshots: 12 }) {
+async function newJob(hosts: string[], limits = { deadlineMs: 120_000, maxActions: 20, maxScreenshots: 12 }, extra: Partial<C.RunnerJobCreate> = {}) {
   // A failed test can leave its job running; cancel it so the next test isn't refused as busy.
   if (lastJobId) {
     const prev = await call("GET", `/jobs/${lastJobId}`);
@@ -67,7 +67,7 @@ async function newJob(hosts: string[], limits = { deadlineMs: 120_000, maxAction
   }
   const jobId = `itest_${Date.now()}_${n++}`;
   lastJobId = jobId;
-  const r = await call("POST", "/jobs", { jobId, runId: "run_t", correlationId: "corr_t", purpose: "integration test", allowedHosts: hosts, limits });
+  const r = await call("POST", "/jobs", { jobId, runId: "run_t", correlationId: "corr_t", purpose: "integration test", allowedHosts: hosts, limits, ...extra });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   C.RunnerJobStatus.parse(r.body);
   let step = 0;
@@ -246,6 +246,87 @@ test("owned eval page: click Run test and read the result", { skip: !RUN }, asyn
   const evalShot = await j.act({ type: "screenshot" });
   sample("ok-eval-result.json", clicked);
   sample("eval-result.png", (await call("GET", `/artifacts/${evalShot.observation!.screenshot!.artifactId}`)).body);
+  await j.finish();
+});
+
+test("prepare then confirm in a real browser: fields classified, select, consent, JS Continue gated, handoff at password", { skip: !RUN }, async () => {
+  const j = await newJob([FX], undefined, { fillKinds: ["email", "name", "plan_choice", "consent"] });
+  await j.act({ type: "navigate", url: `https://${FX}/plans` });
+  const choose = (await j.act({ type: "inspect" })).observation!.elements!.find((e) => e.name === "Choose Pro")!;
+  assert.equal(choose.needsApproval, false);
+  const signup = await j.act({ type: "click", elementRef: choose.ref });
+  assert.equal(signup.observation!.url, `https://${FX}/signup?plan=pro`);
+  const ins = await j.act({ type: "inspect" });
+  const els = ins.observation!.elements!;
+  const by = (label: string) => els.find((e) => e.field?.label === label || e.name === label)!;
+  assert.deepEqual(
+    ["Work email", "Full name", "Company", "Billing period", "Seats", "I agree to the Terms of Service"].map((l) => [l, by(l).field!.kind]),
+    [["Work email", "email"], ["Full name", "name"], ["Company", "organization"], ["Billing period", "plan_choice"], ["Seats", "quantity"], ["I agree to the Terms of Service", "consent"]],
+  );
+  assert.equal(by("Work email").field!.required, true);
+  assert.deepEqual(by("Billing period").field!.options, [{ value: "monthly", label: "Monthly", selected: true }, { value: "yearly", label: "Yearly (save 20%)", selected: false }]);
+  assert.equal(by("Seats").field!.value, "1");
+  assert.equal(by("Continue").needsApproval, true, "a JS button inside a form with fields needs approval");
+  sample("signup-inspect.json", ins);
+
+  assert.equal((await j.act({ type: "fill", elementRef: by("Work email").ref, value: "dev@wallio.example" })).status, "ok");
+  assert.equal((await j.act({ type: "fill", elementRef: by("Full name").ref, value: "Demo Dev" })).status, "ok");
+  const org = await j.act({ type: "fill", elementRef: by("Company").ref, value: "Acme" });
+  assert.equal(org.error!.code, "invalid_action");
+  assert.equal((await j.act({ type: "select", elementRef: by("Billing period").ref, value: "yearly" })).status, "ok");
+  const tos = await j.act({ type: "click", elementRef: by("I agree to the Terms of Service").ref });
+  assert.equal(tos.status, "ok", JSON.stringify(tos.error));
+
+  const noToken = await j.act({ type: "click", elementRef: by("Continue").ref });
+  assert.equal(noToken.error!.code, "approval_token_invalid");
+  const shot = await j.act({ type: "screenshot" });
+  sample("signup-prepared.png", (await call("GET", `/artifacts/${shot.observation!.screenshot!.artifactId}`)).body);
+  const token = signApprovalToken(KEY, { jobId: j.jobId, actionId: "continue_1", elementRef: by("Continue").ref, pageFingerprint: shot.observation!.pageFingerprint });
+  const next = await j.act({ type: "click", elementRef: by("Continue").ref, approvalToken: token }, "continue_1");
+  assert.equal(next.status, "ok", JSON.stringify(next.error));
+  assert.equal(next.observation!.blocked!.reason, "login_required");
+  const h = next.observation!.handoff!;
+  assert.equal(h.url, `https://${FX}/signup/password?plan=pro&billing=yearly`);
+  assert.deepEqual(h.prepared, [
+    { label: "Work email", kind: "email", value: "dev@wallio.example" },
+    { label: "Full name", kind: "name", value: "Demo Dev" },
+    { label: "Billing period", kind: "plan_choice", value: "Yearly (save 20%)" },
+    { label: "I agree to the Terms of Service", kind: "consent", value: "ticked" },
+  ]);
+  sample("handoff-login.json", next);
+  const report = await j.finish();
+  assert.equal(report.status, "cleaned");
+});
+
+test("a step with no form: after the job types, any button needs approval (checked live, not only at inspect)", { skip: !RUN }, async () => {
+  const j = await newJob([FX]);
+  await j.act({ type: "navigate", url: `https://${FX}/spa` });
+  const els = (await j.act({ type: "inspect" })).observation!.elements!;
+  const next = els.find((e) => e.name === "Next")!;
+  assert.equal(next.needsApproval, false);
+  await j.act({ type: "fill", elementRef: els.find((e) => e.field?.kind === "name")!.ref, value: "Demo Dev" });
+  const r = await j.act({ type: "click", elementRef: next.ref });
+  assert.equal(r.error!.code, "approval_token_invalid", JSON.stringify(r));
+  assert.equal((await j.act({ type: "inspect" })).observation!.elements!.find((e) => e.name === "Next")!.needsApproval, true);
+  await j.finish();
+});
+
+test("payment and email-verification pages stop with a handoff; a hidden payment frame on a normal page does not", { skip: !RUN }, async () => {
+  const j = await newJob([FX]);
+  const checkout = await j.act({ type: "navigate", url: `https://${FX}/checkout` });
+  assert.equal(checkout.observation!.blocked!.reason, "payment_required");
+  assert.equal(checkout.observation!.handoff!.url, `https://${FX}/checkout`);
+  sample("blocked-payment_required.json", checkout);
+  const card = (await j.act({ type: "inspect" })).observation!.elements!.find((e) => e.field?.kind === "sensitive")!;
+  assert.equal(card.field!.value, null);
+  assert.equal((await j.act({ type: "fill", elementRef: card.ref, value: "4242424242424242" })).error!.code, "invalid_action");
+  assert.equal((await j.act({ type: "navigate", url: `https://${FX}/checkout-frame` })).observation!.blocked!.reason, "payment_required");
+  const pricing = await j.act({ type: "navigate", url: `https://${FX}/pricing-with-stripe` });
+  assert.equal(pricing.observation!.blocked, null, JSON.stringify(pricing.observation!.blocked));
+  assert.equal(pricing.observation!.handoff ?? null, null);
+  const verify = await j.act({ type: "navigate", url: `https://${FX}/verify-email` });
+  assert.equal(verify.observation!.blocked!.reason, "verification_required");
+  sample("blocked-verification_required.json", verify);
   await j.finish();
 });
 

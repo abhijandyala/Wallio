@@ -46,7 +46,7 @@ export function TopBar() {
         <Link href="/#judges" className={`${navLink} md:block`}>
           For judges
         </Link>
-        <ButtonLink href="/home" variant="secondary" size="sm">
+        <ButtonLink href="/start" variant="secondary" size="sm">
           Open the app
         </ButtonLink>
       </nav>

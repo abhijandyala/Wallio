@@ -41,7 +41,34 @@ Measured on the VM (x86):
 
 The 1536 MiB and 192-process limits leave room on every page.
 
-Not yet tested:
-- The control VM calling the runner over the VPC with the pinned certificate. This needs Anish to run `push-runner-secrets.sh`.
-- The eval page: `eval.149-28-76-16.sslip.io` returned 404, because it isn't deployed yet.
-- The 10 deployed rehearsals (R7).
+After deploy, Anish pushed the secrets and pinned the certificate on the control VM. `/healthz` works over the VPC: it returns 401 without a token and can't be reached from the internet. The eval host returning 404 at its root is by design: it only serves `/eval/<one-time token>` URLs that the API creates for each comparison.
+
+## R7: deployed rehearsals, 6 Nov 2026 (UTC)
+
+Driven by `node deploy/rehearse.ts https://149-28-76-16.sslip.io` from the control plane, in live mode with the real runner and Vultr inference. Each row is in `docs/REHEARSALS.md` on Anish's branch.
+
+| Run | Result | Notes |
+|---|---|---|
+| First live run + 9 × `r7` | **10/10 pass** | Each comparison ran 3 runner jobs, eval included, in 22–24 s; run 6 took 50 s because the planner chose 4 pages instead of 2. 0 uncited statements. Trial: one submission per run, accepted by the runner's token verifier, and the replayed token got 409. Containment every time: 3 refused by API policy, 9 denied by the proxy, sentinel 0/0, cleanup verified |
+| Degraded: runner stopped (`--expect-failure runner_unavailable`) | **pass on the 2nd try** | The 1st try failed honestly with `runner_unavailable`, but the API marked the run `CLEANUP_FAILED`: a refused connection leaves no job to verify. Anish fixed it in `6dfd5bf`. The 2nd try ended `CLEANED` with `runner_unavailable`, 0 evidence and no recommendation |
+
+Runner side, watched every minute from 00:58 to 02:10 UTC with `deploy/runner/check-runner.sh`:
+- 55 jobs were cleaned and verified, and there were no leftover containers or volumes at any check.
+- The sentinel stayed at 0 throughout. The runner was never paused. The only warnings were the deliberate cancel and deadline smoke tests.
+- The runner was stopped from 01:30:34 to 04:40 UTC for the degraded case. On restart it was healthy within 2 s, and preflight passed 13/13, including the sentinel being reachable and at 0.
+
+Limitations: containers share the runner VM's kernel, so this is a controlled containment test, not proof of invulnerability. All of the above was run by the team against our own pages and two public pricing pages.
+
+## Prepare-then-confirm, 7 Nov 2026 (local, Docker Desktop arm64)
+
+The runner can now prepare a vendor signup up to the step that needs the user, then stop and hand over.
+
+| Check | Result | Notes |
+|---|---|---|
+| Unit (fake driver) | 40/40 pass | 3 new tests: fields, `select`, `fillKinds` limits, approval for "Continue", handoff at the password page; research jobs fill nothing; payment and verification stops; re-create with different `fillKinds` is refused |
+| Contract tests | 31/31 pass | New `result-handoff-login.json` fixture, taken from a real test run |
+| Docker integration | 16/16 pass | 3 new tests in real Chromium. (1) The plans → signup → password flow: every field classified correctly, dropdown chosen, a non-allowed field refused, JS "Continue" refused without a token and accepted with one, handoff with the right link and 4 prepared values. (2) A step with no `<form>`: once the job has typed, "Next" needs approval, checked live. (3) Card field and visible Stripe frame stop as `payment_required`; a hidden Stripe frame on a pricing page doesn't; "check your email" stops as `verification_required`. All 13 earlier tests still pass, including containment |
+| Live smoke (real Copilot + Zed) | 12/12 pass | Neither page is flagged by the new payment or verification checks |
+| Live handoff (real Copilot) | pass | "Get started" on Copilot Pro stopped at GitHub sign-in with `login_required`. The handoff link is `github.com/login?return_to=…/github-copilot/pro/signup`, so after signing in the user lands back on the Pro signup. Cleanup was verified |
+
+Not tested yet: the new runner build on the Vultr VM. It is deployed only after Anish's API accepts the new contract fields, because the two new block reasons would fail his current parser.

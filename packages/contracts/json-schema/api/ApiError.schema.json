@@ -51,5 +51,5 @@
     "correlationId",
     "retryable"
   ],
-  "$id": "wallio/api/ApiError@0.1.0"
+  "$id": "wallio/api/ApiError@0.3.0"
 }

@@ -80,6 +80,9 @@ const ATTR_LABEL: Record<string, string> = {
   primary_language: "Main language",
   editor: "Editor",
   main_stack: "Main stack",
+  github_repo: "GitHub repository",
+  frameworks: "Frameworks",
+  ai_tools_in_repo: "AI tools set up in your repo",
 };
 const attrLabel = (k: string) => ATTR_LABEL[k] ?? k.replace(/_/g, " ").replace(/^\w/, (x) => x.toUpperCase());
 const attrValue = (v: ProfileAttribute["value"]) => (Array.isArray(v) ? v.join(", ") : String(v));

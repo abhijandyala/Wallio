@@ -19,7 +19,7 @@ export function DecisionHero({ decision }: { decision: DecisionCard | null }) {
             </p>
           </div>
           <ButtonLink
-            href="/compare"
+            href="/compare?live=1"
             variant="inverse"
             size="lg"
             className="self-start"

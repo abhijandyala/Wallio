@@ -416,7 +416,8 @@
                 "plan",
                 "extract",
                 "verify",
-                "explain"
+                "explain",
+                "task"
               ]
             },
             "model": {
@@ -638,6 +639,207 @@
           "required": [
             "approvalId",
             "result"
+          ]
+        }
+      },
+      "required": [
+        "runId",
+        "seq",
+        "ts",
+        "stage",
+        "message",
+        "type",
+        "data"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "seq": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "ts": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "stage": {
+          "type": "string",
+          "enum": [
+            "planning",
+            "researching",
+            "testing",
+            "verifying",
+            "reporting",
+            "done"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "type": {
+          "type": "string",
+          "const": "action_result"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "approvalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "submitted",
+                "uncertain",
+                "refused",
+                "simulated"
+              ]
+            },
+            "evidenceId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "approvalId",
+            "result",
+            "evidenceId"
+          ]
+        }
+      },
+      "required": [
+        "runId",
+        "seq",
+        "ts",
+        "stage",
+        "message",
+        "type",
+        "data"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "seq": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "ts": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "stage": {
+          "type": "string",
+          "enum": [
+            "planning",
+            "researching",
+            "testing",
+            "verifying",
+            "reporting",
+            "done"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "type": {
+          "type": "string",
+          "const": "containment_result"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "contained": {
+              "type": "boolean"
+            },
+            "deniedRequests": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "refusedActions": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "sentinel": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "before": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "after": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "before",
+                    "after"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cleanupVerified": {
+              "type": "boolean"
+            },
+            "evidenceId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "contained",
+            "deniedRequests",
+            "refusedActions",
+            "sentinel",
+            "cleanupVerified",
+            "evidenceId"
           ]
         }
       },
@@ -968,5 +1170,5 @@
       ]
     }
   ],
-  "$id": "wallio/api/RunEvent@0.1.0"
+  "$id": "wallio/api/RunEvent@0.3.0"
 }

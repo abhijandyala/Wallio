@@ -1,0 +1,233 @@
+{
+  "approvals": [
+    {
+      "id": "apr_01",
+      "runId": "run_01HZX3",
+      "actionType": "submit_form",
+      "targetOrigin": "https://forms.wallio.example",
+      "targetUrl": "https://forms.wallio.example/trial-request",
+      "fields": [
+        {
+          "name": "email",
+          "label": "Contact email",
+          "value": "demo-dev@wallio.example"
+        },
+        {
+          "name": "plan",
+          "label": "Plan",
+          "value": "Trial"
+        }
+      ],
+      "consequence": "Sends one synthetic trial request to the Wallio demo form. No money is spent.",
+      "screenshotEvidenceId": "ev_form_before",
+      "intentHash": "sha256:c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+      "createdAt": "2026-11-06T15:01:10Z",
+      "expiresAt": "2026-11-06T15:06:10Z",
+      "status": "pending"
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "rec_01",
+      "runId": "run_01HZX3",
+      "profileVersionId": "pv_demo_1",
+      "calculationVersion": "score-v1+spend-v1",
+      "createdAt": "2026-11-06T15:02:05Z",
+      "goal": "Decide whether to keep GitHub Copilot for debugging or try Zed",
+      "action": "try",
+      "targetToolId": "tool_zed",
+      "headline": "Keep Copilot for now, and try Zed on one debugging task before your next renewal",
+      "statements": [
+        {
+          "text": "Zed's Pro plan lists $5 of included tokens with usage-based billing beyond that, so cost depends on how much you use it.",
+          "role": "supporting",
+          "evidenceIds": [
+            "ev_zed_pricing"
+          ],
+          "userInputRefs": []
+        },
+        {
+          "text": "In the owned demo test both setups fixed the sample bug; this is evidence for this one task only.",
+          "role": "supporting",
+          "evidenceIds": [
+            "ev_test_owned"
+          ],
+          "userInputRefs": []
+        },
+        {
+          "text": "Zed is a separate editor, so switching means moving your editor setup, not just a plugin.",
+          "role": "counter",
+          "evidenceIds": [
+            "ev_zed_pricing"
+          ],
+          "userInputRefs": [
+            "willingnessToSwitch"
+          ]
+        },
+        {
+          "text": "No privacy policy was captured for Zed, so its privacy fit is unknown.",
+          "role": "uncertainty",
+          "evidenceIds": [],
+          "userInputRefs": [
+            "dataSensitivity"
+          ]
+        },
+        {
+          "text": "Try Zed on your next real bug before the 20 Nov Copilot renewal.",
+          "role": "next_step",
+          "evidenceIds": [],
+          "userInputRefs": []
+        }
+      ],
+      "candidates": [
+        {
+          "toolId": "tool_zed",
+          "role": "candidate",
+          "accessMode": "researched",
+          "hardConstraints": {
+            "passed": true,
+            "failures": []
+          },
+          "score": {
+            "min": 0.52,
+            "max": 0.67,
+            "components": {
+              "quality": {
+                "value": 0.6,
+                "weight": 0.4,
+                "evidenceIds": [
+                  "ev_test_owned"
+                ]
+              },
+              "fit": {
+                "value": 0.8,
+                "weight": 0.2,
+                "evidenceIds": [
+                  "ev_zed_pricing"
+                ]
+              },
+              "cost": {
+                "value": 0.5,
+                "weight": 0.15,
+                "evidenceIds": [
+                  "ev_zed_pricing"
+                ]
+              },
+              "privacy": {
+                "value": null,
+                "weight": 0.15,
+                "evidenceIds": []
+              },
+              "switching": {
+                "value": 0.4,
+                "weight": 0.1,
+                "evidenceIds": []
+              }
+            }
+          },
+          "known": [
+            "Publishes a Pro plan billed monthly",
+            "Lists included tokens with usage-based billing beyond them"
+          ],
+          "missing": [
+            "Data retention policy"
+          ],
+          "needsTesting": [
+            "Quality on the user's own codebase"
+          ],
+          "testResult": null
+        }
+      ],
+      "spending": {
+        "currency": "USD",
+        "scenarios": [
+          {
+            "label": "Switch at next renewal",
+            "monthlyEquivalentDeltaMinor": null,
+            "immediateCashSavingMinor": 0,
+            "renewalAvoidanceMinor": null,
+            "assumptions": [
+              "Zed usage beyond included tokens is unknown until tried"
+            ]
+          }
+        ]
+      },
+      "confidence": "low",
+      "limitations": [
+        "One task, one repetition",
+        "Commercial products were researched, not tested"
+      ],
+      "evidence": [
+        {
+          "id": "ev_zed_pricing",
+          "runId": "run_01HZX3",
+          "kind": "vendor_claim",
+          "candidateToolId": "tool_zed",
+          "accessMode": "researched",
+          "url": "https://zed.dev/pricing",
+          "canonicalUrl": "https://zed.dev/pricing",
+          "capturedAt": "2026-11-06T15:00:52Z",
+          "contentHash": "sha256:e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
+          "hasScreenshot": true,
+          "extractionMethod": "dom",
+          "excerpt": "Pro $10 per month · $5 of tokens included · Usage-based billing beyond $5",
+          "limitation": "Listed price may exclude tax and may have changed since capture"
+        },
+        {
+          "id": "ev_test_owned",
+          "runId": "run_01HZX3",
+          "kind": "executed_test",
+          "candidateToolId": null,
+          "accessMode": "tested_owned_demo",
+          "url": "https://eval.wallio.example/run/abc",
+          "canonicalUrl": null,
+          "capturedAt": "2026-11-06T15:01:05Z",
+          "contentHash": "sha256:b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
+          "hasScreenshot": true,
+          "extractionMethod": "dom",
+          "excerpt": "test: off-by-one fixed - PASS",
+          "limitation": "Measures the owned harness on Vultr models, not the commercial product"
+        }
+      ]
+    }
+  ],
+  "deferred": [
+    {
+      "recommendationId": "0b9c6f1e-4c55-4c1e-9d3a-7a2f1c5e8b10",
+      "headline": "Review Cursor before it renews",
+      "until": "2026-11-20"
+    }
+  ],
+  "history": [
+    {
+      "id": "5e1d3c2b-9a8f-4e7d-8c6b-1a2b3c4d5e6f",
+      "recommendationId": "rec_01",
+      "runId": "run_01HZX3",
+      "choice": "accept",
+      "action": "try",
+      "targetToolId": "tool_zed",
+      "targetToolName": "Zed",
+      "headline": "Keep Copilot for now, and try Zed on one debugging task before your next renewal",
+      "decidedAt": "2026-11-05T21:10:00Z",
+      "checkInOn": "2026-11-19",
+      "result": "pending",
+      "resultAt": null,
+      "estimatedAnnualSavingMinor": null
+    },
+    {
+      "id": "6f2e4d3c-0b9a-4f8e-9d7c-2b3c4d5e6f70",
+      "recommendationId": "7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+      "runId": "8b2c3d4e-5f6a-4b7c-9d8e-0f1a2b3c4d5e",
+      "choice": "dismiss",
+      "action": "try",
+      "targetToolId": "tool_cursor",
+      "targetToolName": "Cursor",
+      "headline": "Try Cursor for two weeks",
+      "decidedAt": "2026-11-04T18:00:00Z",
+      "checkInOn": null,
+      "result": null,
+      "resultAt": null,
+      "estimatedAnnualSavingMinor": null
+    }
+  ]
+}

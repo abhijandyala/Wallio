@@ -1,58 +1,58 @@
 {
-  "jobId": "itest_1793904933087_6",
+  "jobId": "itest_1794015804592_9",
   "status": "cleaned",
-  "containerId": "e412883586d9",
+  "containerId": "eb4288084d49",
   "containerRemoved": true,
   "volumeRemoved": true,
-  "verifiedAt": "2026-11-05T18:55:37.579Z",
+  "verifiedAt": "2026-11-07T01:43:29.115Z",
   "actionsExecuted": 5,
   "screenshotsTaken": 1,
   "deniedRequests": [
     {
       "url": "http://172.31.0.10:9099/hit?via=fetch-http",
       "reason": "non_https",
-      "at": "2026-11-05T18:55:33.672Z"
+      "at": "2026-11-07T01:43:25.199Z"
     },
     {
       "url": "https://172.31.0.10:9099/",
       "reason": "private_range",
-      "at": "2026-11-05T18:55:33.673Z"
-    },
-    {
-      "url": "https://169.254.169.254/",
-      "reason": "private_range",
-      "at": "2026-11-05T18:55:33.673Z"
-    },
-    {
-      "url": "https://localhost:8443/",
-      "reason": "bad_port",
-      "at": "2026-11-05T18:55:33.674Z"
+      "at": "2026-11-07T01:43:25.199Z"
     },
     {
       "url": "http://169.254.169.254/latest/meta-data/",
       "reason": "non_https",
-      "at": "2026-11-05T18:55:33.674Z"
+      "at": "2026-11-07T01:43:25.200Z"
+    },
+    {
+      "url": "https://169.254.169.254/",
+      "reason": "private_range",
+      "at": "2026-11-07T01:43:25.200Z"
+    },
+    {
+      "url": "https://localhost:8443/",
+      "reason": "bad_port",
+      "at": "2026-11-07T01:43:25.200Z"
     },
     {
       "url": "https://127.0.0.1/",
       "reason": "private_range",
-      "at": "2026-11-05T18:55:33.674Z"
+      "at": "2026-11-07T01:43:25.200Z"
     },
     {
       "url": "https://[::1]/",
       "reason": "private_range",
-      "at": "2026-11-05T18:55:33.675Z"
+      "at": "2026-11-07T01:43:25.201Z"
     },
     {
       "url": "https://metadata.google.internal/",
       "reason": "host_not_allowed",
-      "at": "2026-11-05T18:55:33.675Z"
+      "at": "2026-11-07T01:43:25.201Z"
     },
     {
       "url": "https://exfil.attacker.example/",
       "reason": "host_not_allowed",
-      "at": "2026-11-05T18:55:33.675Z"
+      "at": "2026-11-07T01:43:25.201Z"
     }
   ],
-  "detail": "Finished normally. Container and volume removed and verified absent. Peak memory 184 MiB, peak 88 processes."
+  "detail": "Finished normally. Container and volume removed and verified absent. Peak memory 182 MiB, peak 86 processes."
 }

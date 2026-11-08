@@ -22,7 +22,9 @@
         "text": "Compare",
         "href": "https://fixtures.wallio.test/redirect-ok",
         "inputType": null,
-        "targetHost": "fixtures.wallio.test"
+        "targetHost": "fixtures.wallio.test",
+        "field": null,
+        "needsApproval": false
       },
       {
         "ref": "e2",
@@ -32,15 +34,18 @@
         "text": "Toggle yearly",
         "href": null,
         "inputType": "button",
-        "targetHost": null
+        "targetHost": null,
+        "field": null,
+        "needsApproval": false
       }
     ],
     "screenshot": null,
     "blocked": null,
+    "handoff": null,
     "deniedRequests": [],
-    "capturedAt": "2026-11-05T18:55:15.132Z"
+    "capturedAt": "2026-11-07T01:42:53.992Z"
   },
   "error": null,
-  "durationMs": 12,
+  "durationMs": 8,
   "actionsRemaining": 18
 }
