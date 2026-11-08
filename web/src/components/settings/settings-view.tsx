@@ -30,7 +30,7 @@ import { Meter } from "@/components/kit/meter";
 import { Button } from "@/components/ui/button";
 import { daysUntil, formatMoney, formatShortDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { resetGuestSession, useApiStatus } from "@/lib/api/client";
+import { api, resetGuestSession, useApiStatus } from "@/lib/api/client";
 import { clearOnboardingDone } from "@/lib/onboarding";
 import { ButtonLink } from "@/components/kit/button-link";
 import { useLiveBudget } from "@/lib/api/use-live-budget";
@@ -787,16 +787,27 @@ function PrivacySection({ s, set, say }: P & { say: (t: string) => void }) {
   const [typed, setTyped] = useState("");
   const ref = useRef<HTMLInputElement>(null);
 
-  const exportAll = () => {
-    // TODO(api): POST /api/privacy/export returns a signed download of everything on the server.
-    const payload = {
-      exportedAt: new Date().toISOString(),
-      note: "Sample data. A real export comes from the server once your account is connected.",
-      settings: s,
-      inventory: homeSample.subscriptions,
-      profile: profileSample,
-      decisions: decisionsSample.history,
-    };
+  const exportAll = async () => {
+    // Everything this guest workspace holds on the Wallio API (PRD: portable export), as JSON.
+    // If the API can't be reached, the file says so and holds the sample data instead.
+    const live = await Promise.all([api.inventory(), api.profile(), api.decisions().catch(() => null)]).catch(() => null);
+    const payload = live
+      ? {
+          exportedAt: new Date().toISOString(),
+          source: "Wallio API, this browser's guest workspace",
+          settings: s,
+          inventory: live[0],
+          profile: live[1],
+          decisions: live[2],
+        }
+      : {
+          exportedAt: new Date().toISOString(),
+          note: "Sample data: the Wallio API couldn't be reached, so this isn't your workspace.",
+          settings: s,
+          inventory: homeSample.subscriptions,
+          profile: profileSample,
+          decisions: decisionsSample.history,
+        };
     const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
     const a = document.createElement("a");
     a.href = url;
@@ -1010,7 +1021,7 @@ function DemoSection({ s, set, say }: P & { say: (t: string) => void }) {
   return (
     <Section id="demo" title="Demo">
       <ApiRow />
-      <FixedRow label="Data shown" value="Compare, live uses the API. Other screens use sample data" />
+      <FixedRow label="Data shown" value="Setup, Home, My AI, Compare and Decisions use the API. Discover uses sample data" />
       <Row label="Next comparison ends as">
         <Select
           label="Simulated outcome"

@@ -16,6 +16,7 @@ import { GlowCanvas } from "@/components/kit/glow-canvas";
 import { Button } from "@/components/ui/button";
 import { api, explainFailure, resetGuestSession, useApiStatus } from "@/lib/api/client";
 import type { ApiSubscription, CatalogTool, ProfileVersion } from "@/lib/api/contract";
+import type { GithubFinding } from "@/lib/github-import";
 import {
   BUDGETS,
   EMPTY_ANSWERS,
@@ -32,6 +33,7 @@ import {
   toSubscription,
   withWorkflow,
   fromExisting,
+  githubAttributes,
   type Deploy,
   type Level,
   type OnboardingAnswers,
@@ -41,11 +43,12 @@ import {
 import { cn } from "@/lib/utils";
 
 type Path = "own" | "sample";
-type Step = "intro" | "work" | "tools" | "budget" | "review" | "decision";
+type Step = "intro" | "connect" | "work" | "tools" | "budget" | "review" | "decision";
 
 const STEPS: Record<Path, { id: Step; label: string }[]> = {
   own: [
     { id: "intro", label: "Welcome" },
+    { id: "connect", label: "Connect GitHub (optional)" },
     { id: "work", label: "Your work" },
     { id: "tools", label: "Your tools" },
     { id: "budget", label: "Budget and privacy" },
@@ -104,6 +107,11 @@ export function Onboarding() {
   /** toolId → subscription id this onboarding created, so going back and saving again updates instead of duplicating. */
   const [created, setCreated] = useState<Record<string, string>>({});
 
+  const [repoInput, setRepoInput] = useState("");
+  const [finding, setFinding] = useState<GithubFinding | null>(null);
+  /** Inferred GitHub facts the person removed on the review step. */
+  const [githubKeep, setGithubKeep] = useState<Record<string, boolean>>({});
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -131,6 +139,8 @@ export function Onboarding() {
           setBudgetChoice(prev.budgetChoice);
           setCustomBudget(prev.customBudget);
           setCreated(prev.created);
+          const repo = prof.attributes.find((x) => x.key === "github_repo");
+          if (repo) setRepoInput(String(repo.value));
         }
       },
       (e) => alive && setError(explainFailure(e)),
@@ -177,6 +187,7 @@ export function Onboarding() {
 
   const ready: Record<Step, boolean> = {
     intro: status.state === "online" && !!sample,
+    connect: !busy,
     work: !!role && a.workflows.length > 0,
     tools: !priceError,
     budget: answers.budgetMinor !== null && !!a.deploy && !!a.sensitivity && !!a.switching,
@@ -208,7 +219,7 @@ export function Onboarding() {
           }
         }
         setCreated(made);
-        setProfile(await api.saveProfile(toProfileInput(answers)));
+        setProfile(await api.saveProfile(toProfileInput(answers, finding, githubKeep)));
       }
       markOnboardingDone(path);
       go("decision");
@@ -217,6 +228,41 @@ export function Onboarding() {
     } finally {
       setBusy(false);
     }
+  }
+
+  /** Reads a public repository through the GitHub connector (GET /connect/github). Nothing is saved yet. */
+  async function readRepo() {
+    setBusy(true);
+    setError(null);
+    setFinding(null);
+    try {
+      const res = await fetch(`/connect/github?repo=${encodeURIComponent(repoInput.trim())}`, { cache: "no-store" });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.message ?? "Couldn't read that repository.");
+      setFinding(body as GithubFinding);
+      setGithubKeep({});
+    } catch (e) {
+      setError(e instanceof TypeError ? "Can't reach GitHub right now. Try again, or skip this step." : (e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Puts what the repository suggests into the next steps, where the person can still change all of it. */
+  function applyFinding() {
+    if (!finding) return next();
+    const known = new Set(catalog?.map((t) => t.id) ?? []);
+    setA((p) => ({
+      ...p,
+      workflows: p.workflows.length ? p.workflows : (finding.workflows.map((w) => w.id).filter((id): id is WorkflowId => WORKFLOWS.some((x) => x.id === id)) as WorkflowId[]),
+      tools: [
+        ...p.tools,
+        ...finding.tools
+          .filter((t) => t.toolId && known.has(t.toolId) && !p.tools.some((x) => x.toolId === t.toolId))
+          .map((t) => ({ toolId: t.toolId!, plan: "", price: "", cadence: "monthly" as const })),
+      ],
+    }));
+    void next();
   }
 
   /** The first comparison runs on debugging; add it to the profile when there's room. */
@@ -271,6 +317,69 @@ export function Onboarding() {
       </>
     );
     primary = { label: busy ? "Starting over…" : "Continue", onClick: next, disabled: !ready.intro || busy };
+  } else if (step === "connect") {
+    const pct = (n: number) => `${Math.round(n * 100)}%`;
+    body = (
+      <>
+        <Panel title="Start from a public GitHub repository">
+          <form
+            className="flex flex-wrap items-center gap-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (repoInput.trim()) void readRepo();
+            }}
+          >
+            <input
+              value={repoInput}
+              onChange={(e) => setRepoInput(e.target.value.slice(0, 200))}
+              placeholder="owner/name or a github.com link"
+              aria-label="Public GitHub repository"
+              className={cn(input, "max-w-md flex-1")}
+            />
+            <Button type="submit" variant="secondary" disabled={busy || !repoInput.trim()}>
+              {busy ? "Reading…" : "Read repository"}
+            </Button>
+          </form>
+        </Panel>
+        {finding ? (
+          <Panel title={`Found in ${finding.repo.fullName}`} titleAddon={<Tag kind="inferred" />} flush>
+            <KeyValue>
+              <KeyValueRow label="Languages">
+                <span className="truncate">{finding.languages.slice(0, 3).map((l) => `${l.name} ${pct(l.share)}`).join(", ") || "None found"}</span>
+              </KeyValueRow>
+              <KeyValueRow label="Frameworks">
+                <span className="truncate">{finding.frameworks.join(", ") || "None found in package.json"}</span>
+              </KeyValueRow>
+              {finding.tools.length ? (
+                finding.tools.map((t) => (
+                  <KeyValueRow key={t.name} label={t.name}>
+                    <span className="truncate font-mono text-[13px] text-text-2">{t.evidence}</span>
+                    {!t.toolId && <span className="text-[13px] text-text-3">Not in the catalog</span>}
+                  </KeyValueRow>
+                ))
+              ) : (
+                <KeyValueRow label="AI tools set up in the repo">None found</KeyValueRow>
+              )}
+              <KeyValueRow label="Suggested main tasks">
+                <span className="truncate">{finding.workflows.map((w) => WORKFLOWS.find((x) => x.id === w.id)?.name).filter(Boolean).join(", ") || "None"}</span>
+              </KeyValueRow>
+              <KeyValueRow label="Files looked at">
+                <span className="tnum">{finding.filesScanned.toLocaleString("en-US")} names{finding.truncated ? " (GitHub cut the list short)" : ""}</span>
+              </KeyValueRow>
+            </KeyValue>
+          </Panel>
+        ) : (
+          <Panel flush>
+            <KeyValue>
+              <KeyValueRow label="What Wallio reads">Languages, file names and package.json</KeyValueRow>
+              <KeyValueRow label="What it never reads">Your code, issues or private repositories</KeyValueRow>
+              <KeyValueRow label="What gets saved">Only what you keep on the review step</KeyValueRow>
+            </KeyValue>
+          </Panel>
+        )}
+      </>
+    );
+    primary = finding ? { label: "Use these", onClick: applyFinding, disabled: busy } : { label: "Skip", onClick: next, disabled: busy };
   } else if (step === "work") {
     body = (
       <>
@@ -458,6 +567,31 @@ export function Onboarding() {
         )}
       </Panel>
     );
+    if (finding) {
+      const facts = githubAttributes(finding).filter((x) => x.origin === "inferred");
+      body = (
+        <>
+          {body}
+          <Panel title={`From ${finding.repo.fullName}`} titleAddon={<Tag kind="inferred" />} flush>
+            <KeyValue>
+              {facts.map((x) => (
+                <KeyValueRow key={x.key} label={`${Array.isArray(x.value) ? x.value.join(", ") : String(x.value)} (${x.confidence} confidence)`}>
+                  <Segmented
+                    label={`Keep ${x.key}`}
+                    options={[
+                      { id: "keep", label: "Keep" },
+                      { id: "remove", label: "Remove" },
+                    ]}
+                    value={githubKeep[x.key] === false ? "remove" : "keep"}
+                    onChange={(v) => setGithubKeep((k) => ({ ...k, [x.key]: v === "keep" }))}
+                  />
+                </KeyValueRow>
+              ))}
+            </KeyValue>
+          </Panel>
+        </>
+      );
+    }
     primary = { label: busy ? "Saving…" : "Save my profile", onClick: save, disabled: busy };
   } else if (step === "review" && sample) {
     const p = sample.profile;

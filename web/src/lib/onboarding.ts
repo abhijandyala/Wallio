@@ -3,7 +3,8 @@
  * first decision. Everything here only shapes what the person chose into the API's inputs;
  * the API stores it, and totals and rankings still come from the API.
  */
-import type { ApiSubscription, ProfileVersion, ProfileVersionInput, SubscriptionInput } from "@/lib/api/contract";
+import type { ApiSubscription, ProfileAttribute, ProfileVersion, ProfileVersionInput, SubscriptionInput } from "@/lib/api/contract";
+import type { GithubFinding } from "@/lib/github-import";
 
 /** The first comparison Wallio can run end to end today (the golden path). Matches Compare's live mode. */
 export const FIRST_COMPARISON = {
@@ -98,8 +99,29 @@ export function toSubscription(t: OwnedTool): SubscriptionInput {
   };
 }
 
-/** The answers as a new, confirmed profile version. Everything here is the person's own statement. */
-export function toProfileInput(a: OnboardingAnswers): ProfileVersionInput {
+/**
+ * What a public GitHub repository suggests, as profile facts. The repository name is the
+ * person's own statement; everything read from it is inferred, with its source and a
+ * confidence band (PRD F02). Facts the person removed on the review step are left out.
+ */
+export function githubAttributes(f: GithubFinding, keep: Record<string, boolean> = {}): ProfileAttribute[] {
+  const now = f.readAt;
+  const source = `github.com/${f.repo.fullName}`;
+  const inferred = (key: string, value: string | string[], confidence: "low" | "medium" | "high"): ProfileAttribute => ({
+    key, value, origin: "inferred", source, confidence, confirmed: true, updatedAt: now,
+  });
+  const out: ProfileAttribute[] = [
+    { key: "github_repo", value: f.repo.fullName, origin: "user_stated", source: null, confidence: null, confirmed: true, updatedAt: now },
+  ];
+  const top = f.languages[0];
+  if (top) out.push(inferred("primary_language", top.name, top.share >= 0.6 ? "high" : "medium"));
+  if (f.frameworks.length) out.push(inferred("frameworks", f.frameworks, "medium"));
+  if (f.tools.length) out.push(inferred("ai_tools_in_repo", f.tools.map((t) => t.name), "high"));
+  return out.filter((x) => x.origin === "user_stated" || keep[x.key] !== false);
+}
+
+/** The answers as a new, confirmed profile version: the person's statements, plus any GitHub facts they kept. */
+export function toProfileInput(a: OnboardingAnswers, github: GithubFinding | null = null, keep: Record<string, boolean> = {}): ProfileVersionInput {
   const now = new Date().toISOString();
   const workflows = a.workflows.slice(0, 3).map((id, i) => {
     const w = WORKFLOWS.find((x) => x.id === id)!;
@@ -113,9 +135,12 @@ export function toProfileInput(a: OnboardingAnswers): ProfileVersionInput {
     dataSensitivity: a.sensitivity ?? "medium",
     willingnessToSwitch: a.switching ?? "medium",
     requiredIntegrations: [],
-    attributes: workflows.length
-      ? [{ key: "top_workflow", value: workflows[0]!.name, origin: "user_stated", source: null, confidence: null, confirmed: true, updatedAt: now }]
-      : [],
+    attributes: [
+      ...(workflows.length
+        ? [{ key: "top_workflow", value: workflows[0]!.name, origin: "user_stated" as const, source: null, confidence: null, confirmed: true, updatedAt: now }]
+        : []),
+      ...(github ? githubAttributes(github, keep) : []),
+    ],
   };
 }
 
