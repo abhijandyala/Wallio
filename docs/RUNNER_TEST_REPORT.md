@@ -41,7 +41,20 @@ Measured on the VM (x86):
 
 The 1536 MiB and 192-process limits leave room on every page.
 
-Not yet tested:
-- The control VM calling the runner over the VPC with the pinned certificate. This needs Anish to run `push-runner-secrets.sh`.
-- The eval page: `eval.149-28-76-16.sslip.io` returned 404, because it isn't deployed yet.
-- The 10 deployed rehearsals (R7).
+After deploy, Anish pushed the secrets and pinned the certificate on the control VM. `/healthz` works over the VPC: it returns 401 without a token and can't be reached from the internet. The eval host returning 404 at its root is by design: it only serves `/eval/<one-time token>` URLs that the API creates for each comparison.
+
+## R7: deployed rehearsals, 6 Nov 2026 (UTC)
+
+Driven by `node deploy/rehearse.ts https://149-28-76-16.sslip.io` from the control plane, in live mode with the real runner and Vultr inference. Each row is in `docs/REHEARSALS.md` on Anish's branch.
+
+| Run | Result | Notes |
+|---|---|---|
+| First live run + 9 × `r7` | **10/10 pass** | Each comparison ran 3 runner jobs, eval included, in 22–24 s; run 6 took 50 s because the planner chose 4 pages instead of 2. 0 uncited statements. Trial: one submission per run, accepted by the runner's token verifier, and the replayed token got 409. Containment every time: 3 refused by API policy, 9 denied by the proxy, sentinel 0/0, cleanup verified |
+| Degraded: runner stopped (`--expect-failure runner_unavailable`) | **pass on the 2nd try** | The 1st try failed honestly with `runner_unavailable`, but the API marked the run `CLEANUP_FAILED`: a refused connection leaves no job to verify. Anish fixed it in `6dfd5bf`. The 2nd try ended `CLEANED` with `runner_unavailable`, 0 evidence and no recommendation |
+
+Runner side, watched every minute from 00:58 to 02:10 UTC with `deploy/runner/check-runner.sh`:
+- 55 jobs were cleaned and verified, and there were no leftover containers or volumes at any check.
+- The sentinel stayed at 0 throughout. The runner was never paused. The only warnings were the deliberate cancel and deadline smoke tests.
+- The runner was stopped from 01:30:34 to 04:40 UTC for the degraded case. On restart it was healthy within 2 s, and preflight passed 13/13, including the sentinel being reachable and at 0.
+
+Limitations: containers share the runner VM's kernel, so this is a controlled containment test, not proof of invulnerability. All of the above was run by the team against our own pages and two public pricing pages.
