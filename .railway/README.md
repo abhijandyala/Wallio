@@ -1,5 +1,7 @@
 # Wallio on Railway
 
+**Live:** https://wallio.up.railway.app (project `jubilant-laughter`, service `web`, environment `production`).
+
 Railway hosts the **web app only** (`web/`, Next.js). The API, Postgres and the browser runner stay on Vultr. The runner needs its own Docker host, and the hackathon wants the backend on Vultr. The web app proxies `/api/*` to the Vultr API (`WALLIO_API_ORIGIN`), so visitors only ever talk to the Railway site, and the guest cookie stays first-party.
 
 `railway.ts` is the service definition (Railway Infrastructure as Code). It is a named partial (`web`), so it manages the `web` service and leaves anything else in the project alone.
@@ -15,6 +17,7 @@ railway link            # pick the Wallio project and the production environment
 railway config plan     # expect: + Create service web
 railway config apply
 railway domain --service web   # a public *.up.railway.app address
+railway domain update <generated-domain> --domain wallio.up.railway.app -s web   # rename it
 ```
 
 ## Or in the dashboard
