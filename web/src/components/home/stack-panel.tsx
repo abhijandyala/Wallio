@@ -67,12 +67,16 @@ export function StackPanel({
                   {s.cadence === "annual" && (
                     <span className="text-text-3">, yearly</span>
                   )}
+                  {/* Paused tools stay listed but don't count toward the monthly total. */}
+                  {s.status === "paused" && (
+                    <span className="text-text-3">, paused</span>
+                  )}
                 </Td>
                 <Td align="right">
                   <Money
                     cents={s.monthlyCents}
                     className={
-                      s.monthlyCents === null ? "text-text-3" : "text-text-1"
+                      s.monthlyCents === null || s.status === "paused" ? "text-text-3" : "text-text-1"
                     }
                   />
                 </Td>
