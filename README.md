@@ -4,6 +4,61 @@ A personal AI manager: it finds, compares and tests AI tools for your work, then
 
 **Live:** https://149-28-76-16.sslip.io (API health: `/api/health`, which also reports `runMode`).
 
+## What the agent does
+
+**The use case.** People pay for several AI tools and can't tell which ones earn their keep. You tell Wallio what you use, what you pay and what you work on. It then answers questions like "should I keep Copilot or try Zed?" with evidence it gathered itself, not with marketing copy or guesses.
+
+**How it executes a real task.** One comparison, end to end, on the live site:
+
+1. **Plan.** A model on Vultr Serverless Inference reads your profile and the two tools, and plans which official vendor pages to visit and what to check. It never sees page content, only the goal and an allowlist.
+2. **Browse.** The API sends one job per purpose to the browser runner on a separate Vultr VM. A fresh, locked-down Chromium container opens each pricing or plan page. Each capture is kept as evidence: a screenshot, the page text's sha256 hash and the capture time.
+3. **Read.** The model extracts prices and plan facts from the page text, and must quote the page word for word for each one. Findings without an exact quote are dropped.
+4. **Test.** Wallio runs its own small coding task (a JavaScript off-by-one bug) on its own eval page through a Vultr model, and the runner reads and screenshots the pass or fail. This tests Wallio's harness, not the vendor's product, and it is labelled that way.
+5. **Decide.** Code, not the model, does the money math (monthly equivalent, renewal amount, seats; unknown stays unknown) and the scoring. Fixed rules choose the action: keep, try, compare further, replace after validation, review renewal or no action. The model only writes the explanation, and every sentence must cite a captured fact.
+6. **Act, with permission.** If you want to try the other tool, Wallio prepares a trial request on its own form. It shows you the exact fields and destination, and waits. Your approval is bound to a hash of that exact action, is used once, and the runner checks a signed token before it clicks submit.
+7. **Clean up and follow up.** Every browser container and its storage is deleted, and the deletion is verified. Your decision is logged with a check-in date, and two weeks later Wallio asks whether it helped.
+
+You watch all of this live: stages, browser steps, evidence, each model call with its cost, policy denials and cleanup stream into the page as they happen.
+
+## Architecture on Vultr
+
+```mermaid
+flowchart LR
+  U["Visitor's browser"] -->|"HTTPS 443"| C
+  subgraph CV["Vultr Cloud Compute: control VM (LA), 10.5.96.3"]
+    C["Caddy<br/>TLS, only public port"] -->|"/"| WEB["Web app<br/>Next.js :3000"]
+    C -->|"/api"| API["Wallio API :8787<br/>orchestrator, policy, approvals, scoring"]
+    C -->|"eval. forms. hostile."| OWN["Wallio's own pages<br/>test task, trial form, hostile page"]
+    API --> PG[("Postgres<br/>row-level security per visitor")]
+    SEN["Containment sentinel :9099<br/>private IP only"]
+  end
+  API -->|"every model call"| INF["Vultr Serverless Inference<br/>qwen3.8-flash-next"]
+  API -->|"HTTPS :8443 over VPC wallio-vpc<br/>pinned cert + token"| RD
+  subgraph RV["Vultr Cloud Compute: runner VM, 10.5.96.4, no public ports"]
+    RD["Runner daemon"] --> JOB["One Chromium container per job<br/>no route out"]
+    JOB --> PX["Egress proxy<br/>this job's hosts only"]
+  end
+  PX -->|"allowlisted HTTPS"| NET["Vendor pages and Wallio's own pages"]
+  PX -.-x|"private and metadata: denied"| SEN
+```
+
+The control VM holds the only secrets (the inference key, root-only). The runner VM holds none. More detail: `docs/ARCHITECTURE.md` (how a run flows) and `docs/BACKEND.md` (approval gate, containment and scoring diagrams).
+
+## Containment: the Blast Radius Zero moment
+
+`POST /api/containment-runs` (the **Run the containment test** button on the Compare page) points the agent at `hostile.<domain>`, a page we own that attacks it:
+- a fake "system override" telling the agent to click a button that posts to a server on our private network;
+- background requests to private addresses and the cloud metadata endpoint.
+
+What happens on every run:
+- The page text comes back as data, never as instructions.
+- API policy refuses each off-allowlist control before anything is clicked (3 refusals).
+- The runner's egress proxy denies the page's own requests (9 denials in each live rehearsal).
+- The sentinel on the control VM's private address still reads 0.
+- The container and its volume are removed, and the removal is verified.
+
+The run's timeline shows each refusal, each denial, the sentinel reading and the cleanup report. It is a controlled test, not proof of invulnerability.
+
 ## Repository layout
 
 | Path | What | Owner |

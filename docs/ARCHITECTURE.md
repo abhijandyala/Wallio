@@ -17,7 +17,7 @@ flowchart LR
 
 | Piece | Where | What it does |
 |---|---|---|
-| Web app (`web/`) | Next.js. Locally on `localhost:3000`, proxying `/api` to the API | Landing page at `/`, the app at `/home`. Displays what the API returns and collects choices. Never does billing arithmetic, scoring or policy itself |
+| Web app (`web/`) | Next.js on the control VM (127.0.0.1:3000, `wallio-web.service`) behind Caddy, same origin as the API. Locally, `npm run dev` proxies `/api` to the API | Landing page at `/`, the app at `/home`. Displays what the API returns and collects choices. Never does billing arithmetic, scoring or policy itself |
 | API (`packages/api`) | Vultr Cloud Compute vc2-2c-4gb, Los Angeles, in VPC `wallio-vpc`. Only Caddy is public (443) | Guest sessions (one workspace per visitor, Postgres row-level security), inventory, profile, run orchestrator with leases and deadlines, spend caps, approvals, recommendations, evidence. Streams run events over SSE |
 | Inference | Vultr Serverless Inference, model pinned to `qwen3.8-flash-next` | Research planning, extraction, verification, explanations, and the owned demo task |
 | Browser runner | A separate Vultr VM on the same VPC (Adhvik's daemon) | One isolated browser container per job. An egress proxy allows only that job's hosts, so private ranges, link-local and cloud metadata addresses are always denied. Every job is cleaned up and the cleanup is verified before the next starts |
@@ -38,4 +38,4 @@ The containment run (`POST /api/containment-runs`) opens Wallio's own hostile pa
 
 ## Today
 
-The API runs on Vultr in demo playback mode (`/api/health` reports `runMode`). Approvals, replay rejection and policy decisions are real; browsing and model calls inside runs are played back until the live runner is switched on. The web app labels every sample screen as sample data.
+The API runs on Vultr in live mode (`/api/health` reports `runMode: "live"`): every run uses the browser runner on its own Vultr VM and Vultr Serverless Inference. Ten deployed live rehearsals passed on 6 Nov 2026 (`docs/REHEARSALS.md`). Discover still shows sample data and says so; every other page uses the live API.
