@@ -830,18 +830,28 @@ function PrivacySection({ s, set, say }: P & { say: (t: string) => void }) {
     say("Export downloaded");
   };
 
-  const schedule = () => {
-    // TODO(api): DELETE /api/account with a 14-day cancellation window.
-    const d = new Date(homeSample.today + "T12:00:00");
-    d.setDate(d.getDate() + 14);
-    set({ deletionScheduledFor: d.toISOString().slice(0, 10) }, "Deletion scheduled. You have 14 days to cancel");
+  /**
+   * There are no accounts, only this browser's guest workspace: forget it now (the cookie,
+   * local settings and the setup flag). The next visit starts a fresh workspace.
+   */
+  const forget = async () => {
+    try {
+      await resetGuestSession();
+      resetSession();
+      invalidate("profile", "inventory", "decisions");
+      resetSettings();
+      clearOnboardingDone();
+      say("This browser's guest workspace is gone. A fresh one starts on your next visit");
+    } catch {
+      say("Couldn't remove it. Try again");
+    }
     setConfirming(false);
     setTyped("");
   };
 
   return (
     <Section id="privacy" title="Privacy and data">
-      <Group label="How long we keep things">
+      <Group label="How long we keep things · saved in this browser for now">
         <Row label="Screenshots and run traces">
           <Segmented
             label="Keep screenshots"
@@ -868,7 +878,7 @@ function PrivacySection({ s, set, say }: P & { say: (t: string) => void }) {
         </Row>
         <FixedRow label="Saved decisions" value="Until you delete them" />
       </Group>
-      <Group label="Sharing">
+      <Group label="Sharing · saved in this browser for now">
         <Row inline label="Use my data to improve recommendations for others">
           <Toggle label="Share for improvement" checked={s.shareForImprovement} onChange={(v) => set({ shareForImprovement: v })} />
         </Row>
@@ -900,10 +910,8 @@ function PrivacySection({ s, set, say }: P & { say: (t: string) => void }) {
       {/* Danger zone: last, bordered, and behind typed confirmation (destructive-action UX). */}
       <div data-row className="m-4 rounded-[10px] border border-danger/30">
         <div className="flex min-h-14 flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-text-1">Delete my account and everything in it</span>
-          {s.deletionScheduledFor ? (
-            <span className="text-[13px] text-danger">Scheduled for {formatShortDate(s.deletionScheduledFor)}</span>
-          ) : !confirming ? (
+          <span className="text-text-1">Delete this browser&apos;s guest workspace</span>
+          {!confirming ? (
             <Button
               variant="secondary"
               size="sm"
@@ -913,12 +921,12 @@ function PrivacySection({ s, set, say }: P & { say: (t: string) => void }) {
                 setTimeout(() => ref.current?.focus(), 50);
               }}
             >
-              Delete account
+              Delete workspace
             </Button>
           ) : null}
         </div>
         <AnimatePresence initial={false}>
-          {confirming && !s.deletionScheduledFor && (
+          {confirming && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
@@ -927,7 +935,7 @@ function PrivacySection({ s, set, say }: P & { say: (t: string) => void }) {
             >
               <div className="flex flex-col gap-3 border-t border-danger/20 px-5 py-4">
                 <label htmlFor="confirm-delete" className="text-[13px] text-text-2">
-                  Type <span className="font-mono text-text-1">delete</span> to confirm. You&apos;ll have 14 days to change your mind.
+                  Type <span className="font-mono text-text-1">delete</span> to confirm. Your tools, profile and decisions stop being reachable from this browser at once. There are no accounts, so there is nothing else to delete.
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
                   <input
@@ -942,9 +950,9 @@ function PrivacySection({ s, set, say }: P & { say: (t: string) => void }) {
                     size="sm"
                     className="text-danger"
                     disabled={typed.trim().toLowerCase() !== "delete"}
-                    onClick={schedule}
+                    onClick={forget}
                   >
-                    Delete account
+                    Delete workspace
                   </Button>
                   <Button
                     variant="ghost"
@@ -954,7 +962,7 @@ function PrivacySection({ s, set, say }: P & { say: (t: string) => void }) {
                       setTyped("");
                     }}
                   >
-                    Keep my account
+                    Keep it
                   </Button>
                 </div>
               </div>
