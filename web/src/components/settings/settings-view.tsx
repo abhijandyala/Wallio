@@ -31,7 +31,7 @@ import { Button } from "@/components/ui/button";
 import { daysUntil, formatMoney, formatShortDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { api, resetGuestSession } from "@/lib/api/client";
-import { useApiStatus } from "@/lib/api/cache";
+import { invalidate, useApiStatus } from "@/lib/api/cache";
 import { clearOnboardingDone } from "@/lib/onboarding";
 import { ButtonLink } from "@/components/kit/button-link";
 import { useLiveBudget } from "@/lib/api/use-live-budget";
@@ -1002,6 +1002,7 @@ function ResetDemoRow({ say }: { say: (t: string) => void }) {
           setBusy(true);
           try {
             await resetGuestSession();
+            invalidate("profile", "inventory", "decisions");
             resetSettings();
             clearOnboardingDone();
             say("Demo reset. Your next run gets a fresh workspace");

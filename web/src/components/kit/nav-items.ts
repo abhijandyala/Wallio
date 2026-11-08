@@ -25,6 +25,8 @@ export const NAV_ITEMS = [
     label: "Decisions",
     icon: "decisions",
     hint: "What to keep, try, or approve",
+    // Waiting approvals. Was a sample-data count; 0 shows no badge until it reads GET /api/decisions.
+    count: 0,
   },
   {
     href: "/settings",

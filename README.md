@@ -11,6 +11,7 @@ A personal AI manager: it finds, compares and tests AI tools for your work, then
 | `web` | Product interface (Next.js). `/` is the landing page, the app is at `/home`. See `web/README.md` | Abhi |
 | `packages/api` | Backend: API, Postgres with row-level security, run orchestrator, Vultr inference gateway, research, scoring, approvals, owned pages | Anish |
 | `packages/runner` | Browser runner daemon: one isolated Chromium container per job behind an egress allowlist proxy. See `packages/runner/README.md` | Adhvik |
+| `packages/mcp` | MCP connector: lets Claude, Claude Code or Cursor read your Wallio wallet and start a comparison. See `packages/mcp/README.md` | Adhvik |
 | `packages/contracts` | Shared schemas between the UI, the API and the runner (zod + generated JSON Schema + fixtures) | Anish |
 | `deploy/` | Control VM setup, deploy, secrets, demo reset, secret check, rehearsals. `deploy/runner/` is the runner VM | Anish, Adhvik |
 | `docs/` | `GOLDEN_PATH.md` (the demo journey), `CONTRACTS.md` (endpoints and protocols), `ARCHITECTURE.md` (how a run flows), `BACKEND.md` (approval gate, containment, scoring), `DEMO_SCRIPT.md`, `REHEARSALS.md`, `DESIGN.md` (UI design system) | all |

@@ -96,6 +96,15 @@ export function checkAction(spec: PolicySpec, state: PolicyState, action: rc.Run
       if (SENSITIVE_FIELD.test(`${el.name} ${el.text}`)) return { ok: false, reason: "won't fill credential or payment fields" };
       return { ok: true };
     }
+    case "select": {
+      // Choosing a dropdown option follows the same rules as filling a field.
+      if (!state.currentHost || !spec.fillHosts?.includes(state.currentHost)) return { ok: false, reason: "forms are only filled on Wallio's own trial form" };
+      const el = state.elements?.find((e) => e.ref === action.elementRef);
+      if (!el) return { ok: false, reason: "element was not in the last inspection" };
+      if (el.tag !== "select") return { ok: false, reason: "that element isn't a dropdown" };
+      if (SENSITIVE_FIELD.test(`${el.name} ${el.text}`)) return { ok: false, reason: "won't fill credential or payment fields" };
+      return { ok: true };
+    }
   }
 }
 

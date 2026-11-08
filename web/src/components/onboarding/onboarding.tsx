@@ -14,7 +14,8 @@ import { ToolMark } from "@/components/kit/tool-mark";
 import { Wordmark } from "@/components/kit/wordmark";
 import { GlowCanvas } from "@/components/kit/glow-canvas";
 import { Button } from "@/components/ui/button";
-import { api, explainFailure, resetGuestSession, useApiStatus } from "@/lib/api/client";
+import { api, explainFailure, resetGuestSession } from "@/lib/api/client";
+import { invalidate, useApiStatus } from "@/lib/api/cache";
 import type { ApiSubscription, CatalogTool, ProfileVersion } from "@/lib/api/contract";
 import type { GithubFinding } from "@/lib/github-import";
 import {
@@ -165,6 +166,7 @@ export function Onboarding() {
       setBusy(true);
       try {
         await resetGuestSession();
+        invalidate("profile", "inventory", "decisions");
         setSample(null);
         setA(EMPTY_ANSWERS);
         setCreated({});
@@ -221,6 +223,8 @@ export function Onboarding() {
         setCreated(made);
         setProfile(await api.saveProfile(toProfileInput(answers, finding, githubKeep)));
       }
+      // Home and My AI read a shared copy of the API's data; this setup changed it.
+      invalidate("profile", "inventory");
       markOnboardingDone(path);
       go("decision");
     } catch (e) {
@@ -272,6 +276,7 @@ export function Onboarding() {
     setError(null);
     try {
       setProfile(await api.saveProfile(withWorkflow(profile, FIRST_COMPARISON.workflowId)));
+      invalidate("profile");
     } catch (e) {
       setError(explainFailure(e));
     } finally {
