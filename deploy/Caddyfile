@@ -15,8 +15,12 @@ __WALLIO_DOMAIN__ {
 		-Server
 	}
 
-	# The owned evaluation page lives only on eval.<domain> (below).
+	# The owned eval page and the trial form live only on their own subdomains
+	# (below), so the runner's allowlist never includes this host.
 	handle /eval/* {
+		respond 404
+	}
+	handle /trial/* {
 		respond 404
 	}
 
@@ -27,10 +31,9 @@ __WALLIO_DOMAIN__ {
 		}
 	}
 
+	# Everything else is the web app (web/, Next.js on localhost:3000, wallio-web.service).
 	handle {
-		root * /opt/wallio/current/deploy/web
-		try_files {path} /index.html
-		file_server
+		reverse_proxy 127.0.0.1:3000
 	}
 }
 

@@ -12,10 +12,6 @@ DOMAIN="$(cat deploy/.domain 2>/dev/null || true)"
 # The control VM's private (VPC) address: the containment sentinel listens there.
 PRIVATE_IP="$("${SSH[@]}" "ip -4 -o addr show | awk '{print \$4}' | cut -d/ -f1 | grep -E '^10\\.' | head -1" || true)"
 SENTINEL_URL="${PRIVATE_IP:+http://$PRIVATE_IP:9099}"
-if [ -n "$DOMAIN" ]; then
-  echo "== caddy config"
-  sed -e "s/__WALLIO_DOMAIN__/$DOMAIN/" -e "s#__SENTINEL_URL__#${SENTINEL_URL:-http://10.0.0.5:9099}#" deploy/Caddyfile | "${SSH[@]}" "cat > /tmp/Caddyfile.new && caddy validate --config /tmp/Caddyfile.new --adapter caddyfile >/dev/null 2>&1 && (cmp -s /tmp/Caddyfile.new /etc/caddy/Caddyfile || (mv /tmp/Caddyfile.new /etc/caddy/Caddyfile && systemctl reload caddy && echo 'caddy reloaded'))"
-fi
 echo "== upload $SHA"
 git archive --format=tar.gz HEAD | "${SSH[@]}" "set -e; rm -rf '$REL'; mkdir -p '$REL'; tar -xz -C '$REL'"
 "${SSH[@]}" bash -s <<REMOTE
@@ -23,6 +19,14 @@ set -euo pipefail
 cd "$REL"
 echo "== install production dependencies"
 npm ci --omit=dev --no-audit --no-fund --loglevel=error
+# Web app (Abhi's web/, Next.js). Built inside the release before the switch, so a
+# failed build leaves the running release untouched. It needs no secrets.
+echo "== build web app"
+(cd web && npm ci --no-audit --no-fund --loglevel=error \
+  && NEXT_TELEMETRY_DISABLED=1 WALLIO_API_ORIGIN=http://127.0.0.1:8787 npm run build >/tmp/wallio-web-build.log 2>&1 \
+  || { tail -40 /tmp/wallio-web-build.log; exit 1; })
+mkdir -p web/.next/cache && chown -R wallio:wallio web/.next/cache   # the only path the service may write
+cd "$REL"
 echo "== migrate database"
 set -a; . /etc/wallio/api.env; set +a
 cd packages/api && sudo -u postgres --preserve-env=DATABASE_URL,DATABASE_ADMIN_URL node scripts/db-setup.ts
@@ -66,6 +70,24 @@ for i in \$(seq 1 20); do
   sleep 0.5
   [ "\$i" = 20 ] && { echo "API did not become healthy"; journalctl -u wallio-api -n 30 --no-pager; exit 1; }
 done
+if ! cmp -s "$REL/web/deploy/wallio-web.service" /etc/systemd/system/wallio-web.service; then
+  install -m 644 "$REL/web/deploy/wallio-web.service" /etc/systemd/system/wallio-web.service
+  systemctl daemon-reload
+  echo "web service unit updated"
+fi
+systemctl enable wallio-web >/dev/null 2>&1
+systemctl restart wallio-web
+for i in \$(seq 1 40); do
+  if curl -fsS -o /dev/null http://127.0.0.1:3000/; then echo "web app healthy"; break; fi
+  sleep 0.5
+  [ "\$i" = 40 ] && { echo "web app did not become healthy"; journalctl -u wallio-web -n 30 --no-pager; exit 1; }
+done
 ls -1dt /opt/wallio/releases/* | tail -n +4 | xargs -r rm -rf
 REMOTE
-[ -n "$DOMAIN" ] && echo "Live: https://$DOMAIN/api/health"
+# Caddy last: the main domain points at the web app, which is now running.
+if [ -n "$DOMAIN" ]; then
+  echo "== caddy config"
+  sed -e "s/__WALLIO_DOMAIN__/$DOMAIN/" -e "s#__SENTINEL_URL__#${SENTINEL_URL:-http://10.0.0.5:9099}#" deploy/Caddyfile | "${SSH[@]}" "cat > /tmp/Caddyfile.new && caddy validate --config /tmp/Caddyfile.new --adapter caddyfile >/dev/null 2>&1 && (cmp -s /tmp/Caddyfile.new /etc/caddy/Caddyfile || (mv /tmp/Caddyfile.new /etc/caddy/Caddyfile && systemctl reload caddy && echo 'caddy reloaded'))" \
+    || { echo "Caddy config failed validation; the old one is still in place."; exit 1; }
+  echo "Live: https://$DOMAIN/ and https://$DOMAIN/api/health"
+fi
