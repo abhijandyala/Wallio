@@ -16,19 +16,20 @@
       "reason": "egress_denied",
       "detail": "The egress proxy refused other.wallio.test."
     },
+    "handoff": null,
     "deniedRequests": [
       {
         "url": "https://other.wallio.test/",
         "reason": "host_not_allowed"
       }
     ],
-    "capturedAt": "2026-11-05T18:55:21.983Z"
+    "capturedAt": "2026-11-07T01:43:02.446Z"
   },
   "error": {
     "code": "egress_denied",
     "message": "The egress proxy refused fixtures.wallio.test.",
     "retryable": false
   },
-  "durationMs": 59,
+  "durationMs": 65,
   "actionsRemaining": 19
 }

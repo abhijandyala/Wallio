@@ -1,0 +1,39 @@
+{
+  "actionId": "a0",
+  "stepIndex": 0,
+  "status": "ok",
+  "observation": {
+    "url": "https://fixtures.wallio.test/checkout",
+    "title": "Checkout",
+    "httpStatus": 200,
+    "redirectChain": [],
+    "pageFingerprint": "sha256:eee28532ed79aeac2e37006040cd5911dc1d36bc98d11490727b53c0e7f98a3f",
+    "textExcerpt": "Checkout\nCard number",
+    "textSha256": "sha256:4e07631ebf491296f581ceb91f503c663358b5144854466b7c7152dda5675ceb",
+    "elements": null,
+    "screenshot": null,
+    "blocked": {
+      "reason": "payment_required",
+      "detail": "The page asks for payment details. The runner never enters them; the user pays in their own browser."
+    },
+    "handoff": {
+      "reason": "payment_required",
+      "url": "https://fixtures.wallio.test/checkout",
+      "host": "fixtures.wallio.test",
+      "prepared": [],
+      "remaining": [
+        "Enter your payment details yourself on fixtures.wallio.test."
+      ]
+    },
+    "deniedRequests": [
+      {
+        "url": "https://js.stripe.com/",
+        "reason": "host_not_allowed"
+      }
+    ],
+    "capturedAt": "2026-11-07T01:43:22.760Z"
+  },
+  "error": null,
+  "durationMs": 557,
+  "actionsRemaining": 19
+}

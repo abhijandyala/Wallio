@@ -1,0 +1,34 @@
+{
+  "actionId": "a5",
+  "stepIndex": 5,
+  "status": "ok",
+  "observation": {
+    "url": "https://fixtures.wallio.test/verify-email",
+    "title": "Check your email",
+    "httpStatus": 200,
+    "redirectChain": [],
+    "pageFingerprint": "sha256:8c085cdbd40db9f8aa0f35b215ded10430ea2550f533c5c7491ce7acc275be15",
+    "textExcerpt": "Check your email\n\nWe sent a link to dev@wallio.example. Click the link in the email to finish creating your account.",
+    "textSha256": "sha256:2486e6584ccb31d8f60b425e67b4ed99dcd06d1937c61d68ce803cbf96d20a54",
+    "elements": null,
+    "screenshot": null,
+    "blocked": {
+      "reason": "verification_required",
+      "detail": "The site sent the user an email to confirm. Only the user can open that link."
+    },
+    "handoff": {
+      "reason": "verification_required",
+      "url": "https://fixtures.wallio.test/verify-email",
+      "host": "fixtures.wallio.test",
+      "prepared": [],
+      "remaining": [
+        "Open the confirmation email from fixtures.wallio.test and follow its link."
+      ]
+    },
+    "deniedRequests": [],
+    "capturedAt": "2026-11-07T01:43:24.388Z"
+  },
+  "error": null,
+  "durationMs": 531,
+  "actionsRemaining": 14
+}

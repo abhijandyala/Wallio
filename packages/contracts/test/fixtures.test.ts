@@ -31,6 +31,7 @@ const MANIFEST: Array<{ file: string; schema: ZodType; list?: boolean }> = [
   { file: "runner/action-requests.json", schema: runner.RunnerActionRequest, list: true },
   { file: "runner/result-ok-pricing.json", schema: runner.RunnerActionResult },
   { file: "runner/result-denied-hostile.json", schema: runner.RunnerActionResult },
+  { file: "runner/result-handoff-login.json", schema: runner.RunnerActionResult },
   { file: "runner/cancel.json", schema: runner.RunnerCancelRequest },
   { file: "runner/cleanup-cleaned.json", schema: runner.CleanupReport },
 ];

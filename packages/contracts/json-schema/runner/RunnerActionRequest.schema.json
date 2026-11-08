@@ -97,6 +97,28 @@
           "properties": {
             "type": {
               "type": "string",
+              "const": "select"
+            },
+            "elementRef": {
+              "type": "string",
+              "pattern": "^e\\d{1,4}$"
+            },
+            "value": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "type",
+            "elementRef",
+            "value"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
               "const": "scroll"
             },
             "direction": {

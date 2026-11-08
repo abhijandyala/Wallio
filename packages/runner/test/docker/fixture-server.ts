@@ -28,6 +28,24 @@ const routes: Record<string, (req: http.IncomingMessage, res: http.ServerRespons
   "/slow": () => { /* never answers */ },
   "/form": (_q, s) => s.end(page("Trial request", `<form action="/submitted" method="get"><input type="email" name="email" aria-label="Email"><input type="password" name="pw" aria-label="Password"><button type="submit">Send request</button></form>`)),
   "/submitted": (q, s) => s.end(page("Request received", `<p>Request received for ${new URL(q.url!, "https://x").searchParams.get("email")?.replace(/[<>&]/g, "") ?? "?"}</p>`)),
+  // Vendor-style signup for the prepare-then-confirm flow. "Continue" is a JS button, not a native submit.
+  "/plans": (_q, s) => s.end(page("Plans", `<h1>Plans</h1><p>Pro: $10 per month (fixture)</p><a href="/signup?plan=pro">Choose Pro</a>`)),
+  "/signup": (_q, s) => s.end(page("Create your account", `<h1>Create your account</h1><form id="f" onsubmit="return false">
+<label for="email">Work email</label><input id="email" type="email" name="email" required>
+<label for="fullname">Full name</label><input id="fullname" name="fullname" autocomplete="name" required>
+<label for="company">Company</label><input id="company" name="company">
+<label for="billing">Billing period</label><select id="billing" name="billing"><option value="monthly">Monthly</option><option value="yearly">Yearly (save 20%)</option></select>
+<label for="seats">Seats</label><input id="seats" type="number" name="seats" value="1">
+<label><input type="checkbox" id="tos" name="tos" required> I agree to the Terms of Service</label>
+<button type="button" id="continue">Continue</button></form>
+<script>document.getElementById('continue').onclick=()=>{const p=new URLSearchParams(location.search);location.href='/signup/password?plan='+(p.get('plan')||'pro')+'&billing='+document.getElementById('billing').value}</script>`)),
+  "/signup/password": (_q, s) => s.end(page("Choose a password", `<form><label for="pw">Choose a password</label><input id="pw" type="password"><button>Create account</button></form>`)),
+  // A step with no <form>: once the job has typed something, any button needs approval.
+  "/spa": (_q, s) => s.end(page("Profile", `<div><label for="q">Your name</label><input id="q"></div><button type="button" id="next" onclick="document.getElementById('out').textContent='Next clicked'">Next</button><p id="out"></p>`)),
+  "/checkout": (_q, s) => s.end(page("Checkout", `<h1>Checkout</h1><label for="cc">Card number</label><input id="cc" autocomplete="cc-number"><iframe src="https://js.stripe.com/v3/elements-inner-card.html" width="300" height="50"></iframe>`)),
+  "/checkout-frame": (_q, s) => s.end(page("Pay", `<h1>Pay for Pro</h1><iframe src="https://js.stripe.com/v3/elements-inner-card.html" width="400" height="60"></iframe>`)),
+  "/pricing-with-stripe": (_q, s) => s.end(page("Pricing", `<h1>Plans</h1><p>Pro: $10 per month (fixture)</p><iframe src="https://js.stripe.com/v3/m-outer.html" width="0" height="0" style="border:0"></iframe>`)),
+  "/verify-email": (_q, s) => s.end(page("Check your email", `<h1>Check your email</h1><p>We sent a link to dev@wallio.example. Click the link in the email to finish creating your account.</p>`)),
   "/eval": (_q, s) => s.end(page("Owned evaluation", `<button type="button" id="run">Run test</button><p data-testid="eval-result" id="r" aria-live="polite">Not run</p><script>const r=document.getElementById('r');document.getElementById('run').onclick=()=>{r.textContent='Running';r.setAttribute('aria-busy','true');setTimeout(()=>{r.textContent='Result: PASS (1/1 assertions)';r.setAttribute('aria-busy','false')},3000)}</script>`)),
 };
 

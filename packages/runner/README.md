@@ -106,6 +106,19 @@ const approvalToken = signApprovalToken(process.env.RUNNER_APPROVAL_KEY!, {
 
 The runner checks the signature, expiry, job, action and element, and that the page **including current field values** still has the approved fingerprint. It allows each token once. Any submit control without a valid token is refused with `approval_token_invalid` (status `denied`). Do a `fill` → take the fingerprint from that result → show the user → sign → `click`.
 
+**Prepare, then confirm (vendor signups).** The runner can do every step of a signup that doesn't need the user's secrets. Then it stops and hands over.
+
+1. Create the job with only the field kinds it may touch, for example `fillKinds: ["email", "name", "plan_choice", "consent"]`. Research jobs should send `[]`. The runner refuses any other fill, `select` or checkbox click. It never fills sensitive fields (password, card, one-time code, ID or bank numbers), whatever the job allows.
+2. `inspect` returns `field` on every form control: `kind`, `label`, `required`, `value` and `options` for dropdowns. Use `kind` to put the user's remembered preferences in the right fields without asking the model to guess. Labels and values come from the page, so treat them as untrusted.
+3. Use `fill` for text, `select` for dropdowns (`value` is the option value or its visible label), and `click` for checkboxes and radios.
+4. Any element with `needsApproval: true` needs a token. That covers native submits, any button inside a form that has fields, and any button on a page where the job has already typed something. The last case is checked live, so a JavaScript "Continue" button outside a `<form>` still can't slip through. Show the user the prepared values and the screenshot, then sign with the fingerprint from the latest observation.
+5. When the next step is the user's (`login_required`, `mfa`, `captcha`, `payment_required` or `verification_required`), the observation has a `handoff`:
+   - `url`: the page to continue on. It is only set if it is https and on one of the job's allowed hosts; otherwise it is null.
+   - `prepared`: what the job filled or chose.
+   - `remaining`: short steps for the user.
+
+   The user finishes in their own browser. Form contents typed in the runner don't carry over, but the URL often keeps the plan, and `prepared` tells the user what to enter again.
+
 **Eval page timing.** The contract has no `wait`. After a click the runner waits until the page stops changing (1 s with no DOM mutations, max 6 s). It also waits while any element has `aria-busy="true"` (max 15 s). **Please set `aria-busy="true"` on the eval result region while the test runs**, and give it `data-testid="eval-result"`. If inference can take longer than 15 s, I'd still like to add `{ type: "wait", ms ≤ 15000 }` in contracts v0.2.
 
 **Screenshots.** Fetch `GET /artifacts/:artifactId` right after the action. The response is checked PNG with an `x-content-sha256` header that matches `observation.screenshot.sha256`. Files are kept 30 minutes after the job is cleaned, then deleted.
@@ -118,7 +131,7 @@ The runner checks the signature, expiry, job, action and element, and that the p
 |---|---|---|---|
 | `egress_denied` | denied | Navigation target refused (runner policy or proxy) | no |
 | `approval_token_invalid` | denied | Missing, bad, expired, wrong element, page changed, or already used | no; new intent |
-| `invalid_action` | failed | Credential field, not a text field, or `stepIndex` went backwards | no |
+| `invalid_action` | failed | Credential field, a field kind outside the job's `fillKinds`, not a text field or dropdown, unknown option, or `stepIndex` went backwards | no |
 | `navigation_failed` | failed | DNS/TLS/connection error | yes, ≤ 2 |
 | `element_stale` / `element_not_found` | failed | Ref from before the last navigation / not in last inspect | after `inspect` |
 | `action_timeout` | timeout | Action took too long; job still usable unless the runner had to stop the browser | read-only only |
@@ -130,7 +143,7 @@ The runner checks the signature, expiry, job, action and element, and that the p
 
 HTTP errors (`RunnerHttpError`): `401 unauthorized`, `400 bad_request` (schema), `409 busy` (one job per runner, or still cleaning), `503 busy` (paused after a cleanup failure), `404 job_not_found`, `409 job_not_ready` (still starting or already finished).
 
-Blocked pages (captcha, login wall, MFA, 401/403/429, download) return `status: "ok"` with `observation.blocked` set. The runner stops there and never tries to get past them.
+Blocked pages (captcha, login wall, MFA, payment, email verification, 401/403/429, download) return `status: "ok"` with `observation.blocked` set. The runner stops there and never tries to get past them. A payment page means card fields, a visible payment-provider frame (Stripe, Paddle, Braintree, Adyen, PayPal and others), or a checkout host. The hidden frames payment providers preload on ordinary pages don't count.
 
 **Idempotency.** Re-sending an `actionId` returns the stored result and never re-executes, even across a daemon restart. Reusing an `actionId` for a different action is a 409. `stepIndex` may not go backwards.
 

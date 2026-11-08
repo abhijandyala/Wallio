@@ -10,7 +10,10 @@
 import { createInterface } from "node:readline";
 import { createHash } from "node:crypto";
 import { chromium, type Browser, type BrowserContext, type ElementHandle, type JSHandle, type Page, type Response } from "playwright-core";
-import { AGENT_CAPS, type AgentElement, type AgentErrorCode, type AgentObservation, type AgentReply, type AgentRequest, type BlockReason } from "./protocol.ts";
+import {
+  AGENT_CAPS, type AgentElement, type AgentErrorCode, type AgentField, type AgentHandoff, type AgentObservation, type AgentReply,
+  type AgentRequest, type BlockReason, type FieldKind,
+} from "./protocol.ts";
 
 const env = process.env;
 const TEST_MODE = env.WALLIO_TEST_MODE === "1";
@@ -29,6 +32,10 @@ let lastRedirects: string[] = [];
 let navDenied: string | null = null;
 let downloadBlocked = false;
 let crashed = false;
+/** This job filled, chose or ticked something on the current document. Any button then needs approval. */
+let dirty = false;
+/** What this job prepared, for the handoff (latest value per field, never sensitive). */
+let prepared: AgentHandoff["prepared"] = [];
 
 class AgentError extends Error {
   code: AgentErrorCode;
@@ -73,7 +80,7 @@ async function launch(): Promise<void> {
   page.on("dialog", (d) => d.dismiss().catch(() => {}));
   page.on("download", (d) => { downloadBlocked = true; d.cancel().catch(() => {}); });
   page.on("crash", () => { crashed = true; });
-  page.on("framenavigated", (f) => { if (f === page.mainFrame()) refs = new Map(); });
+  page.on("framenavigated", (f) => { if (f === page.mainFrame()) { refs = new Map(); dirty = false; } });
   page.on("response", (r) => {
     if (r.request().isNavigationRequest() && r.frame() === page.mainFrame()) {
       lastStatus = r.status();
@@ -128,6 +135,13 @@ async function settleAfterClick(): Promise<void> {
 interface Described {
   tag: string; type: string | null; role: string; name: string; text: string; href: string | null;
   targetHost: string | null; submits: boolean; sensitive: boolean; fillable: boolean; value: string | null;
+  /** Any kind of button, including role="button". */
+  buttonLike: boolean;
+  /** Needs approval regardless of what the job did: a submit, or a button in a form that has fields. */
+  needsApproval: boolean;
+  field: AgentField | null;
+  /** Radio and checkbox group heading, for the handoff summary. */
+  legend: string;
 }
 
 /** Describes one element or a list (in document order). Self-contained: Playwright ships its source into the page. */
@@ -157,13 +171,56 @@ function describeInPage(input: Element | Element[]): Described | Described[] {
     try { targetHost = new URL(action || location.href).hostname; } catch {}
   }
   const ac = (el.getAttribute("autocomplete") || "").toLowerCase();
+  const clean = (v: string | null | undefined) => (v || "").replace(/\s+/g, " ").trim();
+  const isField = tag === "select" || tag === "textarea" || (tag === "input" && !["submit", "button", "reset", "image", "hidden"].includes(type!));
+  const checkable = type === "checkbox" || type === "radio";
+  // Label: <label for>/wrapping label, aria-labelledby, aria-label, then weaker hints.
+  const legend = clean(el.closest("fieldset")?.querySelector("legend")?.textContent).slice(0, 200);
+  let label = "";
+  let hint = "";
+  if (isField) {
+    const labels = Array.from((h as unknown as { labels?: ArrayLike<HTMLElement> }).labels ?? []).map((l) => clean(l.innerText || l.textContent)).filter(Boolean).join(" ");
+    const lb = el.getAttribute("aria-labelledby");
+    const labelledBy = lb ? clean(lb.split(/\s+/).map((id) => document.getElementById(id)?.textContent ?? "").join(" ")) : "";
+    label = (labels || labelledBy || clean(el.getAttribute("aria-label")) || clean(el.getAttribute("placeholder")) || clean(el.getAttribute("title")) || clean(el.getAttribute("name")) || legend).slice(0, 200);
+    hint = [label, legend, el.getAttribute("name"), el.id, ac, el.getAttribute("placeholder")].join(" ").toLowerCase();
+  }
   const sensitive =
     (tag === "input" && ["password", "file", "hidden"].includes(type!)) ||
-    /one-time-code|current-password|new-password|cc-|card|cvc|cvv/.test(ac);
+    /one-time-code|current-password|new-password|cc-|card|cvc|cvv/.test(ac) ||
+    (isField && /card ?number|cardnumber|cc-?(num|exp|csc)|\bcvc\b|\bcvv\b|security code|expir(y|ation) date|\bssn\b|social security|passport|\biban\b|routing number|account number|tax id/.test(hint));
   const fillable = !sensitive && (tag === "textarea" || !!h.isContentEditable ||
     (tag === "input" && ["text", "email", "search", "tel", "url", "number"].includes(type!)));
-  const value = (tag === "input" || tag === "textarea" || tag === "select") && type !== "password" ? String(h.value ?? "").slice(0, 200) : null;
-  return { tag, type, role, name, text, href, targetHost, submits, sensitive, fillable, value };
+  const value = checkable ? String(!!(h as HTMLInputElement).checked)
+    : (tag === "input" || tag === "textarea" || tag === "select") && type !== "password" ? String(h.value ?? "").slice(0, 200) : null;
+  let field: AgentField | null = null;
+  if (isField) {
+    const PLAN = /\b(plan|tier|billing|monthly|annual(ly)?|yearly|subscription|edition)\b/;
+    const QTY = /\b(seats?|quantity|qty|team size|number of (users|members|seats)|how many|licen[cs]es)\b/;
+    const CONSENT = /\b(terms|agree|accept|privacy|consent|policy|newsletter|marketing|updates|promotional|subscribe)\b/;
+    let kind: FieldKind;
+    if (sensitive) kind = "sensitive";
+    else if (type === "checkbox") kind = CONSENT.test(hint) ? "consent" : PLAN.test(hint) ? "plan_choice" : "checkbox";
+    else if (type === "radio" || tag === "select") kind = PLAN.test(hint) ? "plan_choice" : QTY.test(hint) ? "quantity" : "choice";
+    else if (type === "email" || /\bemail\b/.test(ac) || /e-?mail/.test(hint)) kind = "email";
+    else if (/organization/.test(ac) || /company|organi[sz]ation|business name|team name|workspace/.test(hint)) kind = "organization";
+    else if (/given-name/.test(ac) || /first.?name|given.?name/.test(hint)) kind = "given_name";
+    else if (/family-name/.test(ac) || /last.?name|surname|family.?name/.test(hint)) kind = "family_name";
+    else if (type === "tel" || /\btel\b/.test(ac) || /phone|mobile/.test(hint)) kind = "tel";
+    else if (QTY.test(hint)) kind = "quantity";
+    else if (/user.?name|login|handle/.test(hint)) kind = "free_text";
+    else if (ac === "name" || /full.?name|your name|\bname\b/.test(hint)) kind = "name";
+    else kind = "free_text";
+    const options = tag === "select"
+      ? Array.from((el as HTMLSelectElement).options).slice(0, 30).map((o) => ({ value: o.value.slice(0, 200), label: clean(o.text).slice(0, 200), selected: o.selected }))
+      : null;
+    const required = !!(h as HTMLInputElement).required || el.getAttribute("aria-required") === "true";
+    field = { kind, label, required, value: sensitive ? null : value, options };
+  }
+  const buttonLike = isButtonLike || el.getAttribute("role") === "button";
+  const formHasFields = !!form && form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]), select, textarea').length > 0;
+  const needsApproval = submits || (buttonLike && formHasFields);
+  return { tag, type, role, name, text, href, targetHost, submits, sensitive, fillable, value, buttonLike, needsApproval, field, legend };
   };
   return Array.isArray(input) ? input.slice(0, 400).map(one) : one(input);
 }
@@ -176,12 +233,23 @@ function collectInPage(selector: string): Element[] {
   });
 }
 
-function pageSignalsInPage(): { text: string; iframes: string[]; hasPassword: boolean; hasOtc: boolean; hasTextInput: boolean } {
+interface PageSignals {
+  text: string; iframes: string[]; visibleFrames: string[];
+  hasPassword: boolean; hasOtc: boolean; hasTextInput: boolean; hasCardField: boolean;
+}
+
+function pageSignalsInPage(): PageSignals {
   const text = (document.body ? document.body.innerText : "").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
   const vis = (el: Element) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+  const frames = Array.from(document.querySelectorAll("iframe"));
+  const card = /card.?number|cardnumber|cc-?(number|num|exp|csc)|\bcvc\b|\bcvv\b|security code|expir/i;
   return {
     text,
-    iframes: Array.from(document.querySelectorAll("iframe")).map((f) => f.getAttribute("src") || "").slice(0, 50),
+    iframes: frames.map((f) => f.getAttribute("src") || "").slice(0, 50),
+    // Payment providers preload hidden frames on ordinary pages; only a visible one means checkout.
+    visibleFrames: frames.filter((f) => { const r = f.getBoundingClientRect(); return r.width >= 40 && r.height >= 20; }).map((f) => f.getAttribute("src") || "").slice(0, 50),
+    hasCardField: Array.from(document.querySelectorAll("input")).some((i) => vis(i) &&
+      (/^cc-/.test((i.getAttribute("autocomplete") || "").toLowerCase()) || card.test([i.name, i.id, i.getAttribute("placeholder"), i.getAttribute("aria-label")].join(" ")))),
     hasPassword: Array.from(document.querySelectorAll('input[type="password"]')).some(vis),
     hasOtc: Array.from(document.querySelectorAll('input[autocomplete="one-time-code"]')).some(vis),
     hasTextInput: Array.from(document.querySelectorAll('input[type="text"], input:not([type])')).some(vis),
@@ -202,7 +270,11 @@ function fingerprint(url: string, items: Described[]): string {
   return sha256Hex(JSON.stringify({ u, e }));
 }
 
-function detectBlock(sig: Awaited<ReturnType<typeof readSignals>>, title: string): { reason: BlockReason; detail: string } | null {
+const PAYMENT_FRAME = /js\.stripe\.com|checkout\.stripe\.com|m\.stripe\.network|hooks\.stripe\.com|paddle\.com|braintreegateway\.com|adyen\.com|checkoutshopper|checkout\.com|paypal\.com|paypalobjects\.com|recurly\.com|chargebee\.com/i;
+const PAYMENT_HOST = /(^|\.)(checkout|buy|billing)\.stripe\.com$|(^|\.)chargebee\.com$|(^|\.)paddle\.com$|(^|\.)paypal\.com$/i;
+const VERIFY_EMAIL = /check your (email|inbox)|verify your email|confirm your email|we('ve| have)? (just )?sent (you )?(an? )?(email|link|verification|confirmation)|click the link (we sent|in (the|your) email)/;
+
+function detectBlock(sig: PageSignals, title: string, url: string): { reason: BlockReason; detail: string } | null {
   if (downloadBlocked) return { reason: "download_blocked", detail: "The page tried to start a download. Downloads are disabled in the runner." };
   const lower = sig.text.slice(0, 3000).toLowerCase();
   if (sig.iframes.some((s) => /recaptcha|hcaptcha|challenges\.cloudflare\.com|turnstile|arkoselabs|funcaptcha|captcha/i.test(s)) ||
@@ -210,8 +282,14 @@ function detectBlock(sig: Awaited<ReturnType<typeof readSignals>>, title: string
       /just a moment|attention required/i.test(title)) {
     return { reason: "captcha", detail: "The page shows a bot check or CAPTCHA. The runner stops here and does not try to solve it." };
   }
+  if (sig.hasCardField || sig.visibleFrames.some((s) => PAYMENT_FRAME.test(s)) || PAYMENT_HOST.test(hostnameOf(url))) {
+    return { reason: "payment_required", detail: "The page asks for payment details. The runner never enters them; the user pays in their own browser." };
+  }
   if (sig.hasOtc || (sig.hasTextInput && /two-factor|2fa|verification code|authentication code|authenticator app/.test(lower))) {
     return { reason: "mfa", detail: "The page asks for a one-time or two-factor code. The runner stops here." };
+  }
+  if (!sig.hasPassword && VERIFY_EMAIL.test(lower.slice(0, 1200))) {
+    return { reason: "verification_required", detail: "The site sent the user an email to confirm. Only the user can open that link." };
   }
   if (sig.hasPassword) return { reason: "login_required", detail: "The page asks for a password. The runner never signs in." };
   if (lastStatus === 401) return { reason: "login_required", detail: "The server answered 401 (sign-in required)." };
@@ -220,8 +298,40 @@ function detectBlock(sig: Awaited<ReturnType<typeof readSignals>>, title: string
   return null;
 }
 
-async function readSignals() {
-  return page.evaluate(pageSignalsInPage).catch(() => ({ text: "", iframes: [] as string[], hasPassword: false, hasOtc: false, hasTextInput: false }));
+async function readSignals(): Promise<PageSignals> {
+  return page.evaluate(pageSignalsInPage).catch(() => ({ text: "", iframes: [], visibleFrames: [], hasPassword: false, hasOtc: false, hasTextInput: false, hasCardField: false }));
+}
+
+/** What the user still has to do, per stopping reason. */
+const HANDOFF_STEPS: Partial<Record<BlockReason, (host: string) => string>> = {
+  login_required: (host) => `Sign in or create your account on ${host}.`,
+  mfa: () => "Enter the code from your authenticator app, phone or email.",
+  captcha: (host) => `Complete ${host}'s human check.`,
+  payment_required: (host) => `Enter your payment details yourself on ${host}.`,
+  verification_required: (host) => `Open the confirmation email from ${host} and follow its link.`,
+};
+
+function handoffFor(blocked: { reason: BlockReason } | null, url: string): AgentHandoff | null {
+  const step = blocked && HANDOFF_STEPS[blocked.reason];
+  const host = hostnameOf(url);
+  if (!step || !host) return null;
+  const remaining = [step(host)];
+  if (prepared.length) remaining.push("Check the details Wallio prepared, then continue.");
+  return { reason: blocked.reason, url, host, prepared: prepared.slice(-20), remaining };
+}
+
+function remember(label: string, kind: FieldKind, value: string) {
+  if (kind === "sensitive") return;
+  prepared = prepared.filter((p) => !(p.label === label && p.kind === kind));
+  prepared.push({ label: label.slice(0, 200), kind, value: value.slice(0, 200) });
+  if (prepared.length > 20) prepared = prepared.slice(-20);
+}
+
+/** Refuses sensitive fields always, and field kinds this job may not change. */
+function checkKind(d: Described, allowed: FieldKind[] | null, verb: string) {
+  if (d.sensitive || d.field?.kind === "sensitive") throw new AgentError("invalid_action", "Refusing to fill a password, payment, one-time-code or file field.");
+  const kind = d.field?.kind ?? "free_text";
+  if (allowed && !allowed.includes(kind)) throw new AgentError("invalid_action", `This job may not ${verb} ${kind.replace("_", " ")} fields.`);
 }
 
 async function observe(opts: { elements?: number; screenshotPng?: string | null } = {}): Promise<AgentObservation> {
@@ -250,10 +360,12 @@ async function observe(opts: { elements?: number; screenshotPng?: string | null 
         ref, role: d.role.slice(0, 50), name: d.name.slice(0, AGENT_CAPS.nameChars), tag: d.tag,
         text: d.text.slice(0, AGENT_CAPS.elementTextChars), href: d.href ? d.href.slice(0, 2000) : null,
         inputType: d.type, targetHost: d.targetHost, submits: d.submits, sensitive: d.sensitive,
+        field: d.field, needsApproval: d.needsApproval || (dirty && d.buttonLike),
       });
     }
   }
   await handle?.dispose().catch(() => {});
+  const blocked = detectBlock(sig, title, url);
   return {
     url, title,
     httpStatus: lastStatus,
@@ -262,7 +374,8 @@ async function observe(opts: { elements?: number; screenshotPng?: string | null 
     textExcerpt: sig.text ? sig.text.slice(0, AGENT_CAPS.textExcerptChars) : null,
     elements,
     screenshotPng: opts.screenshotPng ?? null,
-    blocked: detectBlock(sig, title),
+    blocked,
+    handoff: handoffFor(blocked, url),
     navigationDenied: navDenied,
     capturedAt: new Date().toISOString(),
   };
@@ -317,13 +430,23 @@ async function run(req: AgentRequest): Promise<AgentObservation | null> {
       return observe({ elements: req.maxElements });
     case "click": {
       const { h, d } = await liveHandle(req.ref);
-      if (d.submits && !req.approved) throw new AgentError("approval_token_invalid", "This control submits a form, so it needs an approval token.");
+      if ((d.needsApproval || (dirty && d.buttonLike)) && !req.approved) {
+        throw new AgentError("approval_token_invalid", d.submits
+          ? "This control submits a form, so it needs an approval token."
+          : "This button continues a form the job has filled, so it needs an approval token.");
+      }
+      if (d.field && (d.type === "checkbox" || d.type === "radio")) checkKind(d, req.allowedKinds, "change");
       if (req.approved && req.expectedFingerprint) {
         const { handle, items } = await collect();
         await handle.dispose().catch(() => {});
         if (fingerprint(page.url(), items) !== req.expectedFingerprint) {
           throw new AgentError("approval_token_invalid", "The page changed after the user approved this action. Prepare a new approval.");
         }
+      }
+      if (d.field && (d.type === "checkbox" || d.type === "radio")) {
+        dirty = true;
+        if (d.type === "radio") remember(d.legend || d.field.label, d.field.kind, d.field.label);
+        else remember(d.field.label, d.field.kind, d.value === "true" ? "unticked" : "ticked");
       }
       resetStepFlags();
       await h.click({ timeout: 10_000 });
@@ -334,9 +457,27 @@ async function run(req: AgentRequest): Promise<AgentObservation | null> {
     }
     case "fill": {
       const { h, d } = await liveHandle(req.ref);
-      if (d.sensitive) throw new AgentError("invalid_action", "Refusing to fill a password, payment, one-time-code or file field.");
+      checkKind(d, req.allowedKinds, "fill");
       if (!d.fillable) throw new AgentError("invalid_action", `${req.ref} is not a text field.`);
+      dirty = true;
       await h.fill(req.value, { timeout: 5_000 });
+      remember(d.field?.label || d.name, d.field?.kind ?? "free_text", req.value);
+      return observe();
+    }
+    case "select": {
+      const { h, d } = await liveHandle(req.ref);
+      if (d.tag !== "select" || !d.field) throw new AgentError("invalid_action", `${req.ref} is not a dropdown.`);
+      checkKind(d, req.allowedKinds, "choose");
+      const match = await h.evaluate((sel, v) => {
+        const opts = Array.from((sel as HTMLSelectElement).options);
+        const o = opts.find((x) => x.value === v) ?? opts.find((x) => x.text.replace(/\s+/g, " ").trim() === v);
+        return o ? { value: o.value, label: o.text.replace(/\s+/g, " ").trim() } : null;
+      }, req.value);
+      if (!match) throw new AgentError("invalid_action", `${req.ref} has no option "${req.value.slice(0, 80)}".`);
+      dirty = true;
+      await h.selectOption(match.value, { timeout: 5_000 });
+      remember(d.field.label, d.field.kind, match.label);
+      await settleAfterClick();
       return observe();
     }
     case "scroll":
@@ -365,6 +506,7 @@ async function run(req: AgentRequest): Promise<AgentObservation | null> {
 }
 
 const hostOf = (u: string) => { try { return new URL(u).host; } catch { return "that address"; } };
+const hostnameOf = (u: string) => { try { const x = new URL(u); return x.protocol === "https:" || x.protocol === "http:" ? x.hostname : ""; } catch { return ""; } };
 const firstLine = (s: string) => s.split("\n")[0]!.slice(0, 300);
 
 function toCode(err: unknown): { code: AgentErrorCode; message: string } {

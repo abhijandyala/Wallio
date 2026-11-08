@@ -1,10 +1,10 @@
 {
-  "jobId": "itest_1793904913807_0",
+  "jobId": "itest_1794015772304_0",
   "status": "cleaned",
-  "containerId": "06d07514cd53",
+  "containerId": "06d080ec4c0e",
   "containerRemoved": true,
   "volumeRemoved": true,
-  "verifiedAt": "2026-11-05T18:55:15.365Z",
+  "verifiedAt": "2026-11-07T01:42:54.275Z",
   "actionsExecuted": 3,
   "screenshotsTaken": 1,
   "deniedRequests": [],

@@ -13,5 +13,6 @@
     "deadlineMs": 180000,
     "maxActions": 20,
     "maxScreenshots": 12
-  }
+  },
+  "fillKinds": []
 }

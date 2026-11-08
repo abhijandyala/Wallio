@@ -95,6 +95,96 @@
                   "string",
                   "null"
                 ]
+              },
+              "field": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "email",
+                          "name",
+                          "given_name",
+                          "family_name",
+                          "organization",
+                          "tel",
+                          "plan_choice",
+                          "quantity",
+                          "choice",
+                          "free_text",
+                          "checkbox",
+                          "consent",
+                          "sensitive"
+                        ]
+                      },
+                      "label": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "value": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "options": {
+                        "anyOf": [
+                          {
+                            "maxItems": 30,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string",
+                                  "maxLength": 200
+                                },
+                                "label": {
+                                  "type": "string",
+                                  "maxLength": 200
+                                },
+                                "selected": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "value",
+                                "label",
+                                "selected"
+                              ]
+                            }
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "label",
+                      "required",
+                      "value",
+                      "options"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "needsApproval": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -176,7 +266,9 @@
                 "access_denied",
                 "http_error",
                 "egress_denied",
-                "download_blocked"
+                "download_blocked",
+                "payment_required",
+                "verification_required"
               ]
             },
             "detail": {
@@ -186,6 +278,102 @@
           "required": [
             "reason",
             "detail"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "handoff": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "reason": {
+              "type": "string",
+              "enum": [
+                "captcha",
+                "mfa",
+                "login_required",
+                "access_denied",
+                "http_error",
+                "egress_denied",
+                "download_blocked",
+                "payment_required",
+                "verification_required"
+              ]
+            },
+            "url": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "host": {
+              "type": "string",
+              "maxLength": 253
+            },
+            "prepared": {
+              "maxItems": 20,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "name",
+                      "given_name",
+                      "family_name",
+                      "organization",
+                      "tel",
+                      "plan_choice",
+                      "quantity",
+                      "choice",
+                      "free_text",
+                      "checkbox",
+                      "consent",
+                      "sensitive"
+                    ]
+                  },
+                  "value": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "label",
+                  "kind",
+                  "value"
+                ]
+              }
+            },
+            "remaining": {
+              "maxItems": 5,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 200
+              }
+            }
+          },
+          "required": [
+            "reason",
+            "url",
+            "host",
+            "prepared",
+            "remaining"
           ]
         },
         {
