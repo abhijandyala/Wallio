@@ -33,6 +33,10 @@ docker run -d --name wallio-web -p 127.0.0.1:3000:3000 --restart unless-stopped 
 
 Then use the same Caddy block as above.
 
+## Option C: Railway
+
+The web app alone on Railway, proxying `/api` to the Vultr API. See [`.railway/README.md`](../../.railway/README.md): `railway config apply` from the repo root, or set Root Directory `web` in the dashboard.
+
 ## The `/api` proxy and `WALLIO_API_ORIGIN`
 
 - **Behind this Caddy:** `/api/*` never reaches Next.js. Caddy sends it straight to the API, so the web app's own `/api` proxy isn't used.

@@ -1,0 +1,10 @@
+{
+  "name": "wallio-railway",
+  "private": true,
+  "description": "Railway Infrastructure as Code for the Wallio web app. See README.md.",
+  "type": "module",
+  "devDependencies": {
+    "railway": "^3.16.0",
+    "typescript": "^5.9.3"
+  }
+}

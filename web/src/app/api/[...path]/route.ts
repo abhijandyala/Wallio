@@ -15,12 +15,33 @@ const UPSTREAM = (process.env.WALLIO_API_ORIGIN ?? "https://149-28-76-16.sslip.i
 const PASS_REQUEST = ["accept", "content-type", "cookie", "last-event-id"];
 const PASS_RESPONSE = ["content-type", "cache-control", "retry-after", "x-correlation-id"];
 
+/**
+ * The host and scheme the browser used. Behind a hosting proxy (Railway, Caddy) Next's own
+ * URL can read localhost, so prefer the proxy's forwarded headers.
+ */
+function site(req: NextRequest) {
+  const first = (v: string | null) => v?.split(",")[0]?.trim() || undefined;
+  return {
+    host: first(req.headers.get("x-forwarded-host")) ?? first(req.headers.get("host")) ?? req.nextUrl.host,
+    https: (first(req.headers.get("x-forwarded-proto")) ?? req.nextUrl.protocol.replace(":", "")) === "https",
+  };
+}
+
+function hostOf(origin: string) {
+  try {
+    return new URL(origin).host;
+  } catch {
+    return null;
+  }
+}
+
 async function forward(req: NextRequest, ctx: RouteContext<"/api/[...path]">) {
   const { path } = await ctx.params;
+  const here = site(req);
 
   // Keep the API's cross-site protection: writes must come from a page on this site.
   const origin = req.headers.get("origin");
-  if (req.method !== "GET" && origin !== null && origin !== req.nextUrl.origin) {
+  if (req.method !== "GET" && origin !== null && hostOf(origin) !== here.host) {
     return Response.json(
       { code: "forbidden", message: "Cross-origin requests are not allowed.", retryable: false },
       { status: 403 },
@@ -58,7 +79,7 @@ async function forward(req: NextRequest, ctx: RouteContext<"/api/[...path]">) {
     if (v) out.set(h, v);
   }
   // Session cookie: keep it first-party. On plain-http local dev, drop Secure so every browser keeps it.
-  const insecure = req.nextUrl.protocol === "http:";
+  const insecure = !here.https;
   for (const c of upstream.headers.getSetCookie()) {
     let v = c.replace(/;\s*Domain=[^;]*/i, "");
     if (insecure) v = v.replace(/;\s*Secure/i, "");
