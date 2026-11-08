@@ -25,6 +25,39 @@ A personal AI manager: it finds, compares and tests AI tools for your work, then
 | **VPC** `wallio-vpc` (10.5.96.0/20) | The only path from the API to the runner (HTTPS with a pinned certificate) and from the runner to the containment sentinel |
 | **Firewall groups** | Control VM: 443 from anywhere, SSH from the admin IP only. Runner VM: nothing public except admin SSH |
 
+## Browser runner: how the blast radius stays small
+
+Every browser action runs on a separate runner VM that holds no provider, inference or cloud keys. Each job gets a fresh Chromium container that can only reach the internet through a proxy, and only the hosts that job was given.
+
+```
+Control VM 10.5.96.3                              Runner VM 10.5.96.4 (no public ports)
+  API ── HTTPS :8443 over the VPC ─────────────▶  runner daemon (systemd, own user)  
+         pinned cert, bearer token,                 │  docker run -i: JSON over stdio,
+         one action per request                     │  the container has no listening port
+                                                    ▼
+                                    job container: Chromium, sandbox on
+                                    network wallio-jobs (internal: no route out)
+                                                    │  its only peer
+                                                    ▼
+                                    egress proxy ── CONNECT :443, this job's hosts only ──▶ internet
+                                    denies private, loopback, link-local and metadata
+                                    addresses after DNS; per-job byte cap; logs each denial
+```
+
+| Layer | What it enforces |
+|---|---|
+| Container | Non-root user, read-only root filesystem, every capability dropped except `SYS_CHROOT` (so Chromium can keep its own sandbox), `no-new-privileges`, a seccomp profile, 1536 MiB memory, 1 CPU, 192 processes, and a tmpfs that is deleted with the job |
+| Network | The job network has no route out. The proxy accepts only HTTPS to the job's exact allowlist (for example `github.com` and `github.githubassets.com` for Copilot) and connects to the IP it checked itself, so DNS rebinding can't reach a private address. A host firewall blocks the proxy from the VPC and metadata ranges as a second layer |
+| Actions | `navigate`, `inspect`, `fill`, `click`, `scroll`, `screenshot` and `observe`, within limits on actions, screenshots and the deadline. A click on any submit control needs an approval token. The runner checks that token itself: an HMAC bound to the job, the action, the element and the page fingerprint, valid once. Login walls, CAPTCHAs and downloads stop the job; they're never worked around |
+| Lifecycle | One job per purpose, one at a time. A deadline and watchdog are enforced in the daemon, outside the browser. Finish, cancel, deadline or crash all end in teardown, and the runner then checks by name and by label that the container and volume are gone. If that check fails, the runner pauses and accepts no new jobs |
+
+Measured on the Vultr runner VM (6 Nov 2026):
+- Live smoke and containment: 21/21 pass. Containment: 9 denied requests, the private sentinel unchanged at 0, cleanup verified.
+- Container start: 1.9–3.2 s. Peak memory: 566 MiB. Peak processes: 80.
+- Port 8443 doesn't answer from the internet.
+
+Details, the runner's threat model and the containment demo script are in `packages/runner/README.md`. Results are in `docs/RUNNER_TEST_REPORT.md`.
+
 ## Run the backend locally
 
 Needs Node 22.18+ (runs TypeScript directly) and PostgreSQL 16.
