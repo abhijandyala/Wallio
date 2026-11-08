@@ -4,7 +4,7 @@
  */
 
 export const LINKS = {
-  app: "/home",
+  app: "/start",
   myAi: "/my-ai",
   discover: "/discover",
   compare: "/compare",

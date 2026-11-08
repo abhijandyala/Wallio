@@ -1,5 +1,3 @@
-import { decisionsSample } from "@/mocks/decisions";
-
 /** Every destination in the app, in rail order. `hint` is the one-line explanation shown on hover. */
 export const NAV_ITEMS = [
   { href: "/home", label: "Home", icon: "home", hint: "Your AI setup at a glance" },
@@ -16,7 +14,8 @@ export const NAV_ITEMS = [
     hint: "Tools that could fit your work",
   },
   {
-    href: "/compare",
+    // Live mode on the Wallio API; the simulated flow stays one tab away ("Sample compare").
+    href: "/compare?live=1",
     label: "Compare",
     icon: "compare",
     hint: "Test two tools on your own task",
@@ -26,8 +25,6 @@ export const NAV_ITEMS = [
     label: "Decisions",
     icon: "decisions",
     hint: "What to keep, try, or approve",
-    // TODO(api): count of approvals waiting, from the decisions endpoint.
-    count: decisionsSample.approvals.length,
   },
   {
     href: "/settings",
