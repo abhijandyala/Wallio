@@ -4,20 +4,18 @@
   "profileVersionId": "pv_demo_1",
   "calculationVersion": "score-v1+spend-v1",
   "createdAt": "2026-11-06T15:02:05Z",
-  "goal": "Decide whether to keep the current coding assistant for debugging",
+  "goal": "Decide whether to keep GitHub Copilot for debugging or try Zed",
   "action": "try",
-  "targetToolId": "tool_candidate",
-  "headline": "Keep your current assistant, and try the alternative on one debugging task before renewal",
+  "targetToolId": "tool_zed",
+  "headline": "Keep Copilot for now, and try Zed on one debugging task before your next renewal",
   "statements": [
     {
-      "text": "The alternative's published plan includes the IDE integration you require.",
+      "text": "Zed's Pro plan lists $5 of included tokens with usage-based billing beyond that, so cost depends on how much you use it.",
       "role": "supporting",
       "evidenceIds": [
-        "ev_cand_docs"
+        "ev_zed_pricing"
       ],
-      "userInputRefs": [
-        "requiredIntegrations"
-      ]
+      "userInputRefs": []
     },
     {
       "text": "In the owned demo test both setups fixed the sample bug; this is evidence for this one task only.",
@@ -28,7 +26,17 @@
       "userInputRefs": []
     },
     {
-      "text": "No privacy policy was captured for the alternative, so its privacy fit is unknown.",
+      "text": "Zed is a separate editor, so switching means moving your editor setup, not just a plugin.",
+      "role": "counter",
+      "evidenceIds": [
+        "ev_zed_pricing"
+      ],
+      "userInputRefs": [
+        "willingnessToSwitch"
+      ]
+    },
+    {
+      "text": "No privacy policy was captured for Zed, so its privacy fit is unknown.",
       "role": "uncertainty",
       "evidenceIds": [],
       "userInputRefs": [
@@ -36,7 +44,7 @@
       ]
     },
     {
-      "text": "Run the alternative on your own next bug before the 20 Nov renewal.",
+      "text": "Try Zed on your next real bug before the 20 Nov Copilot renewal.",
       "role": "next_step",
       "evidenceIds": [],
       "userInputRefs": []
@@ -44,7 +52,7 @@
   ],
   "candidates": [
     {
-      "toolId": "tool_candidate",
+      "toolId": "tool_zed",
       "role": "candidate",
       "accessMode": "researched",
       "hardConstraints": {
@@ -66,14 +74,14 @@
             "value": 0.8,
             "weight": 0.2,
             "evidenceIds": [
-              "ev_cand_docs"
+              "ev_zed_pricing"
             ]
           },
           "cost": {
             "value": 0.5,
             "weight": 0.15,
             "evidenceIds": [
-              "ev_cand_pricing"
+              "ev_zed_pricing"
             ]
           },
           "privacy": {
@@ -89,8 +97,8 @@
         }
       },
       "known": [
-        "Lists an IDE extension",
-        "Publishes a monthly individual plan"
+        "Publishes a Pro plan billed monthly",
+        "Lists included tokens with usage-based billing beyond them"
       ],
       "missing": [
         "Data retention policy"
@@ -110,7 +118,7 @@
         "immediateCashSavingMinor": 0,
         "renewalAvoidanceMinor": null,
         "assumptions": [
-          "Candidate price not yet confirmed from a capture"
+          "Zed usage beyond included tokens is unknown until tried"
         ]
       }
     ]
@@ -122,19 +130,19 @@
   ],
   "evidence": [
     {
-      "id": "ev_cand_docs",
+      "id": "ev_zed_pricing",
       "runId": "run_01HZX3",
       "kind": "vendor_claim",
-      "candidateToolId": "tool_candidate",
+      "candidateToolId": "tool_zed",
       "accessMode": "researched",
-      "url": "https://docs.candidate.example/ide",
-      "canonicalUrl": "https://docs.candidate.example/ide",
-      "capturedAt": "2026-11-06T15:00:40Z",
-      "contentHash": "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+      "url": "https://zed.dev/pricing",
+      "canonicalUrl": "https://zed.dev/pricing",
+      "capturedAt": "2026-11-06T15:00:52Z",
+      "contentHash": "sha256:e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
       "hasScreenshot": true,
       "extractionMethod": "dom",
-      "excerpt": "Install the extension for your editor.",
-      "limitation": "A published claim, not observed behavior"
+      "excerpt": "Pro $10 per month · $5 of tokens included · Usage-based billing beyond $5",
+      "limitation": "Listed price may exclude tax and may have changed since capture"
     },
     {
       "id": "ev_test_owned",
@@ -150,21 +158,6 @@
       "extractionMethod": "dom",
       "excerpt": "test: off-by-one fixed - PASS",
       "limitation": "Measures the owned harness on Vultr models, not the commercial product"
-    },
-    {
-      "id": "ev_cand_pricing",
-      "runId": "run_01HZX3",
-      "kind": "vendor_claim",
-      "candidateToolId": "tool_candidate",
-      "accessMode": "researched",
-      "url": "https://pricing.candidate.example/",
-      "canonicalUrl": "https://pricing.candidate.example/",
-      "capturedAt": "2026-11-06T15:00:52Z",
-      "contentHash": "sha256:e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
-      "hasScreenshot": true,
-      "extractionMethod": "dom",
-      "excerpt": "Individual plan, billed monthly",
-      "limitation": "Listed price may exclude tax and may have changed since capture"
     }
   ]
 }

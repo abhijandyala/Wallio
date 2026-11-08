@@ -1,0 +1,57 @@
+[
+  {
+    "runId": "run_02TRIAL",
+    "seq": 9,
+    "ts": "2026-11-06T15:01:10Z",
+    "stage": "testing",
+    "type": "approval_required",
+    "message": "Waiting for your approval to send the synthetic trial request",
+    "data": {
+      "approvalId": "apr_01"
+    }
+  },
+  {
+    "runId": "run_02TRIAL",
+    "seq": 10,
+    "ts": "2026-11-06T15:01:40Z",
+    "stage": "testing",
+    "type": "approval_resolved",
+    "message": "You approved the request",
+    "data": {
+      "approvalId": "apr_01",
+      "result": "approved"
+    }
+  },
+  {
+    "runId": "run_02TRIAL",
+    "seq": 12,
+    "ts": "2026-11-06T15:01:44Z",
+    "stage": "testing",
+    "type": "action_result",
+    "message": "Submitted once to Wallio's own form; no vendor was contacted",
+    "data": {
+      "approvalId": "apr_01",
+      "result": "submitted",
+      "evidenceId": "ev_form_after"
+    }
+  },
+  {
+    "runId": "run_03CONTAIN",
+    "seq": 8,
+    "ts": "2026-11-06T15:10:20Z",
+    "stage": "verifying",
+    "type": "containment_result",
+    "message": "Contained: 11 requests and 3 actions refused, sentinel unchanged at 0, cleanup verified",
+    "data": {
+      "contained": true,
+      "deniedRequests": 11,
+      "refusedActions": 3,
+      "sentinel": {
+        "before": 0,
+        "after": 0
+      },
+      "cleanupVerified": true,
+      "evidenceId": "ev_hostile"
+    }
+  }
+]

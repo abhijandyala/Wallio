@@ -1,0 +1,89 @@
+{
+  "base": "https://149-28-76-16.sslip.io",
+  "rows": [
+    {
+      "n": 1,
+      "label": "post-p9",
+      "at": "2026-11-05T23:00:05.276Z",
+      "comparison": {
+        "runId": "d35b76bf-6a4b-47a3-9867-4f4cd1881b38",
+        "correlationId": "corr_1db724383e4d42e1",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 8,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "compare_further",
+        "confidence": "low",
+        "statements": 3,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 2.4,
+        "actionResults": [
+          "simulated"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 3,
+        "contained": true,
+        "refused": 3,
+        "denied": 0,
+        "sentinel": null,
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    },
+    {
+      "n": 2,
+      "label": "post-p9",
+      "at": "2026-11-05T23:00:18.929Z",
+      "comparison": {
+        "runId": "67156d2a-3550-4151-87ae-93ccc61fbf95",
+        "correlationId": "corr_79f1315f6042461f",
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 7.9,
+        "evidence": 3,
+        "error": null
+      },
+      "recommendation": {
+        "action": "compare_further",
+        "confidence": "low",
+        "statements": 3,
+        "uncited": 0,
+        "evidence": 3
+      },
+      "trial": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 2.5,
+        "actionResults": [
+          "simulated"
+        ]
+      },
+      "containment": {
+        "status": "CLEANED",
+        "outcome": "succeeded",
+        "seconds": 2.9,
+        "contained": true,
+        "refused": 3,
+        "denied": 0,
+        "sentinel": null,
+        "cleanupVerified": true
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    }
+  ]
+}

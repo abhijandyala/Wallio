@@ -666,5 +666,5 @@
     "limitations",
     "evidence"
   ],
-  "$id": "wallio/api/Recommendation@0.1.0"
+  "$id": "wallio/api/Recommendation@0.3.0"
 }

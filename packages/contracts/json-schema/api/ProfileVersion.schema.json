@@ -192,5 +192,5 @@
     "version",
     "createdAt"
   ],
-  "$id": "wallio/api/ProfileVersion@0.1.0"
+  "$id": "wallio/api/ProfileVersion@0.3.0"
 }

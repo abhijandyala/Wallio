@@ -1,0 +1,23 @@
+{
+  "base": "https://149-28-76-16.sslip.io",
+  "note": "Run from the control VM (the laptop's IP had hit RUNS_PER_HOUR_PER_IP after the 10 live rehearsals). Runner stopped at 01:30:34 UTC.",
+  "rows": [
+    {
+      "n": 1,
+      "label": "r7-degraded",
+      "at": "2026-11-06T01:33:50.816Z",
+      "comparison": {
+        "runId": "e10abd18-4d36-4546-a6e9-75c38ec8beb3",
+        "correlationId": "corr_b82e15e712a84bae",
+        "status": "CLEANUP_FAILED",
+        "outcome": "failed",
+        "seconds": 1.7,
+        "evidence": 0,
+        "error": "runner_unavailable"
+      },
+      "health": 200,
+      "problems": ["comparison ended CLEANUP_FAILED"],
+      "pass": false
+    }
+  ]
+}

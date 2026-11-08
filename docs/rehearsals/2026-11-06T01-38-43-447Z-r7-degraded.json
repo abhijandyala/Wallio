@@ -1,0 +1,22 @@
+{
+  "base": "https://149-28-76-16.sslip.io",
+  "rows": [
+    {
+      "n": 1,
+      "label": "r7-degraded",
+      "at": "2026-11-06T01:38:43.447Z",
+      "comparison": {
+        "runId": "32861742-baab-48ce-8d35-a0a61646c7ca",
+        "correlationId": "corr_7fd6ec757cb74d79",
+        "status": "CLEANED",
+        "outcome": "failed",
+        "seconds": 2.3,
+        "evidence": 0,
+        "error": "runner_unavailable"
+      },
+      "health": 200,
+      "problems": [],
+      "pass": true
+    }
+  ]
+}

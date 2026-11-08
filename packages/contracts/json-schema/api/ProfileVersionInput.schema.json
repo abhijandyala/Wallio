@@ -174,5 +174,5 @@
     "requiredIntegrations",
     "attributes"
   ],
-  "$id": "wallio/api/ProfileVersionInput@0.1.0"
+  "$id": "wallio/api/ProfileVersionInput@0.3.0"
 }

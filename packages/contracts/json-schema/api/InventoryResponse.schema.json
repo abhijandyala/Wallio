@@ -340,5 +340,5 @@
     "tools",
     "summary"
   ],
-  "$id": "wallio/api/InventoryResponse@0.1.0"
+  "$id": "wallio/api/InventoryResponse@0.3.0"
 }

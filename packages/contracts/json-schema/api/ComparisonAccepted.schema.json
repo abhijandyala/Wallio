@@ -28,5 +28,5 @@
     "eventsUrl",
     "statusUrl"
   ],
-  "$id": "wallio/api/ComparisonAccepted@0.1.0"
+  "$id": "wallio/api/ComparisonAccepted@0.3.0"
 }

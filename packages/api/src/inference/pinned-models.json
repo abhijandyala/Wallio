@@ -1,0 +1,32 @@
+{
+  "textModel": "qwen3.8-flash-next",
+  "visionModel": "qwen3.8-flash-next",
+  "jsonMode": true,
+  "prices": {
+    "qwen3.8-flash-next": {
+      "inputPerMTokUsd": 0.1,
+      "outputPerMTokUsd": 0.2
+    }
+  },
+  "testedAt": "2026-11-05T15:40:18.040Z",
+  "rateLimits": {
+    "published": null,
+    "publishedNote": "Vultr docs, FAQ and response headers state no rate limits (checked 2026-11-05).",
+    "observed": {
+      "model": "qwen3.8-flash-next",
+      "date": "2026-11-05",
+      "concurrent12": "12/12 HTTP 200, median 657 ms",
+      "concurrent24": "24/24 HTTP 200, median 647 ms"
+    },
+    "policy": "Gateway retries 429/5xx at most twice with backoff. Runner jobs are serialized (1 active job), so a comparison stays far below observed capacity."
+  },
+  "modelParams": {
+    "qwen3.8-flash-next": {
+      "chat_template_kwargs": {
+        "enable_thinking": false
+      }
+    }
+  },
+  "modelParamsNote": "Tested 2026-11-05: with thinking on, a research plan used the full 3000-token budget on reasoning and returned no answer; with enable_thinking=false the same request returned valid JSON in ~0.8 s using ~1/3 of the tokens.",
+  "notes": "Filled after the capability gate passes (npm run smoke:inference -w @wallio/api). Prices are USD per 1M tokens from Vultr's current price sheet."
+}
