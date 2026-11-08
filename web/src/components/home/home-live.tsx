@@ -144,6 +144,7 @@ function toHome({ inv, decisions, catalog }: Loaded): HomeSummary {
     monthlyBudgetCents: homeSample.monthlyBudgetCents,
     totals: {
       monthlyCents: inv.summary.knownMonthlyEquivalentMinor ?? 0,
+      monthlyUnknown: inv.summary.knownMonthlyEquivalentMinor === null && inv.summary.unknownPriceCount > 0,
       unknownPriceCount: inv.summary.unknownPriceCount,
       activeTools: active.length,
       renewalsNext30,

@@ -11,22 +11,30 @@ export function SpendPanel({
   totals: HomeSummary["totals"];
   budgetCents: number;
 }) {
-  const pct = Math.round((totals.monthlyCents / budgetCents) * 100);
+  // No percentage without a budget, and no total when every price is unknown (never "$0").
+  const unknown = totals.monthlyUnknown === true;
+  const pct = budgetCents > 0 && !unknown ? Math.round((totals.monthlyCents / budgetCents) * 100) : null;
   const budget = formatMoney(budgetCents).replace(".00", "");
+  const unknownNote = totals.unknownPriceCount > 0 && <> · {totals.unknownPriceCount} price unknown</>;
 
   return (
     <Panel title="Monthly spend" action={{ label: "Budget", href: "/settings#spending" }}>
       <div className="flex h-full flex-col justify-end gap-5">
         <p className="display text-[44px] leading-[48px] font-medium text-text-1">
-          <NumberTicker value={totals.monthlyCents} kind="money" />
+          {unknown ? "Unknown" : <NumberTicker value={totals.monthlyCents} kind="money" />}
         </p>
-        <Meter value={pct} label={`${pct}% of monthly budget`} />
+        {pct !== null && <Meter value={pct} label={`${pct}% of monthly budget`} />}
         <p className="text-[13px] text-text-3">
-          <span className="tnum text-text-2">{pct}%</span> of your {budget}{" "}
-          budget
-          {totals.unknownPriceCount > 0 && (
-            <> · {totals.unknownPriceCount} price unknown</>
+          {pct !== null ? (
+            <>
+              <span className="tnum text-text-2">{pct}%</span> of your {budget} budget
+            </>
+          ) : budgetCents > 0 ? (
+            <>Your budget is {budget}</>
+          ) : (
+            <>No budget set</>
           )}
+          {unknownNote}
         </p>
       </div>
     </Panel>

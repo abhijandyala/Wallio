@@ -60,7 +60,8 @@ let session: Promise<unknown> | null = null;
 
 function fetchNow<K extends ApiKey>(key: K): Promise<Data<K>> {
   const run = () => FETCHERS[key]() as Promise<Data<K>>;
-  if (key === "health" || key === "catalog") return run();
+  // Only health is outside the guest session; the API makes a workspace for catalog too.
+  if (key === "health") return run();
   if (!session) {
     const first = run();
     session = first.catch(() => undefined);
@@ -94,6 +95,17 @@ export function load<K extends ApiKey>(key: K, opts: { force?: boolean } = {}): 
   return promise;
 }
 
+/**
+ * After the guest cookie was cleared (Reset demo, a fresh sample workspace): forget the old
+ * workspace's data, and let the next workspace call go alone again so only one new guest
+ * workspace is created.
+ */
+export function resetSession() {
+  session = null;
+  for (const key of ["profile", "inventory", "decisions"] as const) entries.delete(key);
+  emit();
+}
+
 /** Put the server's own answer in place (after a write that returns it). */
 export function prime<K extends ApiKey>(key: K, data: Data<K>) {
   entries.set(key, { data, at: Date.now() });
@@ -123,8 +135,13 @@ export interface Cached<T> {
   loading: boolean;
 }
 
+const noop = () => () => {};
+
 /** Read a key and keep it fresh. Shows the cached copy at once if there is one. */
 export function useApi<K extends ApiKey>(key: K): Cached<Data<K>> {
+  // The server render never has data; the first client render must match it (hydration),
+  // so cached data shows from the render right after. Client-side navigations get it at once.
+  const hydrated = useSyncExternalStore(noop, () => true, () => false);
   useSyncExternalStore(
     (cb) => {
       listeners.add(cb);
@@ -137,6 +154,7 @@ export function useApi<K extends ApiKey>(key: K): Cached<Data<K>> {
     load(key).catch(() => {});
   }, [key]);
   const e = entries.get(key);
+  if (!hydrated) return { data: undefined, error: undefined, loading: true };
   return { data: e?.data as Data<K> | undefined, error: e?.error, loading: !!e?.promise };
 }
 

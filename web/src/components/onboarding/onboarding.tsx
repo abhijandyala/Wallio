@@ -15,7 +15,7 @@ import { Wordmark } from "@/components/kit/wordmark";
 import { GlowCanvas } from "@/components/kit/glow-canvas";
 import { Button } from "@/components/ui/button";
 import { api, explainFailure, resetGuestSession } from "@/lib/api/client";
-import { invalidate, useApiStatus } from "@/lib/api/cache";
+import { invalidate, load, resetSession, useApiStatus } from "@/lib/api/cache";
 import type { ApiSubscription, CatalogTool, ProfileVersion } from "@/lib/api/contract";
 import type { GithubFinding } from "@/lib/github-import";
 import {
@@ -128,7 +128,7 @@ export function Onboarding() {
   useEffect(() => {
     if (status.state !== "online") return;
     let alive = true;
-    Promise.all([api.catalog(), api.profile(), api.inventory()]).then(
+    Promise.all([load("catalog"), load("profile", { force: true }), load("inventory", { force: true })]).then(
       ([cat, prof, inv]) => {
         if (!alive) return;
         setCatalog(cat);
@@ -166,7 +166,7 @@ export function Onboarding() {
       setBusy(true);
       try {
         await resetGuestSession();
-        invalidate("profile", "inventory", "decisions");
+        resetSession();
         setSample(null);
         setA(EMPTY_ANSWERS);
         setCreated({});
@@ -321,7 +321,11 @@ export function Onboarding() {
         </Panel>
       </>
     );
-    primary = { label: busy ? "Starting over…" : "Continue", onClick: next, disabled: !ready.intro || busy };
+    primary =
+      error && !sample && status.state === "online"
+        ? // The first load failed (a rate limit, say): try again instead of leaving Continue dead.
+          { label: "Try again", onClick: () => { setError(null); setWorkspace((n) => n + 1); } }
+        : { label: busy ? "Starting over…" : "Continue", onClick: next, disabled: !ready.intro || busy };
   } else if (step === "connect") {
     const pct = (n: number) => `${Math.round(n * 100)}%`;
     body = (

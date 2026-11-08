@@ -80,7 +80,8 @@ const localZone = () => {
 };
 
 export const DEFAULT_SETTINGS: Settings = {
-  displayName: "Abhi",
+  // Empty until the person sets a name in Settings; Home then just says "Welcome back".
+  displayName: "",
   timeZone: "America/New_York",
   currency: "USD",
   budgetCents: 12000,
