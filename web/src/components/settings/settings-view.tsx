@@ -31,6 +31,8 @@ import { Button } from "@/components/ui/button";
 import { daysUntil, formatMoney, formatShortDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { resetGuestSession, useApiStatus } from "@/lib/api/client";
+import { clearOnboardingDone } from "@/lib/onboarding";
+import { ButtonLink } from "@/components/kit/button-link";
 import { useLiveBudget } from "@/lib/api/use-live-budget";
 import {
   ChipList,
@@ -977,6 +979,7 @@ function ResetDemoRow({ say }: { say: (t: string) => void }) {
           try {
             await resetGuestSession();
             resetSettings();
+            clearOnboardingDone();
             say("Demo reset. Your next run gets a fresh workspace");
           } catch {
             say("Couldn't reset the demo. Try again");
@@ -987,6 +990,17 @@ function ResetDemoRow({ say }: { say: (t: string) => void }) {
       >
         Reset demo
       </Button>
+    </Row>
+  );
+}
+
+/** The first-run setup (/start), again: role, tasks, tools, budget and privacy. */
+function SetupAgainRow() {
+  return (
+    <Row inline label="Answer the setup questions again">
+      <ButtonLink href="/start?again=1" variant="secondary" size="sm">
+        Set up again
+      </ButtonLink>
     </Row>
   );
 }
@@ -1012,6 +1026,7 @@ function DemoSection({ s, set, say }: P & { say: (t: string) => void }) {
           ]}
         />
       </Row>
+      <SetupAgainRow />
       <ResetDemoRow say={say} />
       <Row label="Reset every setting to the default">
         <Button

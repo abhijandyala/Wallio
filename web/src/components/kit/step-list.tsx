@@ -5,8 +5,11 @@ import { cn } from "@/lib/utils";
 /** Live progress of an agent run. One line per step; blocked/failed steps show a short note. */
 export function StepList({
   steps,
+  activeLabel,
 }: {
   steps: Pick<RunStep, "id" | "label" | "status" | "atSeconds" | "note" | "approval">[];
+  /** Right-side note on the active step. Default: "Working" (or "Needs you" when it waits for approval). */
+  activeLabel?: string;
 }) {
   return (
     <ol className="flex flex-col" aria-live="polite">
@@ -33,9 +36,10 @@ export function StepList({
           </span>
           <span className="tnum shrink-0 text-[13px] text-text-3">
             {s.status === "active"
-              ? s.approval
-                ? "Needs you"
-                : "Working"
+              ? activeLabel ??
+                (s.approval
+                  ? "Needs you"
+                  : "Working")
               : s.atSeconds !== null
                 ? `${s.atSeconds}s`
                 : ""}
