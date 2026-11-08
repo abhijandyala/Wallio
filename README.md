@@ -49,7 +49,7 @@ Control VM 10.5.96.3                              Runner VM 10.5.96.4 (no public
 |---|---|
 | Container | Non-root user, read-only root filesystem, every capability dropped except `SYS_CHROOT` (so Chromium can keep its own sandbox), `no-new-privileges`, a seccomp profile, 1536 MiB memory, 1 CPU, 192 processes, and a tmpfs that is deleted with the job |
 | Network | The job network has no route out. The proxy accepts only HTTPS to the job's exact allowlist (for example `github.com` and `github.githubassets.com` for Copilot) and connects to the IP it checked itself, so DNS rebinding can't reach a private address. A host firewall blocks the proxy from the VPC and metadata ranges as a second layer |
-| Actions | `navigate`, `inspect`, `fill`, `click`, `scroll`, `screenshot` and `observe`, within limits on actions, screenshots and the deadline. A click on any submit control needs an approval token. The runner checks that token itself: an HMAC bound to the job, the action, the element and the page fingerprint, valid once. Login walls, CAPTCHAs and downloads stop the job; they're never worked around |
+| Actions | `navigate`, `inspect`, `fill`, `select`, `click`, `scroll`, `screenshot` and `finish`, within limits on actions, screenshots and the deadline. A click on any submit control needs an approval token. The runner checks that token itself: an HMAC bound to the job, the action, the element and the page fingerprint, valid once. Sensitive fields (passwords, payment, one-time codes, government or bank numbers) are never filled. Sign-in walls, CAPTCHAs, payment pages, "check your email" steps and downloads stop the job and are never worked around; the job reports where the user can continue themselves |
 | Lifecycle | One job per purpose, one at a time. A deadline and watchdog are enforced in the daemon, outside the browser. Finish, cancel, deadline or crash all end in teardown, and the runner then checks by name and by label that the container and volume are gone. If that check fails, the runner pauses and accepts no new jobs |
 
 Measured on the Vultr runner VM (6 Nov 2026):
@@ -77,7 +77,7 @@ npm run api:dev               # http://localhost:8787 (RUN_MODE=mock by default)
 ### Tests
 
 ```bash
-npm run contracts:test        # 36 contract and fixture tests
+npm run contracts:test        # 37 contract and fixture tests
 npm run api:test              # 101 API tests; needs the wallio_test database from .env.example
 npm run typecheck
 ```
@@ -105,15 +105,22 @@ The API tests use a contract-faithful fake runner and fake inference, so they ne
 ```bash
 deploy/setup-server.sh <ip> [domain]   # one-time: packages, firewall, Postgres, Caddy, systemd
 deploy/push-secrets.sh <ip>            # copies the inference key from .env over SSH (never printed)
-deploy/deploy.sh <ip>                  # ships the committed HEAD, migrates, restarts, health-checks
+deploy/deploy.sh <ip>                  # ships the committed HEAD, builds the web app, migrates, restarts both, health-checks
 deploy/check-secrets.sh <ip>           # looks for real secret values in git history, logs, the database and API responses
 deploy/reset-demo.sh <ip> [--yes]      # deletes only guest demo data (dry run by default)
 node deploy/rehearse.ts https://<domain> --count 10   # drives the live site and logs to docs/REHEARSALS.md
 ```
 
-Only Caddy is public (443). The API listens on 127.0.0.1:8787 as the unprivileged `wallio` user; Postgres is localhost-only; SSH is key-only and limited by the Vultr firewall group to the admin IP.
+Only Caddy is public (443): it sends `/api/*` to the API and everything else to the web app. The API (127.0.0.1:8787) and the web app (Next.js, 127.0.0.1:3000) run as the unprivileged `wallio` user; Postgres is localhost-only; SSH is key-only and limited by the Vultr firewall group to the admin IP.
 
 The control VM's private address is 10.5.96.3. The runner VM joins `wallio-vpc`, and `deploy/runner/push-runner-secrets.sh` writes `RUNNER_URL`, `RUNNER_SHARED_TOKEN`, `RUNNER_APPROVAL_KEY` and `RUNNER_CA_FILE` into `api.env`; the runner's self-signed certificate is trusted through `NODE_EXTRA_CA_CERTS`.
+
+## Rehearsals
+
+`deploy/rehearse.ts` drives the deployed site the way a visitor would: a comparison, an approval-gated trial request (approve once, then a second approval that must be refused) and a containment run, each in a fresh guest workspace. Full log in `docs/REHEARSALS.md`.
+
+- **Live, on the Vultr runner and Vultr inference (6 Nov 2026): 10/10 pass.** Comparisons took 22–24 s (one 50 s run where the planner chose more pages). Every trial request was submitted only after approval, and the replayed approval was refused. Every containment run refused the hostile actions, the private sentinel stayed at 0, and cleanup was verified.
+- **Degraded (runner stopped):** the comparison fails honestly with `runner_unavailable` and still ends `CLEANED`. The first attempt ended `CLEANUP_FAILED`; that is logged too, with the fix (`6dfd5bf`).
 
 ## Threat model (control plane)
 
@@ -137,7 +144,8 @@ What the API assumes is hostile, and what stops it. The runner's own threat mode
 - Guest workspaces only (72-hour cookie, no accounts). Subscriptions are typed in; nothing is imported from real accounts.
 - The trial request is synthetic and goes to Wallio's own form. Nothing is bought, cancelled or sent to a vendor.
 - Containment is a controlled test, not proof of invulnerability: containers share the runner VM's kernel.
-- Limits are per API process and reset on restart; the per-workspace quota is durable.
+- Discover (the tool marketplace view) shows sample data; its buttons start a real comparison. The other pages use the live API.
+- Limits are per API process and reset on restart; the per-workspace quota is durable. The "pause live runs after a failed cleanup" switch is also in memory, so a restart clears it.
 
 ## License
 
