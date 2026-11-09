@@ -2,9 +2,12 @@
 
 **Total: 4:15**
 
+Every line below has been checked against the code and the live deployment (8 Nov 2026). The
+changes from the first draft, and why, are at the end.
+
 | Who | Parts | Time |
 |---|---|---|
-| **Abhi** (on camera) | Opening, listener in the skit, the answer and switching, callback | ~1:27 |
+| **Abhi** (on camera) | Opening, listener in the skit, the answer and trying it, callback | ~1:27 |
 | **Adhvik** (on camera) | The problem, "This is Wallio", pitcher in the skit, containment, callback | ~1:27 |
 | **Anish** (voice-over only) | The app in depth, Vultr, tagline | ~1:23 |
 
@@ -50,79 +53,79 @@ This is Wallio. A wallet for your AI.
 
 **Abhi (listener):** *(hand up)* Wait, wait, wait. I don't need another Ramp or Datadog that takes hours to set up.
 
-**Adhvik (pitcher):** Nothing to set up. You connect what you already use, and it does the rest.
+**Adhvik (pitcher):** Nothing to set up. Tell it what you pay for, and it does the rest.
 
 **Abhi (listener):** *(beat)* ...Okay. Show me.
 
 ---
 
-**1:25–1:50** · **Anish (VO)** · *match cut back outside, then into the app*
+**1:25–1:50** · **Anish (VO)** · *match cut back outside, then into the app (onboarding, then Home)*
 
-First, connect the tools you already use.
+First, tell Wallio the tools you pay for. The plan, the price, when it renews.
 
-Wallio learns what you pay, and when it renews.
+Wallio adds it up, and shows you what renews next.
 
-It spots the tools that do the same job.
+Point it at a public GitHub repo, and it learns how you work.
 
-It also watches how much you actually use them. Your messages. Your tokens.
-
-Paying for the top plan, but barely using it? Wallio notices. And it tells you when a cheaper plan is enough.
-
-And it learns how you work. If it's not sure, it asks you.
+Every guess is marked as a guess. Nothing counts until you say yes.
 
 ---
 
-**1:50–2:02** · **Anish (VO)**
+**1:50–2:02** · **Anish (VO)** · *Compare page*
 
-Then it finds tools that fit the way you work. Not the ones that paid to be on a list.
+Curious about a new tool? Wallio compares it with the one you pay for.
 
-Each one tells you why it fits. And why it might not.
+Every claim cites its source. If it can't cite one, it doesn't say it.
+
+And it tells you what it couldn't find out.
 
 ---
 
-**2:02–2:22** · **Anish (VO)**
+**2:02–2:22** · **Anish (VO)** · *Compare page, live run*
 
-Pick one, and Wallio tests it for you.
+Then it checks for itself.
 
-A real browser, running on Vultr, visits the official sites. It runs your actual task. And it records every step.
+A real browser, running on Vultr, reads only each tool's official pages. It saves a screenshot of every page it reads.
 
-You can watch the whole thing back. Every recording is a receipt.
+Then it runs a real coding test in the sandbox. A Vultr model fixes a bug, and the browser checks the fix.
+
+Every screenshot is a receipt.
 
 ---
 
 **2:22–2:35** · **Abhi**
 
-Then you get a clear answer. Keep, try, or switch.
+Then you get a clear answer. Keep it, try the new one, or replace it after a test.
 
 Sometimes the answer is to keep what you have. Wallio tells you that too.
 
-And when prices change later, it only pings you if it matters.
+And if your plan renews soon, it tells you to decide before it does.
 
 ---
 
-**2:35–3:00** · **Abhi**
+**2:35–3:00** · **Abhi** · *signup cards (keep the "Runner sample" tag in shot), then the trial request*
 
-Ready to switch? Wallio does it for you.
+Ready to try it? Wallio gets the signup ready.
 
-It signs you up for the new tool. It cancels the old one.
+It fills in what it safely can. Never your password. Never your card.
 
-You watch it happen, live. You can stop it anytime. And you make the final click.
+And it stops where only you can finish: signing in, paying, the link in your email.
 
-Then it moves your prompts, your settings and your files. So you pick up right where you left off.
+You watch it happen, live. And you make the final click.
 
 ---
 
-**3:00–3:30** · **Adhvik**
+**3:00–3:30** · **Adhvik** · *Compare page, "Run the containment test"*
 
 Of course, an agent that browses for you needs a short leash.
 
-Every run gets its own sandbox on Vultr.
+Every browser session gets its own sandbox on Vultr.
 
 Three minutes. Twenty actions. Official sites only.
 
-Then the sandbox is destroyed.
+Then the sandbox is destroyed, and we check that it's gone.
 
-Watch. This page tries to break into our private network. Three tries. Three blocks. Wallio keeps running.
+Watch. This page tries to break into our private network. Three clicks, refused. Nine hidden requests, blocked. Our tripwire never fires.
 
 And nothing is ever submitted without you. You approve it once. Try it twice, and it's refused.
 
@@ -138,9 +141,9 @@ Our app runs on Vultr Cloud Compute.
 
 Every AI call goes through Vultr Serverless Inference.
 
-And the browser lives on its own Vultr machine, sealed off from everything else.
+And the browser lives on its own Vultr machine, reachable only over a private network.
 
-Vultr doesn't just host Wallio. It keeps every run fast, private and safe.
+Vultr doesn't just host Wallio. It's where every run is contained.
 
 ---
 
@@ -167,3 +170,28 @@ Vultr doesn't just host Wallio. It keeps every run fast, private and safe.
 **Adhvik:** You don't need all of them. Just the right ones.
 
 **Anish (VO):** Wallio. Your AI, accounted for.
+
+---
+
+## What changed from the first draft, and why
+
+| Draft line | Changed to | Why (where in the code) |
+|---|---|---|
+| "You connect what you already use" / "connect the tools you already use" | "Tell it what you pay for" | There is no connections API; the panel is hidden (`web/src/components/my-ai/my-ai-view.tsx`). Tools are entered in onboarding or My AI. |
+| "It watches how much you actually use them. Your messages. Your tokens." | Removed | Wallio doesn't track usage, and the app says so (`web/src/components/home/stack-panel.tsx`). |
+| "Paying for the top plan but barely using it? … a cheaper plan is enough" | Removed | Depends on usage tracking, which doesn't exist. |
+| "It spots the tools that do the same job" | Removed | Overlap only appears in sample data; live Home sets it to null (`home-live.tsx`). |
+| "Wallio learns what you pay, and when it renews" | "Tell Wallio … Wallio adds it up, and shows you what renews next" | You enter price and renewal; the API totals them and lists upcoming renewals (`GET /api/inventory`). |
+| "It learns how you work. If it's not sure, it asks you." | "Point it at a public GitHub repo … Nothing counts until you say yes" | Inferred facts come from a public repo, each with a source and confidence, and you keep or remove each one (`web/src/lib/onboarding.ts`). |
+| "It finds tools that fit … Not the ones that paid to be on a list. Each one tells you why it fits." | "Wallio compares it … Every claim cites its source" | Discover is sample data (labelled in the app). Live comparisons reject uncited statements and list what's missing. |
+| "Pick one, and Wallio tests it for you … It runs your actual task" | "Reads only each tool's official pages … A Vultr model fixes a bug, and the browser checks the fix" | The owned test is Wallio's sample bug fixed by a Vultr model. It does not test the commercial product or the user's code (`packages/api/src/eval/harness.ts`). |
+| "You can watch the whole thing back. Every recording is a receipt." | "It saves a screenshot of every page it reads. Every screenshot is a receipt." | There is no video recording; each page read is stored as evidence with a text hash and a screenshot. |
+| "Keep, try, or switch" | "Keep it, try the new one, or replace it after a test" | The app's actions are Keep, Try, Replace after a test, Compare further, Review the renewal (`live-panels.tsx`). |
+| "When prices change later, it only pings you if it matters" | "If your plan renews soon, it tells you to decide before it does" | There is no price monitoring. Review-the-renewal is a real recommendation (`packages/api/src/domain/recommend.ts`). |
+| "It signs you up … It cancels the old one … moves your prompts, your settings and your files" | "Gets the signup ready … stops where only you can finish" | Wallio never signs up, cancels or migrates. The signup flow is a labelled runner sample that stops at sign-in, payment and email checks; the live submit is Wallio's own trial form, approval-gated. |
+| "You can stop it anytime" | Removed | The API can cancel a run (`POST /api/runs/:id/cancel`), but no button in the app calls it yet. |
+| "Every run gets its own sandbox" | "Every browser session gets its own sandbox" | One sandbox per purpose: a comparison uses three, one after another. |
+| "Three tries. Three blocks." | "Three clicks, refused. Nine hidden requests, blocked. Our tripwire never fires." | Every live rehearsal: 3 refused by API policy, 9 denied by the proxy, sentinel at 0 (`docs/RUNNER_TEST_REPORT.md`). |
+| "Sealed off from everything else" / "keeps every run fast, private and safe" | "Reachable only over a private network" / "It's where every run is contained" | The runner is reached over the Vultr VPC with a pinned certificate and token; the closing line now makes no speed claim. |
+
+Unchanged and verified: the 3-minute and 20-action limits (`packages/contracts/src/runner.ts`), official sites only (per-tool allowlists), sandbox teardown with a verified check, the approve-once replay refusal (409), every AI call through Vultr Serverless Inference (`packages/api/src/inference/config.ts` refuses any other URL), and the browser on its own Vultr VM.

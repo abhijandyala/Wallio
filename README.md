@@ -4,6 +4,8 @@ A personal AI manager: it finds, compares and tests AI tools for your work, then
 
 **Live:** https://149-28-76-16.sslip.io (API health: `/api/health`, which also reports `runMode`).
 
+**Mirror:** https://wallio.up.railway.app serves the same web front end from Railway, for easy access. It only serves the pages: every `/api` request is forwarded to the Vultr deployment above, so every run, browser session and model call still happens on Vultr.
+
 ## What the agent does
 
 **The use case.** People pay for several AI tools and can't tell which ones earn their keep. You tell Wallio what you use, what you pay and what you work on. It then answers questions like "should I keep Copilot or try Zed?" with evidence it gathered itself, not with marketing copy or guesses.
